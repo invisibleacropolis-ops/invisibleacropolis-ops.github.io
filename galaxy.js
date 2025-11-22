@@ -12,21 +12,7 @@ const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerH
 camera.position.z = 5;
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(window.devicePixelRatio);
-renderer.toneMapping = THREE.ReinhardToneMapping;
-container.appendChild(renderer.domElement);
-
-// ==========================================
-// POST-PROCESSING (BLOOM)
-// ==========================================
-const renderScene = new THREE.RenderPass(scene, camera);
-
-const bloomPass = new THREE.UnrealBloomPass(
-    new THREE.Vector2(window.innerWidth, window.innerHeight),
-    1.5, // Strength
-    0.4, // Radius
-    0.85 // Threshold
+0.85 // Threshold
 );
 bloomPass.strength = 2.0;
 bloomPass.radius = 0.5;
@@ -257,71 +243,10 @@ const starMaterial = new THREE.ShaderMaterial({
     depthWrite: false
 });
 
-const starSystem = new THREE.Points(starGeometry, starMaterial);
-scene.add(starSystem);
+hudVelocity.innerText = currentSpeed.toFixed(2);
 
-
-// ==========================================
-// INTERACTION & ANIMATION
-// ==========================================
-let isWarping = false;
-let currentWarpFactor = 0.0;
-const targetWarpFactor = 1.0;
-
-// Mouse/Touch Events
-window.addEventListener('mousedown', () => { isWarping = true; });
-window.addEventListener('mouseup', () => { isWarping = false; });
-window.addEventListener('touchstart', () => { isWarping = true; });
-window.addEventListener('touchend', () => { isWarping = false; });
-window.addEventListener('keydown', (e) => { if (e.code === 'Space') isWarping = true; });
-window.addEventListener('keyup', (e) => { if (e.code === 'Space') isWarping = false; });
-
-const clock = new THREE.Clock();
-
-function animate() {
-    requestAnimationFrame(animate);
-
-    const delta = clock.getDelta();
-    const elapsedTime = clock.getElapsedTime();
-
-    // Smooth warp transition
-    if (isWarping) {
-        currentWarpFactor = THREE.MathUtils.lerp(currentWarpFactor, targetWarpFactor, delta * 2.0);
-        hudStatus.innerText = "ENGAGED";
-        hudStatus.style.color = "#f00";
-        hudStatus.style.textShadow = "0 0 10px red";
-    } else {
-        currentWarpFactor = THREE.MathUtils.lerp(currentWarpFactor, 0.0, delta * 2.0);
-        hudStatus.innerText = "ONLINE";
-        hudStatus.style.color = "#0f0";
-        hudStatus.style.textShadow = "0 0 5px cyan";
-    }
-
-    // Update Uniforms
-    nebulaUniforms.iTime.value = elapsedTime;
-    nebulaUniforms.warpFactor.value = currentWarpFactor;
-
-    starUniforms.iTime.value = elapsedTime;
-    starUniforms.warpFactor.value = currentWarpFactor;
-
-    // Camera Shake during warp
-    if (currentWarpFactor > 0.1) {
-        camera.position.x = (Math.random() - 0.5) * currentWarpFactor * 0.2;
-        camera.position.y = (Math.random() - 0.5) * currentWarpFactor * 0.2;
-    } else {
-        camera.position.x = Math.sin(elapsedTime * 0.1) * 0.5;
-        camera.position.y = Math.cos(elapsedTime * 0.1) * 0.5;
-    }
-    camera.lookAt(0, 0, 0);
-
-    // Update HUD Velocity
-    const baseSpeed = 0.15;
-    const warpSpeed = 9.8;
-    const currentSpeed = baseSpeed + (currentWarpFactor * warpSpeed);
-    hudVelocity.innerText = currentSpeed.toFixed(2);
-
-    // Render with Bloom
-    composer.render();
+// Render with Bloom
+composer.render();
 }
 
 animate();
