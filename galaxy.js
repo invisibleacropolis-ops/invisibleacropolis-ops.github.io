@@ -1,7 +1,10 @@
 // galaxy.js
 // Visually Stunning Hyperspace Vortex & Fractal Nebula Display using Three.js
+// Phase 2: Sci-Fi Enhancements (Bloom, Warp, HUD)
 
 const container = document.getElementById('canvas-container');
+const hudVelocity = document.getElementById('velocity');
+const hudStatus = document.getElementById('status');
 
 // Scene Setup
 const scene = new THREE.Scene();
@@ -11,16 +14,36 @@ camera.position.z = 5;
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
+renderer.toneMapping = THREE.ReinhardToneMapping;
 container.appendChild(renderer.domElement);
+
+// ==========================================
+// POST-PROCESSING (BLOOM)
+// ==========================================
+const renderScene = new THREE.RenderPass(scene, camera);
+
+const bloomPass = new THREE.UnrealBloomPass(
+    new THREE.Vector2(window.innerWidth, window.innerHeight),
+    1.5, // Strength
+    0.4, // Radius
+    0.85 // Threshold
+);
+bloomPass.strength = 2.0;
+bloomPass.radius = 0.5;
+bloomPass.threshold = 0.1;
+
+const composer = new THREE.EffectComposer(renderer);
+composer.addPass(renderScene);
+composer.addPass(bloomPass);
 
 // ==========================================
 // 1. FRACTAL NEBULA BACKGROUND SHADER
 // ==========================================
-// A full-screen plane with a complex GLSL shader for morphing fractals/nebula
-const nebulaGeometry = new THREE.PlaneGeometry(20, 10); // Large enough to cover view
+const nebulaGeometry = new THREE.PlaneGeometry(30, 20);
 const nebulaUniforms = {
     iTime: { value: 0 },
-    iResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
+    iResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+    warpFactor: { value: 0.0 }
 };
 
 const nebulaVertexShader = `
@@ -34,6 +57,7 @@ const nebulaVertexShader = `
 const nebulaFragmentShader = `
     uniform float iTime;
     uniform vec2 iResolution;
+    uniform float warpFactor;
     varying vec2 vUv;
 
     // Noise functions
@@ -42,19 +66,15 @@ const nebulaFragmentShader = `
     vec3 permute(vec3 x) { return mod289(((x*34.0)+1.0)*x); }
 
     float snoise(vec2 v) {
-        const vec4 C = vec4(0.211324865405187,  // (3.0-sqrt(3.0))/6.0
-                            0.366025403784439,  // 0.5*(sqrt(3.0)-1.0)
-                           -0.577350269189626,  // -1.0 + 2.0 * C.x
-                            0.024390243902439); // 1.0 / 41.0
+        const vec4 C = vec4(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);
         vec2 i  = floor(v + dot(v, C.yy) );
         vec2 x0 = v -   i + dot(i, C.xx);
         vec2 i1;
         i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
         vec4 x12 = x0.xyxy + C.xxzz;
         x12.xy -= i1;
-        i = mod289(i); // Avoid truncation effects in permutation
-        vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 ))
-            + i.x + vec3(0.0, i1.x, 1.0 ));
+        i = mod289(i);
+        vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 )) + i.x + vec3(0.0, i1.x, 1.0 ));
         vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);
         m = m*m ;
         m = m*m ;
@@ -69,7 +89,6 @@ const nebulaFragmentShader = `
         return 130.0 * dot(m, g);
     }
 
-    // Domain warping for fractal look
     float fbm(vec2 p) {
         float f = 0.0;
         float w = 0.5;
@@ -85,40 +104,42 @@ const nebulaFragmentShader = `
         vec2 uv = vUv * 2.0 - 1.0;
         uv.x *= iResolution.x / iResolution.y;
 
-        float t = iTime * 0.2;
+        // Warp effect: stretch UVs from center
+        float r = length(uv);
+        uv *= 1.0 - (warpFactor * 0.2 * r); 
+
+        float t = iTime * (0.2 + warpFactor * 2.0); // Speed up time
         
-        // Domain warping
         vec2 q = vec2(0.);
         q.x = fbm(uv + 0.00 * t);
         q.y = fbm(uv + vec2(1.0));
 
-        vec2 r = vec2(0.);
-        r.x = fbm(uv + 1.0 * q + vec2(1.7, 9.2) + 0.15 * t);
-        r.y = fbm(uv + 1.0 * q + vec2(8.3, 2.8) + 0.126 * t);
+        vec2 r2 = vec2(0.);
+        r2.x = fbm(uv + 1.0 * q + vec2(1.7, 9.2) + 0.15 * t);
+        r2.y = fbm(uv + 1.0 * q + vec2(8.3, 2.8) + 0.126 * t);
 
-        float f = fbm(uv + r);
+        float f = fbm(uv + r2);
 
-        // Color mixing based on noise
         vec3 color = mix(
-            vec3(0.1, 0.0, 0.2), // Dark purple
-            vec3(0.0, 0.0, 0.0), // Black
+            vec3(0.1, 0.0, 0.2), 
+            vec3(0.0, 0.0, 0.0), 
             clamp((f*f)*4.0, 0.0, 1.0)
         );
 
         color = mix(
             color,
-            vec3(0.5, 0.1, 0.4), // Magenta
+            vec3(0.5, 0.1, 0.4), 
             clamp(length(q), 0.0, 1.0)
         );
 
         color = mix(
             color,
-            vec3(0.0, 0.4, 0.6), // Cyan
-            clamp(length(r.x), 0.0, 1.0)
+            vec3(0.0, 0.4, 0.6), 
+            clamp(length(r2.x), 0.0, 1.0)
         );
         
-        // Add some "sparkle" or intensity
-        color += vec3(0.8, 0.5, 1.0) * pow(f, 3.0);
+        // Intensity boost during warp
+        color += vec3(0.8, 0.5, 1.0) * pow(f, 3.0) * (1.0 + warpFactor);
 
         gl_FragColor = vec4(color, 1.0);
     }
@@ -132,14 +153,14 @@ const nebulaMaterial = new THREE.ShaderMaterial({
 });
 
 const nebulaMesh = new THREE.Mesh(nebulaGeometry, nebulaMaterial);
-nebulaMesh.position.z = -5; // Behind stars
+nebulaMesh.position.z = -5;
 scene.add(nebulaMesh);
 
 
 // ==========================================
 // 2. HYPERSPACE VORTEX STARFIELD
 // ==========================================
-const starCount = 4000;
+const starCount = 6000;
 const starGeometry = new THREE.BufferGeometry();
 const positions = new Float32Array(starCount * 3);
 const sizes = new Float32Array(starCount);
@@ -147,24 +168,23 @@ const speeds = new Float32Array(starCount);
 const colors = new Float32Array(starCount * 3);
 
 const colorPalette = [
-    new THREE.Color(0xffffff), // White
-    new THREE.Color(0xaaaaff), // Blue-ish
-    new THREE.Color(0xffaaee), // Pink-ish
-    new THREE.Color(0xaaffaa)  // Green-ish
+    new THREE.Color(0xffffff),
+    new THREE.Color(0xaaaaff),
+    new THREE.Color(0xffaaee),
+    new THREE.Color(0xaaffaa)
 ];
 
 for (let i = 0; i < starCount; i++) {
-    // Initial random positions in a tunnel/cylinder shape
-    const r = Math.random() * 10 + 1; // Radius
+    const r = Math.random() * 10 + 1;
     const theta = Math.random() * Math.PI * 2;
-    const z = (Math.random() - 0.5) * 50; // Long tunnel
+    const z = (Math.random() - 0.5) * 50;
 
     positions[i * 3] = r * Math.cos(theta);
     positions[i * 3 + 1] = r * Math.sin(theta);
     positions[i * 3 + 2] = z;
 
     sizes[i] = Math.random() * 2.0;
-    speeds[i] = Math.random() * 0.5 + 0.1; // Rotation speed
+    speeds[i] = Math.random() * 0.5 + 0.1;
 
     const color = colorPalette[Math.floor(Math.random() * colorPalette.length)];
     colors[i * 3] = color.r;
@@ -178,11 +198,13 @@ starGeometry.setAttribute('speed', new THREE.BufferAttribute(speeds, 1));
 starGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
 const starUniforms = {
-    iTime: { value: 0 }
+    iTime: { value: 0 },
+    warpFactor: { value: 0.0 }
 };
 
 const starVertexShader = `
     uniform float iTime;
+    uniform float warpFactor;
     attribute float size;
     attribute float speed;
     attribute vec3 color;
@@ -190,36 +212,38 @@ const starVertexShader = `
 
     void main() {
         vColor = color;
-        
         vec3 pos = position;
         
-        // Vortex rotation effect
-        float angle = iTime * speed;
+        // Vortex rotation
+        float currentSpeed = speed * (1.0 + warpFactor * 10.0);
+        float angle = iTime * currentSpeed;
+        
         float x = pos.x * cos(angle) - pos.y * sin(angle);
         float y = pos.x * sin(angle) + pos.y * cos(angle);
         
-        // Move towards camera (hyperspace effect)
-        float z = mod(pos.z + iTime * 5.0, 50.0) - 25.0;
+        // Hyperspace movement
+        float zSpeed = 5.0 + warpFactor * 50.0;
+        float z = mod(pos.z + iTime * zSpeed, 50.0) - 25.0;
+        
+        // Warp stretch effect
+        // As warpFactor increases, stretch z based on speed
+        float stretch = 1.0 + warpFactor * 5.0;
         
         vec4 mvPosition = modelViewMatrix * vec4(x, y, z, 1.0);
         gl_Position = projectionMatrix * mvPosition;
         
         // Size attenuation
-        gl_PointSize = size * (300.0 / -mvPosition.z);
+        gl_PointSize = size * (300.0 / -mvPosition.z) * stretch;
     }
 `;
 
 const starFragmentShader = `
     varying vec3 vColor;
     void main() {
-        // Circular particle
         vec2 uv = gl_PointCoord.xy - 0.5;
         float dist = length(uv);
         if (dist > 0.5) discard;
-        
-        // Soft edge
         float alpha = 1.0 - smoothstep(0.3, 0.5, dist);
-        
         gl_FragColor = vec4(vColor, alpha);
     }
 `;
@@ -238,25 +262,66 @@ scene.add(starSystem);
 
 
 // ==========================================
-// ANIMATION LOOP
+// INTERACTION & ANIMATION
 // ==========================================
+let isWarping = false;
+let currentWarpFactor = 0.0;
+const targetWarpFactor = 1.0;
+
+// Mouse/Touch Events
+window.addEventListener('mousedown', () => { isWarping = true; });
+window.addEventListener('mouseup', () => { isWarping = false; });
+window.addEventListener('touchstart', () => { isWarping = true; });
+window.addEventListener('touchend', () => { isWarping = false; });
+window.addEventListener('keydown', (e) => { if (e.code === 'Space') isWarping = true; });
+window.addEventListener('keyup', (e) => { if (e.code === 'Space') isWarping = false; });
+
 const clock = new THREE.Clock();
 
 function animate() {
     requestAnimationFrame(animate);
 
+    const delta = clock.getDelta();
     const elapsedTime = clock.getElapsedTime();
+
+    // Smooth warp transition
+    if (isWarping) {
+        currentWarpFactor = THREE.MathUtils.lerp(currentWarpFactor, targetWarpFactor, delta * 2.0);
+        hudStatus.innerText = "ENGAGED";
+        hudStatus.style.color = "#f00";
+        hudStatus.style.textShadow = "0 0 10px red";
+    } else {
+        currentWarpFactor = THREE.MathUtils.lerp(currentWarpFactor, 0.0, delta * 2.0);
+        hudStatus.innerText = "ONLINE";
+        hudStatus.style.color = "#0f0";
+        hudStatus.style.textShadow = "0 0 5px cyan";
+    }
 
     // Update Uniforms
     nebulaUniforms.iTime.value = elapsedTime;
-    starUniforms.iTime.value = elapsedTime;
+    nebulaUniforms.warpFactor.value = currentWarpFactor;
 
-    // Subtle camera movement
-    camera.position.x = Math.sin(elapsedTime * 0.1) * 0.5;
-    camera.position.y = Math.cos(elapsedTime * 0.1) * 0.5;
+    starUniforms.iTime.value = elapsedTime;
+    starUniforms.warpFactor.value = currentWarpFactor;
+
+    // Camera Shake during warp
+    if (currentWarpFactor > 0.1) {
+        camera.position.x = (Math.random() - 0.5) * currentWarpFactor * 0.2;
+        camera.position.y = (Math.random() - 0.5) * currentWarpFactor * 0.2;
+    } else {
+        camera.position.x = Math.sin(elapsedTime * 0.1) * 0.5;
+        camera.position.y = Math.cos(elapsedTime * 0.1) * 0.5;
+    }
     camera.lookAt(0, 0, 0);
 
-    renderer.render(scene, camera);
+    // Update HUD Velocity
+    const baseSpeed = 0.15;
+    const warpSpeed = 9.8;
+    const currentSpeed = baseSpeed + (currentWarpFactor * warpSpeed);
+    hudVelocity.innerText = currentSpeed.toFixed(2);
+
+    // Render with Bloom
+    composer.render();
 }
 
 animate();
@@ -266,6 +331,8 @@ window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    composer.setSize(window.innerWidth, window.innerHeight);
     nebulaUniforms.iResolution.value.set(window.innerWidth, window.innerHeight);
 });
+
 

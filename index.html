@@ -1,14 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <title>Hyperspace Galaxy Vortex</title>
   <link rel="stylesheet" href="galaxy.css">
   <!-- Import Three.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- Post Processing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/js/postprocessing/EffectComposer.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/js/postprocessing/RenderPass.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/js/postprocessing/ShaderPass.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/js/shaders/CopyShader.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/js/shaders/LuminosityHighPassShader.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/js/postprocessing/UnrealBloomPass.js"></script>
 </head>
+
 <body>
   <div id="canvas-container"></div>
+
+  <!-- Sci-Fi HUD -->
+  <div id="hud">
+    <div class="hud-top">
+      <div class="hud-text">HYPERDRIVE SYSTEMS: <span id="status" style="color:#0f0">ONLINE</span></div>
+    </div>
+    <div class="hud-center">
+      <div class="reticle"></div>
+    </div>
+    <div class="hud-bottom">
+      <div class="velocity-container">
+        VELOCITY: <span id="velocity">0.00</span> c
+      </div>
+      <div class="controls-hint">HOLD CLICK TO ENGAGE WARP</div>
+    </div>
+  </div>
+
   <script src="galaxy.js"></script>
 </body>
+
 </html>
