@@ -1,9 +1,11 @@
 * {
   margin: 0;
   padding: 0;
-  box‑sizing: border-box;
+  box-sizing: border-box;
 }
-html, body {
+
+html,
+body {
   width: 100%;
   height: 100%;
   overflow: hidden;
@@ -11,100 +13,16 @@ html, body {
   color: #fff;
   font-family: sans-serif;
 }
-.space {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  perspective: 1000px;
+
+body {
+  margin: 0;
+  padding: 0;
   overflow: hidden;
-}
-/* STAR LAYERS */
-.stars {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 200%;
-  height: 200%;
-  transform: translate(-50%, -50%);
-  background: transparent;
-  animation: moveStars linear infinite;
-}
-.layer1 { animation-duration: 200s; }
-.layer2 { animation-duration: 150s; }
-.layer3 { animation-duration: 100s; }
-
-.stars::after {
-  content: '';
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  background-repeat: repeat;
-  background-image: radial-gradient(white 1px, transparent 1px);
+  background-color: #000;
 }
 
-.layer1::after {
-  background-size: 2px 2px;
-  opacity: 0.5;
-}
-.layer2::after {
-  background-size: 1px 1px;
-  opacity: 0.3;
-}
-.layer3::after {
-  background-size: 0.5px 0.5px;
-  opacity: 0.2;
-}
-
-@keyframes moveStars {
-  from { transform: translate(-50%, -50%) translateZ(0) rotate(0deg); }
-  to   { transform: translate(-50%, -50%) translateZ(0) rotate(360deg); }
-}
-
-/* NEBULAS */
-.nebulas {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  pointer‑events: none;
-}
-.nebula {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.2;
-  animation: floatNebula alternate ease‑in‑out infinite 60s;
-}
-.nebula1 {
-  width: 600px;
-  height: 600px;
-  top: 10%;
-  left: 20%;
-  background: radial-gradient(circle at center, rgba(140,82,255,0.8), transparent 70%);
-}
-.nebula2 {
-  width: 800px;
-  height: 800px;
-  bottom: 15%;
-  right: 10%;
-  background: radial-gradient(circle at center, rgba(0,255,195,0.6), transparent 70%);
-}
-@keyframes floatNebula {
-  from { transform: scale(1) translate(0px, 0px); }
-  to   { transform: scale(1.2) translate(50px, 50px); }
-}
-
-/* CANVAS FOR SHOOTING STARS / COMETS */
-canvas#shootingStars {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  pointer‑events: none;
-  top: 0;
-  left: 0;
-}
-
-/* PARALLAX LAYER CLASSES (for transform on mouse/scroll) */
-.layerNebula, .stars {
-  will‑change: transform;
+#canvas-container {
+  width: 100vw;
+  height: 100vh;
+  display: block;
 }

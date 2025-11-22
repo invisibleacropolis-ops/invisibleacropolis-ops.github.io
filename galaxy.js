@@ -1,90 +1,271 @@
-// galaxy.js  
-(() => {
-  const space = document.getElementById('space');
-  const canvas = document.getElementById('shootingStars');
-  const ctx = canvas.getContext('2d');
+// galaxy.js
+// Visually Stunning Hyperspace Vortex & Fractal Nebula Display using Three.js
 
-  // resize canvas
-  function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-  }
-  window.addEventListener('resize', resize);
-  resize();
+const container = document.getElementById('canvas-container');
 
-  // Shooting stars/comets
-  class ShootingStar {
-    constructor() {
-      this.reset();
-    }
-    reset() {
-      this.x = Math.random() * canvas.width;
-      this.y = Math.random() * canvas.height * 0.5;
-      this.len = Math.random() * 200 + 100;
-      this.speed = Math.random() * 10 + 6;
-      this.size = Math.random() * 1.5 + 0.5;
-      this.angle = Math.PI + Math.random() * Math.PI / 4;
-      this.opacity = Math.random() * 0.5 + 0.5;
-    }
-    update() {
-      this.x += Math.cos(this.angle) * this.speed;
-      this.y += Math.sin(this.angle) * this.speed;
-      this.opacity -= 0.005;
-      if (this.opacity <= 0) {
-        this.reset();
-      }
-    }
-    draw() {
-      ctx.save();
-      ctx.beginPath();
-      ctx.moveTo(this.x, this.y);
-      ctx.lineTo(this.x + Math.cos(this.angle) * this.len,
-                 this.y + Math.sin(this.angle) * this.len);
-      ctx.strokeStyle = 'rgba(255,255,255,' + this.opacity + ')';
-      ctx.lineWidth = this.size;
-      ctx.stroke();
-      ctx.restore();
-    }
-  }
+// Scene Setup
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.z = 5;
 
-  const stars = [];
-  const starCount = 20;
-  for (let i = 0; i < starCount; i++) {
-    stars.push(new ShootingStar());
-  }
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+container.appendChild(renderer.domElement);
 
-  function animate() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    stars.forEach(star => {
-      star.update();
-      star.draw();
-    });
+// ==========================================
+// 1. FRACTAL NEBULA BACKGROUND SHADER
+// ==========================================
+// A full-screen plane with a complex GLSL shader for morphing fractals/nebula
+const nebulaGeometry = new THREE.PlaneGeometry(20, 10); // Large enough to cover view
+const nebulaUniforms = {
+    iTime: { value: 0 },
+    iResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
+};
+
+const nebulaVertexShader = `
+    varying vec2 vUv;
+    void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+`;
+
+const nebulaFragmentShader = `
+    uniform float iTime;
+    uniform vec2 iResolution;
+    varying vec2 vUv;
+
+    // Noise functions
+    vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+    vec2 mod289(vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+    vec3 permute(vec3 x) { return mod289(((x*34.0)+1.0)*x); }
+
+    float snoise(vec2 v) {
+        const vec4 C = vec4(0.211324865405187,  // (3.0-sqrt(3.0))/6.0
+                            0.366025403784439,  // 0.5*(sqrt(3.0)-1.0)
+                           -0.577350269189626,  // -1.0 + 2.0 * C.x
+                            0.024390243902439); // 1.0 / 41.0
+        vec2 i  = floor(v + dot(v, C.yy) );
+        vec2 x0 = v -   i + dot(i, C.xx);
+        vec2 i1;
+        i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+        vec4 x12 = x0.xyxy + C.xxzz;
+        x12.xy -= i1;
+        i = mod289(i); // Avoid truncation effects in permutation
+        vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 ))
+            + i.x + vec3(0.0, i1.x, 1.0 ));
+        vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);
+        m = m*m ;
+        m = m*m ;
+        vec3 x = 2.0 * fract(p * C.www) - 1.0;
+        vec3 h = abs(x) - 0.5;
+        vec3 ox = floor(x + 0.5);
+        vec3 a0 = x - ox;
+        m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );
+        vec3 g;
+        g.x  = a0.x  * x0.x  + h.x  * x0.y;
+        g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+        return 130.0 * dot(m, g);
+    }
+
+    // Domain warping for fractal look
+    float fbm(vec2 p) {
+        float f = 0.0;
+        float w = 0.5;
+        for (int i = 0; i < 5; i++) {
+            f += w * snoise(p);
+            p *= 2.0;
+            w *= 0.5;
+        }
+        return f;
+    }
+
+    void main() {
+        vec2 uv = vUv * 2.0 - 1.0;
+        uv.x *= iResolution.x / iResolution.y;
+
+        float t = iTime * 0.2;
+        
+        // Domain warping
+        vec2 q = vec2(0.);
+        q.x = fbm(uv + 0.00 * t);
+        q.y = fbm(uv + vec2(1.0));
+
+        vec2 r = vec2(0.);
+        r.x = fbm(uv + 1.0 * q + vec2(1.7, 9.2) + 0.15 * t);
+        r.y = fbm(uv + 1.0 * q + vec2(8.3, 2.8) + 0.126 * t);
+
+        float f = fbm(uv + r);
+
+        // Color mixing based on noise
+        vec3 color = mix(
+            vec3(0.1, 0.0, 0.2), // Dark purple
+            vec3(0.0, 0.0, 0.0), // Black
+            clamp((f*f)*4.0, 0.0, 1.0)
+        );
+
+        color = mix(
+            color,
+            vec3(0.5, 0.1, 0.4), // Magenta
+            clamp(length(q), 0.0, 1.0)
+        );
+
+        color = mix(
+            color,
+            vec3(0.0, 0.4, 0.6), // Cyan
+            clamp(length(r.x), 0.0, 1.0)
+        );
+        
+        // Add some "sparkle" or intensity
+        color += vec3(0.8, 0.5, 1.0) * pow(f, 3.0);
+
+        gl_FragColor = vec4(color, 1.0);
+    }
+`;
+
+const nebulaMaterial = new THREE.ShaderMaterial({
+    uniforms: nebulaUniforms,
+    vertexShader: nebulaVertexShader,
+    fragmentShader: nebulaFragmentShader,
+    depthWrite: false,
+});
+
+const nebulaMesh = new THREE.Mesh(nebulaGeometry, nebulaMaterial);
+nebulaMesh.position.z = -5; // Behind stars
+scene.add(nebulaMesh);
+
+
+// ==========================================
+// 2. HYPERSPACE VORTEX STARFIELD
+// ==========================================
+const starCount = 4000;
+const starGeometry = new THREE.BufferGeometry();
+const positions = new Float32Array(starCount * 3);
+const sizes = new Float32Array(starCount);
+const speeds = new Float32Array(starCount);
+const colors = new Float32Array(starCount * 3);
+
+const colorPalette = [
+    new THREE.Color(0xffffff), // White
+    new THREE.Color(0xaaaaff), // Blue-ish
+    new THREE.Color(0xffaaee), // Pink-ish
+    new THREE.Color(0xaaffaa)  // Green-ish
+];
+
+for (let i = 0; i < starCount; i++) {
+    // Initial random positions in a tunnel/cylinder shape
+    const r = Math.random() * 10 + 1; // Radius
+    const theta = Math.random() * Math.PI * 2;
+    const z = (Math.random() - 0.5) * 50; // Long tunnel
+
+    positions[i * 3] = r * Math.cos(theta);
+    positions[i * 3 + 1] = r * Math.sin(theta);
+    positions[i * 3 + 2] = z;
+
+    sizes[i] = Math.random() * 2.0;
+    speeds[i] = Math.random() * 0.5 + 0.1; // Rotation speed
+
+    const color = colorPalette[Math.floor(Math.random() * colorPalette.length)];
+    colors[i * 3] = color.r;
+    colors[i * 3 + 1] = color.g;
+    colors[i * 3 + 2] = color.b;
+}
+
+starGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+starGeometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+starGeometry.setAttribute('speed', new THREE.BufferAttribute(speeds, 1));
+starGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+const starUniforms = {
+    iTime: { value: 0 }
+};
+
+const starVertexShader = `
+    uniform float iTime;
+    attribute float size;
+    attribute float speed;
+    attribute vec3 color;
+    varying vec3 vColor;
+
+    void main() {
+        vColor = color;
+        
+        vec3 pos = position;
+        
+        // Vortex rotation effect
+        float angle = iTime * speed;
+        float x = pos.x * cos(angle) - pos.y * sin(angle);
+        float y = pos.x * sin(angle) + pos.y * cos(angle);
+        
+        // Move towards camera (hyperspace effect)
+        float z = mod(pos.z + iTime * 5.0, 50.0) - 25.0;
+        
+        vec4 mvPosition = modelViewMatrix * vec4(x, y, z, 1.0);
+        gl_Position = projectionMatrix * mvPosition;
+        
+        // Size attenuation
+        gl_PointSize = size * (300.0 / -mvPosition.z);
+    }
+`;
+
+const starFragmentShader = `
+    varying vec3 vColor;
+    void main() {
+        // Circular particle
+        vec2 uv = gl_PointCoord.xy - 0.5;
+        float dist = length(uv);
+        if (dist > 0.5) discard;
+        
+        // Soft edge
+        float alpha = 1.0 - smoothstep(0.3, 0.5, dist);
+        
+        gl_FragColor = vec4(vColor, alpha);
+    }
+`;
+
+const starMaterial = new THREE.ShaderMaterial({
+    uniforms: starUniforms,
+    vertexShader: starVertexShader,
+    fragmentShader: starFragmentShader,
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+});
+
+const starSystem = new THREE.Points(starGeometry, starMaterial);
+scene.add(starSystem);
+
+
+// ==========================================
+// ANIMATION LOOP
+// ==========================================
+const clock = new THREE.Clock();
+
+function animate() {
     requestAnimationFrame(animate);
-  }
-  animate();
 
-  // Parallax effect: mouse move & scroll
-  function handleParallax(e) {
-    const layers = document.querySelectorAll('.stars, .layerNebula');
-    const x = (e.clientX / window.innerWidth) - 0.5;
-    const y = (e.clientY / window.innerHeight) - 0.5;
+    const elapsedTime = clock.getElapsedTime();
 
-    layers.forEach((layer, idx) => {
-      const factor = (idx + 1) * 5;  // vary factor per layer
-      const translateX = -x * factor;
-      const translateY = -y * factor;
-      layer.style.transform = `translate(${translateX}px, ${translateY}px)`;
-    });
-  }
-  window.addEventListener('mousemove', handleParallax);
+    // Update Uniforms
+    nebulaUniforms.iTime.value = elapsedTime;
+    starUniforms.iTime.value = elapsedTime;
 
-  // Also link scroll for slight translation
-  window.addEventListener('scroll', () => {
-    const scrollY = window.scrollY;
-    const layers = document.querySelectorAll('.stars, .layerNebula');
-    layers.forEach((layer, idx) => {
-      const offset = scrollY * ((idx + 1) * 0.0005);
-      layer.style.transform = `translateY(${offset}px)`;
-    });
-  });
-})();
+    // Subtle camera movement
+    camera.position.x = Math.sin(elapsedTime * 0.1) * 0.5;
+    camera.position.y = Math.cos(elapsedTime * 0.1) * 0.5;
+    camera.lookAt(0, 0, 0);
+
+    renderer.render(scene, camera);
+}
+
+animate();
+
+// Resize Handler
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    nebulaUniforms.iResolution.value.set(window.innerWidth, window.innerHeight);
+});
+
