@@ -1,6 +1,6 @@
 // galaxy.js
 // Visually Stunning Hyperspace Vortex & Fractal Nebula Display using Three.js
-// Phase 2: Sci-Fi Enhancements (Bloom, Warp, HUD)
+// Phase 3: Visual Showcase (Auto-Pilot Mode)
 
 const container = document.getElementById('canvas-container');
 const hudVelocity = document.getElementById('velocity');
@@ -12,7 +12,21 @@ const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerH
 camera.position.z = 5;
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-0.85 // Threshold
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.toneMapping = THREE.ReinhardToneMapping;
+container.appendChild(renderer.domElement);
+
+// ==========================================
+// POST-PROCESSING (BLOOM)
+// ==========================================
+const renderScene = new THREE.RenderPass(scene, camera);
+
+const bloomPass = new THREE.UnrealBloomPass(
+    new THREE.Vector2(window.innerWidth, window.innerHeight),
+    1.5, // Strength
+    0.4, // Radius
+    0.85 // Threshold
 );
 bloomPass.strength = 2.0;
 bloomPass.radius = 0.5;
@@ -243,10 +257,59 @@ const starMaterial = new THREE.ShaderMaterial({
     depthWrite: false
 });
 
-hudVelocity.innerText = currentSpeed.toFixed(2);
+const starSystem = new THREE.Points(starGeometry, starMaterial);
+scene.add(starSystem);
 
-// Render with Bloom
-composer.render();
+
+// ==========================================
+// ANIMATION LOOP (AUTO-PILOT)
+// ==========================================
+const clock = new THREE.Clock();
+
+function animate() {
+    requestAnimationFrame(animate);
+
+    const elapsedTime = clock.getElapsedTime();
+
+    // Auto-Pilot: Oscillate warp factor to show off all effects
+    // Cycles every 10 seconds
+    const autoWarp = (Math.sin(elapsedTime * 0.6) + 1.0) * 0.5;
+
+    // Smoothly interpolate current factor
+    const currentWarpFactor = THREE.MathUtils.lerp(0.0, 1.0, autoWarp);
+
+    // Update HUD
+    if (currentWarpFactor > 0.5) {
+        hudStatus.innerText = "MAXIMUM OVERDRIVE";
+        hudStatus.style.color = "#f00";
+        hudStatus.style.textShadow = "0 0 10px red";
+    } else {
+        hudStatus.innerText = "CRUISING SPEED";
+        hudStatus.style.color = "#0f0";
+        hudStatus.style.textShadow = "0 0 5px cyan";
+    }
+
+    // Update Uniforms
+    nebulaUniforms.iTime.value = elapsedTime;
+    nebulaUniforms.warpFactor.value = currentWarpFactor;
+
+    starUniforms.iTime.value = elapsedTime;
+    starUniforms.warpFactor.value = currentWarpFactor;
+
+    // Camera Shake (more intense at high warp)
+    const shake = currentWarpFactor * 0.2;
+    camera.position.x = (Math.random() - 0.5) * shake;
+    camera.position.y = (Math.random() - 0.5) * shake;
+    camera.lookAt(0, 0, 0);
+
+    // Update HUD Velocity
+    const baseSpeed = 0.15;
+    const warpSpeed = 9.8;
+    const currentSpeed = baseSpeed + (currentWarpFactor * warpSpeed);
+    hudVelocity.innerText = currentSpeed.toFixed(2);
+
+    // Render with Bloom
+    composer.render();
 }
 
 animate();
@@ -259,5 +322,3 @@ window.addEventListener('resize', () => {
     composer.setSize(window.innerWidth, window.innerHeight);
     nebulaUniforms.iResolution.value.set(window.innerWidth, window.innerHeight);
 });
-
-
