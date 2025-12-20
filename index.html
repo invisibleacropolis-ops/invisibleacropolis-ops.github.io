@@ -8,6 +8,26 @@
 </head>
 <body>
   <div id="hud" class="hud" role="application" aria-label="Spaceship control panel">
+    <div class="hud__overlays" aria-hidden="true">
+      <svg class="hud-overlay hud-overlay--grid" viewBox="0 0 400 400" role="presentation">
+        <defs>
+          <pattern id="hud-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(76, 244, 255, 0.28)" stroke-width="1" />
+          </pattern>
+        </defs>
+        <rect width="400" height="400" fill="url(#hud-grid)" />
+        <circle cx="200" cy="200" r="160" fill="none" stroke="rgba(76, 244, 255, 0.25)" stroke-width="2" />
+      </svg>
+      <svg class="hud-overlay hud-overlay--rings" viewBox="0 0 500 500" role="presentation">
+        <circle cx="250" cy="250" r="90" fill="none" stroke="rgba(255, 79, 240, 0.45)" stroke-width="2" />
+        <circle cx="250" cy="250" r="150" fill="none" stroke="rgba(76, 244, 255, 0.35)" stroke-width="1.5" />
+        <circle cx="250" cy="250" r="210" fill="none" stroke="rgba(42, 250, 223, 0.3)" stroke-width="1.2" />
+      </svg>
+      <svg class="hud-overlay hud-overlay--paths" viewBox="0 0 600 300" role="presentation">
+        <path class="hud-overlay__dash" d="M 10 160 C 120 60 280 260 420 140 S 560 120 590 40" />
+        <path class="hud-overlay__dash" d="M 20 220 C 160 120 280 280 420 200 S 520 180 580 260" />
+      </svg>
+    </div>
     <header class="hud__header">
       <div class="hud__titleblock">
         <p class="hud__eyebrow">IFS Asteria • Command Interface</p>
