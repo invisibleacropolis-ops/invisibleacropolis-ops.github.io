@@ -10,6 +10,22 @@ const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 const lerp = (start, end, amount) => start + (end - start) * amount;
 const formatNumber = (value, decimals = 0) => value.toFixed(decimals);
 
+const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+const motionSettings = {
+  prefersReduced: motionQuery.matches,
+  timeScale: 1,
+  noiseEnabled: true,
+  canvasFrameStep: 3,
+  typewriterSpeedScale: 1,
+  typewriterPauseScale: 1,
+  typewriterResetScale: 1,
+  logScrollScale: 1,
+  logIntervalScale: 1,
+  streamNoiseScale: 1,
+  streamEasingScale: 1,
+  streamIntervalScale: 1
+};
+
 const readoutConfigs = {
   system: [
     { min: 72, max: 100, decimals: 0, suffix: "%" },
@@ -35,6 +51,11 @@ const readoutConfigs = {
 };
 
 const gaugeStreams = [];
+const applyMotionToStream = (stream) => {
+  stream.noise = stream.baseNoise * motionSettings.streamNoiseScale;
+  stream.easing = stream.baseEasing * motionSettings.streamEasingScale;
+  stream.intervalScale = motionSettings.streamIntervalScale;
+};
 
 const createStream = ({ min, max, noise = 0.8, easing = 0.04 }) => {
   const range = max - min;
@@ -43,6 +64,9 @@ const createStream = ({ min, max, noise = 0.8, easing = 0.04 }) => {
     max,
     noise,
     easing,
+    baseNoise: noise,
+    baseEasing: easing,
+    intervalScale: 1,
     value: min + range * Math.random(),
     target: min + range * Math.random(),
     nextTargetAt: performance.now() + 800 + Math.random() * 1600
@@ -52,7 +76,8 @@ const createStream = ({ min, max, noise = 0.8, easing = 0.04 }) => {
 const updateStream = (stream, now) => {
   if (now >= stream.nextTargetAt) {
     stream.target = stream.min + (stream.max - stream.min) * Math.random();
-    stream.nextTargetAt = now + 900 + Math.random() * 1600;
+    const intervalScale = stream.intervalScale ?? 1;
+    stream.nextTargetAt = now + (900 + Math.random() * 1600) * intervalScale;
   }
   const noisyTarget = stream.target + (Math.random() - 0.5) * stream.noise;
   stream.value = lerp(stream.value, noisyTarget, stream.easing);
@@ -60,6 +85,11 @@ const updateStream = (stream, now) => {
 };
 
 const typewriters = [];
+const applyMotionToTypewriter = (tw) => {
+  tw.speed = tw.baseSpeed * motionSettings.typewriterSpeedScale;
+  tw.pause = tw.basePause * motionSettings.typewriterPauseScale;
+  tw.resetDelay = tw.baseResetDelay * motionSettings.typewriterResetScale;
+};
 
 const resetTypewriter = (tw) => {
   tw.lineIndex = 0;
@@ -116,6 +146,10 @@ const updateTypewriter = (tw, now) => {
 };
 
 const logWindows = [];
+const applyMotionToLogWindow = (log) => {
+  log.speedScale = motionSettings.logScrollScale;
+  log.intervalScale = motionSettings.logIntervalScale;
+};
 
 const logPhrases = [
   "Gyro alignment nominal.",
@@ -155,17 +189,19 @@ const initLogWindow = (element) => {
     stream,
     offset: 0,
     lineHeight,
-    nextLineAt: performance.now() + 1200
+    nextLineAt: performance.now() + 1200,
+    speedScale: 1,
+    intervalScale: 1
   });
 };
 
 const updateLogWindow = (log, now, delta) => {
-  log.offset += delta * 0.025;
+  log.offset += delta * 0.025 * log.speedScale;
   if (now >= log.nextLineAt) {
     const line = document.createElement("p");
     line.textContent = createLogEntry();
     log.stream.appendChild(line);
-    log.nextLineAt = now + 1800 + Math.random() * 1400;
+    log.nextLineAt = now + (1800 + Math.random() * 1400) * log.intervalScale;
   }
   if (log.offset >= log.lineHeight) {
     log.offset -= log.lineHeight;
@@ -264,9 +300,9 @@ const drawTelemetryWaveform = (canvas, now) => {
   ctx.beginPath();
   for (let i = 0; i <= points; i += 1) {
     const x = (i / points) * width;
-    const phase = now * 0.002 + i * 0.3;
+    const phase = now * 0.002 * motionSettings.timeScale + i * 0.3;
     const wave = Math.sin(phase) * 0.35 + Math.sin(phase * 0.4) * 0.2;
-    const noise = (Math.random() - 0.5) * 0.12;
+    const noise = motionSettings.noiseEnabled ? (Math.random() - 0.5) * 0.12 : 0;
     const y = height * (0.5 + wave + noise);
     if (i === 0) {
       ctx.moveTo(x, y);
@@ -301,7 +337,7 @@ const drawRadar = (canvas, now) => {
     ctx.stroke();
   }
 
-  const sweepAngle = (now * 0.0005) % (Math.PI * 2);
+  const sweepAngle = (now * 0.0005 * motionSettings.timeScale) % (Math.PI * 2);
   ctx.strokeStyle = "rgba(42, 250, 223, 0.8)";
   ctx.beginPath();
   ctx.moveTo(centerX, centerY);
@@ -312,11 +348,12 @@ const drawRadar = (canvas, now) => {
   ctx.stroke();
 
   for (let i = 0; i < 12; i += 1) {
-    const angle = (i / 12) * Math.PI * 2 + now * 0.0002;
+    const angle = (i / 12) * Math.PI * 2 + now * 0.0002 * motionSettings.timeScale;
     const distance = radius * (0.2 + (i % 5) * 0.14);
     const x = centerX + Math.cos(angle) * distance;
     const y = centerY + Math.sin(angle) * distance;
-    ctx.fillStyle = `rgba(255, 79, 240, ${0.35 + (i % 3) * 0.2})`;
+    const flicker = motionSettings.noiseEnabled ? (i % 3) * 0.2 : 0;
+    ctx.fillStyle = `rgba(255, 79, 240, ${0.35 + flicker})`;
     ctx.beginPath();
     ctx.arc(x, y, 2.4, 0, Math.PI * 2);
     ctx.fill();
@@ -338,6 +375,9 @@ const initTypewriters = () => {
       element,
       lines,
       isList,
+      baseSpeed: speed,
+      basePause: pause,
+      baseResetDelay: resetDelay,
       speed,
       pause,
       resetDelay,
@@ -355,11 +395,17 @@ const initTypewriters = () => {
   });
 };
 
+let outlineIntervalId = null;
 const initOutlineCycling = () => {
   const panels = Array.from(document.querySelectorAll("[data-panel]"));
-  let outlineState = true;
   panels.forEach((panel) => panel.classList.add("is-outline-draw"));
-  setInterval(() => {
+  if (motionSettings.prefersReduced) {
+    panels.forEach((panel) => panel.classList.remove("is-outline-dissolve"));
+    return;
+  }
+
+  let outlineState = true;
+  outlineIntervalId = window.setInterval(() => {
     outlineState = !outlineState;
     panels.forEach((panel) => {
       panel.classList.toggle("is-outline-draw", outlineState);
@@ -436,6 +482,7 @@ const buildNavList = async () => {
     const link = document.createElement("a");
     link.href = item.page;
     link.textContent = item.title;
+    link.setAttribute("aria-label", `Open ${item.title} page`);
     link.addEventListener("mouseenter", () => showPreview(item.page));
     link.addEventListener("mouseleave", hidePreview);
     link.addEventListener("focus", () => showPreview(item.page));
@@ -445,19 +492,51 @@ const buildNavList = async () => {
   });
 };
 
+const updateMotionSettings = (prefersReduced) => {
+  motionSettings.prefersReduced = prefersReduced;
+  motionSettings.timeScale = prefersReduced ? 0.35 : 1;
+  motionSettings.noiseEnabled = !prefersReduced;
+  motionSettings.canvasFrameStep = prefersReduced ? 4 : 3;
+  motionSettings.typewriterSpeedScale = prefersReduced ? 2.2 : 1;
+  motionSettings.typewriterPauseScale = prefersReduced ? 2 : 1;
+  motionSettings.typewriterResetScale = prefersReduced ? 2 : 1;
+  motionSettings.logScrollScale = prefersReduced ? 0.35 : 1;
+  motionSettings.logIntervalScale = prefersReduced ? 2.4 : 1;
+  motionSettings.streamNoiseScale = prefersReduced ? 0 : 1;
+  motionSettings.streamEasingScale = prefersReduced ? 0.45 : 1;
+  motionSettings.streamIntervalScale = prefersReduced ? 2.2 : 1;
+
+  typewriters.forEach(applyMotionToTypewriter);
+  gaugeStreams.forEach(applyMotionToStream);
+  logWindows.forEach(applyMotionToLogWindow);
+
+  if (outlineIntervalId) {
+    window.clearInterval(outlineIntervalId);
+    outlineIntervalId = null;
+  }
+  initOutlineCycling();
+};
+
 const init = () => {
   initReadouts();
   initMeters();
   initTypewriters();
-  initOutlineCycling();
   document.querySelectorAll("[data-scroll-log]").forEach(initLogWindow);
   buildNavList();
+
+  updateMotionSettings(motionQuery.matches);
+  motionQuery.addEventListener("change", (event) => {
+    updateMotionSettings(event.matches);
+  });
 };
 
 let lastFrame = performance.now();
+let frameCount = 0;
 const animate = (now) => {
   const delta = now - lastFrame;
   lastFrame = now;
+  frameCount += 1;
+  const shouldDrawCanvas = frameCount % motionSettings.canvasFrameStep === 0;
 
   updateReadouts(now);
   meters.forEach((meter) => {
@@ -465,13 +544,17 @@ const animate = (now) => {
     const normalized = (value - meter.config.min) / (meter.config.max - meter.config.min);
     meter.meter.style.setProperty("--meter-fill", `${Math.round(normalized * 100)}`);
     meter.readout.textContent = `${formatNumber(value, meter.config.decimals)}${meter.config.suffix}`;
-    meter.history.shift();
-    meter.history.push(clamp(normalized, 0, 1));
-    drawSparkline(meter.sparkline, meter.history);
+    if (shouldDrawCanvas) {
+      meter.history.shift();
+      meter.history.push(clamp(normalized, 0, 1));
+      drawSparkline(meter.sparkline, meter.history);
+    }
   });
 
-  drawTelemetryWaveform(telemetryCanvas, now);
-  drawRadar(radarCanvas, now);
+  if (shouldDrawCanvas) {
+    drawTelemetryWaveform(telemetryCanvas, now);
+    drawRadar(radarCanvas, now);
+  }
 
   typewriters.forEach((tw) => updateTypewriter(tw, now));
   logWindows.forEach((log) => updateLogWindow(log, now, delta));
