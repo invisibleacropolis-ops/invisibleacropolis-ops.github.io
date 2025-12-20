@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WebGL Fluid Volume</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: "Inter", "Segoe UI", sans-serif;
+    }
+
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+      background: #0a0a12;
+      color: #f5f5f7;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    .hud {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 10;
+      max-width: 360px;
+      padding: 16px 18px;
+      background: rgba(8, 10, 18, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      backdrop-filter: blur(8px);
+    }
+
+    .hud h1 {
+      margin: 0 0 8px;
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+
+    .hud p {
+      margin: 6px 0;
+      font-size: 13px;
+      line-height: 1.5;
+      color: rgba(245, 245, 247, 0.8);
+    }
+
+    .status {
+      margin-top: 8px;
+      font-size: 12px;
+      color: rgba(255, 200, 200, 0.9);
+    }
+  </style>
+</head>
+<body>
+  <div class="hud">
+    <h1>WebGL Fluid Volume</h1>
+    <p>
+      Drag to inject velocity and dye into the simulation. The solver runs advection,
+      divergence, pressure solve, and vorticity confinement each frame.
+    </p>
+    <p>
+      The density field is raymarched into a volumetric surface for a 3D look.
+    </p>
+    <p class="status">Running on WebGL2.</p>
+  </div>
+  <canvas></canvas>
+  <script type="module" src="./fluid/main.js"></script>
+</body>
+</html>
