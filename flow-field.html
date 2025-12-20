@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPU Flow Field Particles</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            overflow: hidden;
+            background: radial-gradient(circle at top, rgba(18, 32, 62, 0.9), rgba(0, 0, 0, 0.98));
+            font-family: 'Segoe UI', sans-serif;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        canvas { display: block; width: 100vw; height: 100vh; }
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            pointer-events: none;
+            letter-spacing: 1px;
+        }
+        #ui h1 {
+            font-size: 1rem;
+            text-transform: uppercase;
+            font-weight: 300;
+            margin-bottom: 6px;
+        }
+        #ui p {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.55);
+        }
+        #webgl-fallback {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            background: radial-gradient(circle at top, rgba(27, 57, 132, 0.35), rgba(0, 0, 0, 0.95));
+            color: rgba(255, 255, 255, 0.8);
+            letter-spacing: 1px;
+            z-index: 20;
+        }
+        #webgl-fallback h1 {
+            font-weight: 200;
+            font-size: 1.3rem;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        #webgl-fallback p {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+    </style>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+</head>
+<body>
+    <div id="ui">
+        <h1>GPU Flow Field</h1>
+        <p>GPUComputationRenderer • Ping-pong textures • Three.js</p>
+    </div>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { GPUComputationRenderer } from 'three/addons/misc/GPUComputationRenderer.js';
+        import GUI from 'https://unpkg.com/lil-gui@0.19.1/dist/lil-gui.esm.min.js';
+
+        const supportsWebgl = (() => {
+            const canvas = document.createElement('canvas');
+            return !!(canvas.getContext('webgl2') || canvas.getContext('webgl'));
+        })();
+
+        if (!supportsWebgl) {
+            const fallback = document.createElement('div');
+            fallback.id = 'webgl-fallback';
+            fallback.innerHTML = `
+                <h1>WebGL not supported on this device.</h1>
+                <p>Please try a modern browser or a device with WebGL enabled.</p>
+            `;
+            document.body.appendChild(fallback);
+        } else {
+            // --- Scene / Renderer setup ---
+            const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.setClearColor(0x000000, 1);
+            document.body.appendChild(renderer.domElement);
+
+            const scene = new THREE.Scene();
+            scene.fog = new THREE.Fog(0x05070d, 4, 20);
+
+            const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(4, 3, 7);
+
+            const controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+
+            // --- Simulation parameters exposed in the GUI ---
+            const parameters = {
+                particleCount: 65536,
+                noiseScale: 1.6,
+                vorticity: 0.8,
+            };
+
+            const PARTICLE_BOUNDS = 4.0;
+            const PARTICLE_SPEED = 0.75;
+
+            let gpuCompute = null;
+            let velocityVariable = null;
+            let positionVariable = null;
+            let particles = null;
+            let particlesMaterial = null;
+
+            // --- GPUComputationRenderer shaders ---
+            // The position pass integrates velocity and wraps particles inside a bounding cube.
+            const fragmentShaderPosition = `
+                uniform float uTime;
+                uniform float uDelta;
+                uniform float uBounds;
+                void main() {
+                    vec2 uv = gl_FragCoord.xy / resolution.xy;
+                    vec4 position = texture2D(texturePosition, uv);
+                    vec3 velocity = texture2D(textureVelocity, uv).xyz;
+
+                    position.xyz += velocity * uDelta;
+
+                    if (position.x < -uBounds) position.x = uBounds;
+                    if (position.x > uBounds) position.x = -uBounds;
+                    if (position.y < -uBounds) position.y = uBounds;
+                    if (position.y > uBounds) position.y = -uBounds;
+                    if (position.z < -uBounds) position.z = uBounds;
+                    if (position.z > uBounds) position.z = -uBounds;
+
+                    gl_FragColor = position;
+                }
+            `;
+
+            // The velocity pass generates a simple flow field driven by sine/cosine noise and vorticity.
+            const fragmentShaderVelocity = `
+                uniform float uTime;
+                uniform float uDelta;
+                uniform float uNoiseScale;
+                uniform float uVorticity;
+
+                vec3 field(vec3 p, float t) {
+                    float nx = sin(p.y * uNoiseScale + t);
+                    float ny = cos(p.z * uNoiseScale + t * 0.9);
+                    float nz = sin(p.x * uNoiseScale - t * 0.7);
+                    return vec3(nx, ny, nz);
+                }
+
+                void main() {
+                    vec2 uv = gl_FragCoord.xy / resolution.xy;
+                    vec3 position = texture2D(texturePosition, uv).xyz;
+                    vec3 velocity = texture2D(textureVelocity, uv).xyz;
+
+                    vec3 flow = field(position, uTime);
+                    vec3 curl = normalize(vec3(
+                        cos(position.y * uNoiseScale + uTime),
+                        sin(position.z * uNoiseScale + uTime * 0.8),
+                        cos(position.x * uNoiseScale - uTime * 0.6)
+                    ));
+
+                    vec3 acceleration = flow + uVorticity * cross(flow, curl);
+                    velocity += acceleration * (uDelta * 0.5);
+                    velocity = normalize(velocity) * ${PARTICLE_SPEED.toFixed(2)};
+
+                    gl_FragColor = vec4(velocity, 1.0);
+                }
+            `;
+
+            // --- Render shaders ---
+            // The vertex shader samples positions from the compute texture.
+            const vertexShaderParticles = `
+                uniform sampler2D uPosition;
+                uniform float uPointSize;
+                varying float vAlpha;
+
+                void main() {
+                    vec3 positionSample = texture2D(uPosition, uv).xyz;
+                    vec4 mvPosition = modelViewMatrix * vec4(positionSample, 1.0);
+                    gl_Position = projectionMatrix * mvPosition;
+                    gl_PointSize = uPointSize * (1.0 / -mvPosition.z);
+                    vAlpha = smoothstep(0.0, 2.0, -mvPosition.z);
+                }
+            `;
+
+            const fragmentShaderParticles = `
+                varying float vAlpha;
+                void main() {
+                    float dist = distance(gl_PointCoord, vec2(0.5));
+                    float alpha = smoothstep(0.5, 0.1, dist) * vAlpha;
+                    gl_FragColor = vec4(vec3(0.6, 0.85, 1.0), alpha);
+                }
+            `;
+
+            // Seed the position texture with random values in a cube.
+            const initTextureData = (texture) => {
+                const data = texture.image.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    data[i] = (Math.random() * 2 - 1) * PARTICLE_BOUNDS;
+                    data[i + 1] = (Math.random() * 2 - 1) * PARTICLE_BOUNDS;
+                    data[i + 2] = (Math.random() * 2 - 1) * PARTICLE_BOUNDS;
+                    data[i + 3] = 1;
+                }
+            };
+
+            // Seed the velocity texture with small random directions.
+            const initVelocityData = (texture) => {
+                const data = texture.image.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    data[i] = (Math.random() * 2 - 1) * 0.25;
+                    data[i + 1] = (Math.random() * 2 - 1) * 0.25;
+                    data[i + 2] = (Math.random() * 2 - 1) * 0.25;
+                    data[i + 3] = 1;
+                }
+            };
+
+            // Create a Points mesh whose UVs map to the compute texture grid.
+            const createParticles = (size) => {
+                if (particles) {
+                    scene.remove(particles);
+                    particles.geometry.dispose();
+                    particlesMaterial.dispose();
+                }
+
+                const geometry = new THREE.BufferGeometry();
+                const positions = new Float32Array(size * size * 3);
+                const uvs = new Float32Array(size * size * 2);
+
+                let p = 0;
+                let u = 0;
+                for (let i = 0; i < size; i++) {
+                    for (let j = 0; j < size; j++) {
+                        positions[p++] = 0;
+                        positions[p++] = 0;
+                        positions[p++] = 0;
+
+                        uvs[u++] = i / (size - 1);
+                        uvs[u++] = j / (size - 1);
+                    }
+                }
+
+                geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+
+                particlesMaterial = new THREE.ShaderMaterial({
+                    vertexShader: vertexShaderParticles,
+                    fragmentShader: fragmentShaderParticles,
+                    transparent: true,
+                    depthWrite: false,
+                    blending: THREE.AdditiveBlending,
+                    uniforms: {
+                        uPosition: { value: null },
+                        uPointSize: { value: 35.0 },
+                    }
+                });
+
+                particles = new THREE.Points(geometry, particlesMaterial);
+                scene.add(particles);
+            };
+
+            // Configure GPUComputationRenderer with position + velocity ping-pong textures.
+            const initComputeRenderer = (size) => {
+                gpuCompute = new GPUComputationRenderer(size, size, renderer);
+
+                const positionTexture = gpuCompute.createTexture();
+                const velocityTexture = gpuCompute.createTexture();
+                initTextureData(positionTexture);
+                initVelocityData(velocityTexture);
+
+                positionVariable = gpuCompute.addVariable('texturePosition', fragmentShaderPosition, positionTexture);
+                velocityVariable = gpuCompute.addVariable('textureVelocity', fragmentShaderVelocity, velocityTexture);
+
+                gpuCompute.setVariableDependencies(positionVariable, [positionVariable, velocityVariable]);
+                gpuCompute.setVariableDependencies(velocityVariable, [positionVariable, velocityVariable]);
+
+                positionVariable.wrapS = positionVariable.wrapT = THREE.RepeatWrapping;
+                velocityVariable.wrapS = velocityVariable.wrapT = THREE.RepeatWrapping;
+
+                positionVariable.material.uniforms.uTime = { value: 0 };
+                positionVariable.material.uniforms.uDelta = { value: 0 };
+                positionVariable.material.uniforms.uBounds = { value: PARTICLE_BOUNDS };
+
+                velocityVariable.material.uniforms.uTime = { value: 0 };
+                velocityVariable.material.uniforms.uDelta = { value: 0 };
+                velocityVariable.material.uniforms.uNoiseScale = { value: parameters.noiseScale };
+                velocityVariable.material.uniforms.uVorticity = { value: parameters.vorticity };
+
+                const error = gpuCompute.init();
+                if (error) {
+                    console.error(error);
+                }
+            };
+
+            // Rebuild the simulation whenever the particle count changes.
+            const rebuildSimulation = () => {
+                const size = Math.floor(Math.sqrt(parameters.particleCount));
+                const adjustedCount = size * size;
+                parameters.particleCount = adjustedCount;
+                initComputeRenderer(size);
+                createParticles(size);
+            };
+
+            rebuildSimulation();
+
+            const gui = new GUI();
+            gui.add(parameters, 'noiseScale', 0.1, 4.0, 0.05).name('Noise Scale').onChange((value) => {
+                if (velocityVariable) {
+                    velocityVariable.material.uniforms.uNoiseScale.value = value;
+                }
+            });
+            gui.add(parameters, 'vorticity', 0.0, 2.5, 0.05).name('Vorticity').onChange((value) => {
+                if (velocityVariable) {
+                    velocityVariable.material.uniforms.uVorticity.value = value;
+                }
+            });
+            gui.add(parameters, 'particleCount', {
+                '4,096': 4096,
+                '16,384': 16384,
+                '65,536': 65536,
+                '131,072': 131072
+            }).name('Particle Count').onFinishChange(() => {
+                rebuildSimulation();
+            });
+
+            const clock = new THREE.Clock();
+
+            // --- Animation loop ---
+            const animate = () => {
+                const delta = Math.min(clock.getDelta(), 0.033);
+                const elapsed = clock.elapsedTime;
+
+                positionVariable.material.uniforms.uTime.value = elapsed;
+                positionVariable.material.uniforms.uDelta.value = delta;
+
+                velocityVariable.material.uniforms.uTime.value = elapsed;
+                velocityVariable.material.uniforms.uDelta.value = delta;
+
+                gpuCompute.compute();
+
+                const positionTexture = gpuCompute.getCurrentRenderTarget(positionVariable).texture;
+                particlesMaterial.uniforms.uPosition.value = positionTexture;
+
+                controls.update();
+                renderer.render(scene, camera);
+                requestAnimationFrame(animate);
+            };
+
+            animate();
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            });
+        }
+    </script>
+</body>
+</html>
