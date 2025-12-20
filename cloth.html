@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>XPBD Cloth Playground</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: "Inter", "Segoe UI", sans-serif;
+    }
+
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+      background: #07090f;
+      color: #eef1f6;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    .hud {
+      position: fixed;
+      top: 18px;
+      left: 18px;
+      z-index: 10;
+      max-width: 380px;
+      padding: 16px 18px;
+      background: rgba(10, 12, 20, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      backdrop-filter: blur(10px);
+    }
+
+    .hud h1 {
+      margin: 0 0 6px;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .hud p {
+      margin: 6px 0;
+      font-size: 13px;
+      line-height: 1.5;
+      color: rgba(238, 241, 246, 0.8);
+    }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div class="hud">
+    <h1>XPBD / Verlet Cloth</h1>
+    <p>
+      Distance + bending constraints keep the fabric stable while a sphere collider pushes
+      the cloth outward. Toggle wireframe/shaded and visualize constraint lines in the GUI.
+    </p>
+    <p>
+      Use stiffness, damping, and wind controls to explore stability. Orbit to inspect the
+      mesh.
+    </p>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import GUI from 'https://unpkg.com/lil-gui@0.19.1/dist/lil-gui.esm.min.js';
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x05070c);
+    scene.fog = new THREE.Fog(0x05070c, 6, 22);
+
+    const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(5, 3.5, 7.5);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    document.body.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+
+    scene.add(new THREE.AmbientLight(0x8aa0ff, 0.35));
+
+    const keyLight = new THREE.DirectionalLight(0xffffff, 1.1);
+    keyLight.position.set(4, 6, 2);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.set(1024, 1024);
+    keyLight.shadow.camera.near = 1;
+    keyLight.shadow.camera.far = 30;
+    scene.add(keyLight);
+
+    const fillLight = new THREE.DirectionalLight(0x4f6aff, 0.35);
+    fillLight.position.set(-6, 3, -4);
+    scene.add(fillLight);
+
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(40, 40),
+      new THREE.MeshStandardMaterial({ color: 0x0b0f1c, roughness: 1 })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -3.2;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    const sphereCollider = {
+      center: new THREE.Vector3(0, -0.5, 0),
+      radius: 1.35
+    };
+
+    const colliderMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(sphereCollider.radius, 48, 32),
+      new THREE.MeshStandardMaterial({ color: 0x162c45, metalness: 0.1, roughness: 0.6 })
+    );
+    colliderMesh.position.copy(sphereCollider.center);
+    colliderMesh.castShadow = true;
+    colliderMesh.receiveShadow = true;
+    scene.add(colliderMesh);
+
+    const config = {
+      distanceStiffness: 0.92,
+      bendingStiffness: 0.35,
+      damping: 0.02,
+      windStrength: 6.5,
+      windPulse: 0.6,
+      constraintIterations: 7,
+      renderMode: 'Shaded',
+      showConstraints: true
+    };
+
+    const grid = { segmentsX: 30, segmentsY: 22, width: 6.5, height: 4.5 };
+    const particleCount = (grid.segmentsX + 1) * (grid.segmentsY + 1);
+
+    const positions = new Float32Array(particleCount * 3);
+    const previous = new Float32Array(particleCount * 3);
+    const pinned = new Array(particleCount).fill(false);
+
+    const index = (x, y) => y * (grid.segmentsX + 1) + x;
+
+    const initParticles = () => {
+      for (let y = 0; y <= grid.segmentsY; y++) {
+        for (let x = 0; x <= grid.segmentsX; x++) {
+          const idx = index(x, y);
+          const u = x / grid.segmentsX;
+          const v = y / grid.segmentsY;
+          const px = (u - 0.5) * grid.width;
+          const py = (0.5 - v) * grid.height + 1.8;
+          const pz = 0;
+          positions[idx * 3] = px;
+          positions[idx * 3 + 1] = py;
+          positions[idx * 3 + 2] = pz;
+          previous[idx * 3] = px;
+          previous[idx * 3 + 1] = py;
+          previous[idx * 3 + 2] = pz;
+          if (y === 0 && (x % 3 === 0 || x === grid.segmentsX)) {
+            pinned[idx] = true;
+          }
+        }
+      }
+    };
+
+    initParticles();
+
+    const buildConstraints = () => {
+      const distanceConstraints = [];
+      const bendingConstraints = [];
+      const pushConstraint = (list, a, b) => {
+        const ax = positions[a * 3];
+        const ay = positions[a * 3 + 1];
+        const az = positions[a * 3 + 2];
+        const bx = positions[b * 3];
+        const by = positions[b * 3 + 1];
+        const bz = positions[b * 3 + 2];
+        const rest = Math.hypot(bx - ax, by - ay, bz - az);
+        list.push({ a, b, rest });
+      };
+
+      for (let y = 0; y <= grid.segmentsY; y++) {
+        for (let x = 0; x <= grid.segmentsX; x++) {
+          if (x < grid.segmentsX) {
+            pushConstraint(distanceConstraints, index(x, y), index(x + 1, y));
+          }
+          if (y < grid.segmentsY) {
+            pushConstraint(distanceConstraints, index(x, y), index(x, y + 1));
+          }
+          if (x < grid.segmentsX && y < grid.segmentsY) {
+            pushConstraint(distanceConstraints, index(x, y), index(x + 1, y + 1));
+            pushConstraint(distanceConstraints, index(x + 1, y), index(x, y + 1));
+          }
+          if (x < grid.segmentsX - 1) {
+            pushConstraint(bendingConstraints, index(x, y), index(x + 2, y));
+          }
+          if (y < grid.segmentsY - 1) {
+            pushConstraint(bendingConstraints, index(x, y), index(x, y + 2));
+          }
+        }
+      }
+      return { distanceConstraints, bendingConstraints };
+    };
+
+    const { distanceConstraints, bendingConstraints } = buildConstraints();
+
+    const clothGeometry = new THREE.BufferGeometry();
+    clothGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+    const indices = [];
+    for (let y = 0; y < grid.segmentsY; y++) {
+      for (let x = 0; x < grid.segmentsX; x++) {
+        const a = index(x, y);
+        const b = index(x + 1, y);
+        const c = index(x, y + 1);
+        const d = index(x + 1, y + 1);
+        indices.push(a, b, d, a, d, c);
+      }
+    }
+    clothGeometry.setIndex(indices);
+    clothGeometry.computeVertexNormals();
+
+    const clothMaterial = new THREE.MeshStandardMaterial({
+      color: 0x2f6cf6,
+      roughness: 0.45,
+      metalness: 0.05,
+      side: THREE.DoubleSide,
+      wireframe: false
+    });
+
+    const clothMesh = new THREE.Mesh(clothGeometry, clothMaterial);
+    clothMesh.castShadow = true;
+    clothMesh.receiveShadow = true;
+    scene.add(clothMesh);
+
+    const makeConstraintLines = (constraints, color) => {
+      const geometry = new THREE.BufferGeometry();
+      const linePositions = new Float32Array(constraints.length * 2 * 3);
+      geometry.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
+      const material = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.65 });
+      return new THREE.LineSegments(geometry, material);
+    };
+
+    const structuralLines = makeConstraintLines(distanceConstraints, 0x7ad7ff);
+    const bendingLines = makeConstraintLines(bendingConstraints, 0xffa76a);
+    scene.add(structuralLines, bendingLines);
+
+    const updateLinePositions = (lineSegments, constraints) => {
+      const linePositions = lineSegments.geometry.attributes.position.array;
+      let offset = 0;
+      for (const constraint of constraints) {
+        const ax = positions[constraint.a * 3];
+        const ay = positions[constraint.a * 3 + 1];
+        const az = positions[constraint.a * 3 + 2];
+        const bx = positions[constraint.b * 3];
+        const by = positions[constraint.b * 3 + 1];
+        const bz = positions[constraint.b * 3 + 2];
+        linePositions[offset++] = ax;
+        linePositions[offset++] = ay;
+        linePositions[offset++] = az;
+        linePositions[offset++] = bx;
+        linePositions[offset++] = by;
+        linePositions[offset++] = bz;
+      }
+      lineSegments.geometry.attributes.position.needsUpdate = true;
+    };
+
+    const applyConstraint = (constraint, stiffness) => {
+      const ia = constraint.a;
+      const ib = constraint.b;
+      const ax = positions[ia * 3];
+      const ay = positions[ia * 3 + 1];
+      const az = positions[ia * 3 + 2];
+      const bx = positions[ib * 3];
+      const by = positions[ib * 3 + 1];
+      const bz = positions[ib * 3 + 2];
+      const dx = bx - ax;
+      const dy = by - ay;
+      const dz = bz - az;
+      const dist = Math.hypot(dx, dy, dz) || 1e-6;
+      const diff = (dist - constraint.rest) / dist;
+      const correction = stiffness * 0.5 * diff;
+
+      if (!pinned[ia]) {
+        positions[ia * 3] += dx * correction;
+        positions[ia * 3 + 1] += dy * correction;
+        positions[ia * 3 + 2] += dz * correction;
+      }
+      if (!pinned[ib]) {
+        positions[ib * 3] -= dx * correction;
+        positions[ib * 3 + 1] -= dy * correction;
+        positions[ib * 3 + 2] -= dz * correction;
+      }
+    };
+
+    const applySphereCollision = () => {
+      const radius = sphereCollider.radius;
+      const center = sphereCollider.center;
+      for (let i = 0; i < particleCount; i++) {
+        if (pinned[i]) {
+          continue;
+        }
+        const idx = i * 3;
+        const px = positions[idx];
+        const py = positions[idx + 1];
+        const pz = positions[idx + 2];
+        const dx = px - center.x;
+        const dy = py - center.y;
+        const dz = pz - center.z;
+        const dist = Math.hypot(dx, dy, dz);
+        if (dist < radius) {
+          const correction = (radius - dist) / (dist || 1e-6);
+          positions[idx] = px + dx * correction;
+          positions[idx + 1] = py + dy * correction;
+          positions[idx + 2] = pz + dz * correction;
+        }
+      }
+    };
+
+    const tmpWind = new THREE.Vector3();
+    const gravity = new THREE.Vector3(0, -9.81, 0);
+
+    let lastTime = performance.now();
+
+    const simulate = (time) => {
+      const delta = Math.min((time - lastTime) / 1000, 1 / 30);
+      lastTime = time;
+
+      const windAngle = time * 0.0013;
+      const gust = 1 + Math.sin(time * 0.0021) * config.windPulse;
+      tmpWind.set(Math.cos(windAngle), 0.15, Math.sin(windAngle)).normalize();
+      tmpWind.multiplyScalar(config.windStrength * gust);
+
+      for (let i = 0; i < particleCount; i++) {
+        if (pinned[i]) {
+          continue;
+        }
+        const idx = i * 3;
+        const px = positions[idx];
+        const py = positions[idx + 1];
+        const pz = positions[idx + 2];
+        const vx = (px - previous[idx]) * (1 - config.damping);
+        const vy = (py - previous[idx + 1]) * (1 - config.damping);
+        const vz = (pz - previous[idx + 2]) * (1 - config.damping);
+
+        previous[idx] = px;
+        previous[idx + 1] = py;
+        previous[idx + 2] = pz;
+
+        positions[idx] = px + vx + (gravity.x + tmpWind.x) * delta * delta;
+        positions[idx + 1] = py + vy + (gravity.y + tmpWind.y) * delta * delta;
+        positions[idx + 2] = pz + vz + (gravity.z + tmpWind.z) * delta * delta;
+      }
+
+      for (let iteration = 0; iteration < config.constraintIterations; iteration++) {
+        for (const constraint of distanceConstraints) {
+          applyConstraint(constraint, config.distanceStiffness);
+        }
+        for (const constraint of bendingConstraints) {
+          applyConstraint(constraint, config.bendingStiffness);
+        }
+        applySphereCollision();
+      }
+
+      clothGeometry.attributes.position.needsUpdate = true;
+      clothGeometry.computeVertexNormals();
+
+      if (config.showConstraints) {
+        updateLinePositions(structuralLines, distanceConstraints);
+        updateLinePositions(bendingLines, bendingConstraints);
+      }
+    };
+
+    const gui = new GUI({ width: 280 });
+    gui.add(config, 'distanceStiffness', 0.1, 1, 0.01).name('distance stiffness');
+    gui.add(config, 'bendingStiffness', 0.05, 1, 0.01).name('bending stiffness');
+    gui.add(config, 'damping', 0, 0.1, 0.005).name('damping');
+    gui.add(config, 'windStrength', 0, 12, 0.1).name('wind strength');
+    gui.add(config, 'windPulse', 0, 1.5, 0.05).name('wind gust');
+    gui.add(config, 'constraintIterations', 2, 12, 1).name('solver iters');
+    gui.add(config, 'showConstraints').name('show constraints').onChange((value) => {
+      structuralLines.visible = value;
+      bendingLines.visible = value;
+    });
+    gui.add(config, 'renderMode', ['Shaded', 'Wireframe']).name('render mode').onChange((value) => {
+      clothMaterial.wireframe = value === 'Wireframe';
+    });
+
+    const resize = () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    };
+    window.addEventListener('resize', resize);
+
+    const animate = (time) => {
+      simulate(time);
+      controls.update();
+      renderer.render(scene, camera);
+      requestAnimationFrame(animate);
+    };
+
+    structuralLines.visible = config.showConstraints;
+    bendingLines.visible = config.showConstraints;
+
+    requestAnimationFrame((time) => {
+      lastTime = time;
+      animate(time);
+    });
+  </script>
+</body>
+</html>
