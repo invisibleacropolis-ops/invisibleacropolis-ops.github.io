@@ -190,6 +190,8 @@ body::after {
   overflow: hidden;
   transform-origin: top left;
   animation: panel-enter 0.9s ease both;
+  grid-column-end: span var(--panel-col-span, 1);
+  grid-row-end: span var(--panel-row-span, 1);
 }
 
 .panel::before,

@@ -26,6 +26,96 @@ const motionSettings = {
   streamIntervalScale: 1
 };
 
+const panelSizeMap = new Map();
+let panelResizeObserver = null;
+let layoutRefreshId = null;
+
+const getGridMetrics = () => {
+  const grid = document.querySelector(".hud__grid");
+  if (!grid) return null;
+  const style = window.getComputedStyle(grid);
+  const columns = style.gridTemplateColumns.split(" ").filter(Boolean);
+  const rows = style.gridTemplateRows.split(" ").filter(Boolean);
+  const rect = grid.getBoundingClientRect();
+  const colCount = Math.max(columns.length, 1);
+  const rowCount = Math.max(rows.length, 1);
+  return {
+    grid,
+    colCount,
+    rowCount,
+    colWidth: rect.width / colCount,
+    rowHeight: rect.height / rowCount
+  };
+};
+
+const updatePanelSpan = (panel, size, metrics) => {
+  const style = window.getComputedStyle(panel);
+  const startCol = Number.parseInt(style.gridColumnStart, 10);
+  const startRow = Number.parseInt(style.gridRowStart, 10);
+  const maxColSpan = Number.isNaN(startCol)
+    ? metrics.colCount
+    : Math.max(1, metrics.colCount - startCol + 1);
+  const maxRowSpan = Number.isNaN(startRow)
+    ? metrics.rowCount
+    : Math.max(1, metrics.rowCount - startRow + 1);
+  const colSpan = clamp(Math.ceil(size.width / metrics.colWidth), 1, maxColSpan);
+  const rowSpan = clamp(Math.ceil(size.height / metrics.rowHeight), 1, maxRowSpan);
+
+  panel.style.setProperty("--panel-col-span", `${colSpan}`);
+  panel.style.setProperty("--panel-row-span", `${rowSpan}`);
+};
+
+const applyPanelLayout = () => {
+  const metrics = getGridMetrics();
+  if (!metrics) return;
+  panelSizeMap.forEach((size, key) => {
+    const panel = document.querySelector(`[data-panel="${key}"]`);
+    if (!panel) return;
+    updatePanelSpan(panel, size, metrics);
+  });
+};
+
+const scheduleLayoutRefresh = () => {
+  if (layoutRefreshId) {
+    cancelAnimationFrame(layoutRefreshId);
+  }
+  layoutRefreshId = requestAnimationFrame(() => {
+    layoutRefreshId = null;
+    applyPanelLayout();
+  });
+};
+
+const initLayoutManager = () => {
+  const grid = document.querySelector(".hud__grid");
+  if (!grid) return;
+  if (panelResizeObserver) {
+    panelResizeObserver.disconnect();
+  }
+
+  panelResizeObserver = new ResizeObserver((entries) => {
+    const metrics = getGridMetrics();
+    if (!metrics) return;
+    entries.forEach((entry) => {
+      const panel = entry.target.closest("[data-panel]");
+      if (!panel) return;
+      const key = panel.dataset.panel;
+      const size = { width: entry.contentRect.width, height: entry.contentRect.height };
+      panelSizeMap.set(key, size);
+      updatePanelSpan(panel, size, metrics);
+    });
+  });
+
+  grid.querySelectorAll(".panel__content").forEach((content) => {
+    panelResizeObserver.observe(content);
+    const panel = content.closest("[data-panel]");
+    if (!panel) return;
+    const rect = content.getBoundingClientRect();
+    panelSizeMap.set(panel.dataset.panel, { width: rect.width, height: rect.height });
+  });
+
+  scheduleLayoutRefresh();
+};
+
 const readoutConfigs = {
   system: [
     { min: 72, max: 100, decimals: 0, suffix: "%" },
@@ -462,6 +552,7 @@ const buildNavList = async () => {
       if (previewWindow.classList.contains("is-loading")) {
         previewWindow.classList.remove("is-loading");
       }
+      scheduleLayoutRefresh();
     });
   }
 
@@ -523,6 +614,8 @@ const init = () => {
   initTypewriters();
   document.querySelectorAll("[data-scroll-log]").forEach(initLogWindow);
   buildNavList();
+  initLayoutManager();
+  window.addEventListener("resize", scheduleLayoutRefresh);
 
   updateMotionSettings(motionQuery.matches);
   motionQuery.addEventListener("change", (event) => {
