@@ -13,6 +13,18 @@
   --grid-line: rgba(76, 244, 255, 0.12);
   --dash: rgba(255, 79, 240, 0.6);
   --scanline: rgba(76, 244, 255, 0.08);
+  --focus-a-x: 22vw;
+  --focus-a-y: 32vh;
+  --focus-a-width: 220px;
+  --focus-a-height: 160px;
+  --focus-b-x: 64vw;
+  --focus-b-y: 58vh;
+  --focus-b-width: 360px;
+  --focus-b-height: 240px;
+  --focus-c-x: 46vw;
+  --focus-c-y: 22vh;
+  --focus-c-width: 280px;
+  --focus-c-height: 180px;
   font-family: "Rajdhani", "Orbitron", "Segoe UI", sans-serif;
 }
 
@@ -109,7 +121,7 @@ body::after {
   inset: 0;
   pointer-events: none;
   mix-blend-mode: screen;
-  z-index: 0;
+  z-index: 2;
   opacity: 0.7;
 }
 
@@ -119,6 +131,59 @@ body::after {
   height: auto;
   opacity: 0.6;
   filter: drop-shadow(0 0 18px rgba(76, 244, 255, 0.25));
+}
+
+.focus-overlay {
+  position: fixed;
+  left: var(--focus-a-x);
+  top: var(--focus-a-y);
+  width: var(--focus-a-width);
+  height: var(--focus-a-height);
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(76, 244, 255, 0.55);
+  border-radius: 24px;
+  background:
+    linear-gradient(140deg, rgba(76, 244, 255, 0.08), transparent 60%),
+    radial-gradient(circle at 30% 20%, rgba(255, 79, 240, 0.2), transparent 55%);
+  box-shadow:
+    0 0 28px rgba(76, 244, 255, 0.35),
+    inset 0 0 18px rgba(42, 250, 223, 0.2);
+  opacity: 0.7;
+}
+
+.focus-overlay--a {
+  clip-path: polygon(12% 0%, 88% 0%, 100% 18%, 100% 82%, 88% 100%, 12% 100%, 0% 82%, 0% 18%);
+  animation: focus-sweep-a 14s ease-in-out infinite;
+}
+
+.focus-overlay--b {
+  left: var(--focus-b-x);
+  top: var(--focus-b-y);
+  width: var(--focus-b-width);
+  height: var(--focus-b-height);
+  border-radius: 32px;
+  border-color: rgba(255, 79, 240, 0.6);
+  background:
+    linear-gradient(120deg, rgba(255, 79, 240, 0.15), transparent 55%),
+    radial-gradient(circle at 70% 65%, rgba(76, 244, 255, 0.15), transparent 60%);
+  clip-path: polygon(0% 12%, 12% 0%, 88% 0%, 100% 12%, 100% 88%, 88% 100%, 12% 100%, 0% 88%);
+  animation: focus-sweep-b 18s ease-in-out infinite;
+}
+
+.focus-overlay--c {
+  left: var(--focus-c-x);
+  top: var(--focus-c-y);
+  width: var(--focus-c-width);
+  height: var(--focus-c-height);
+  border-radius: 50%;
+  border-color: rgba(42, 250, 223, 0.55);
+  background:
+    radial-gradient(circle, rgba(42, 250, 223, 0.22), transparent 65%),
+    linear-gradient(160deg, rgba(76, 244, 255, 0.08), transparent 50%);
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='white'/%3E%3Ccircle cx='100' cy='100' r='68' fill='black'/%3E%3Ccircle cx='100' cy='100' r='84' fill='white' opacity='0.6'/%3E%3C/svg%3E");
+  mask-size: cover;
+  mask-repeat: no-repeat;
+  animation: focus-sweep-c 20s ease-in-out infinite;
 }
 
 .hud-overlay--grid {
@@ -523,6 +588,36 @@ canvas {
   }
   100% {
     stroke-dashoffset: -160;
+  }
+}
+
+@keyframes focus-sweep-a {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(0.92) rotate(-4deg);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.05) rotate(8deg) translate(30px, -18px);
+  }
+}
+
+@keyframes focus-sweep-b {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(0.95) rotate(2deg);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.08) rotate(-6deg) translate(-24px, 22px);
+  }
+}
+
+@keyframes focus-sweep-c {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(0.9) rotate(0deg);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.1) rotate(12deg) translate(18px, -28px);
   }
 }
 
