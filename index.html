@@ -18,6 +18,29 @@
             pointer-events: none;
             z-index: 10;
         }
+        #webgl-fallback {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            background: radial-gradient(circle at top, rgba(27, 57, 132, 0.35), rgba(0, 0, 0, 0.95));
+            color: rgba(255, 255, 255, 0.8);
+            letter-spacing: 1px;
+            z-index: 20;
+        }
+        #webgl-fallback h1 {
+            font-weight: 200;
+            font-size: 1.3rem;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        #webgl-fallback p {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
         h1 { font-weight: 200; font-size: 1.2rem; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 5px; }
         p { font-size: 0.8rem; }
     </style>
@@ -53,194 +76,213 @@
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 100);
         camera.position.set(4, 2, 5);
 
-        const renderer = new THREE.WebGLRenderer({ powerPreference: "high-performance", antialias: false });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        renderer.setClearColor(0x000000);
-        document.body.appendChild(renderer.domElement);
+        const supportsWebgl = (() => {
+            const canvas = document.createElement('canvas');
+            return !!(canvas.getContext('webgl2') || canvas.getContext('webgl'));
+        })();
 
-        const controls = new OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
+        if (!supportsWebgl) {
+            const fallback = document.createElement('div');
+            fallback.id = 'webgl-fallback';
+            fallback.innerHTML = `
+                <h1>WebGL not supported on this device.</h1>
+                <p>Please try a modern browser or a device with WebGL enabled.</p>
+            `;
+            document.body.appendChild(fallback);
+        } else {
+            const init = () => {
+                const renderer = new THREE.WebGLRenderer({ powerPreference: "high-performance", antialias: false });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                renderer.setClearColor(0x000000);
+                document.body.appendChild(renderer.domElement);
 
-        // --- 2. GALAXY GENERATOR ---
-        const parameters = {
-            count: 60000,
-            size: 0.015,
-            radius: 5,
-            branches: 3,
-            spin: 1,
-            randomness: 0.2,
-            randomnessPower: 3,
-            insideColor: '#ff6030',
-            outsideColor: '#1b3984',
-        };
+                const controls = new OrbitControls(camera, renderer.domElement);
+                controls.enableDamping = true;
 
-        let geometry = null;
-        let material = null;
-        let points = null;
+                // --- 2. GALAXY GENERATOR ---
+                const parameters = {
+                    count: 60000,
+                    size: 0.015,
+                    radius: 5,
+                    branches: 3,
+                    spin: 1,
+                    randomness: 0.2,
+                    randomnessPower: 3,
+                    insideColor: '#ff6030',
+                    outsideColor: '#1b3984',
+                };
 
-        const generateGalaxy = () => {
-            if (points !== null) {
-                geometry.dispose();
-                material.dispose();
-                scene.remove(points);
-            }
+                let geometry = null;
+                let material = null;
+                let points = null;
 
-            geometry = new THREE.BufferGeometry();
-            const positions = new Float32Array(parameters.count * 3);
-            const colors = new Float32Array(parameters.count * 3);
+                const generateGalaxy = () => {
+                    if (points !== null) {
+                        geometry.dispose();
+                        material.dispose();
+                        scene.remove(points);
+                    }
 
-            const colorInside = new THREE.Color(parameters.insideColor);
-            const colorOutside = new THREE.Color(parameters.outsideColor);
+                    geometry = new THREE.BufferGeometry();
+                    const positions = new Float32Array(parameters.count * 3);
+                    const colors = new Float32Array(parameters.count * 3);
 
-            for (let i = 0; i < parameters.count; i++) {
-                const i3 = i * 3;
-                const radius = Math.random() * parameters.radius;
-                const spinAngle = radius * parameters.spin;
-                const branchAngle = (i % parameters.branches) / parameters.branches * Math.PI * 2;
+                    const colorInside = new THREE.Color(parameters.insideColor);
+                    const colorOutside = new THREE.Color(parameters.outsideColor);
 
-                const randomX = Math.pow(Math.random(), parameters.randomnessPower) * (Math.random() < 0.5 ? 1 : -1) * parameters.randomness * radius;
-                const randomY = Math.pow(Math.random(), parameters.randomnessPower) * (Math.random() < 0.5 ? 1 : -1) * parameters.randomness * radius;
-                const randomZ = Math.pow(Math.random(), parameters.randomnessPower) * (Math.random() < 0.5 ? 1 : -1) * parameters.randomness * radius;
+                    for (let i = 0; i < parameters.count; i++) {
+                        const i3 = i * 3;
+                        const radius = Math.random() * parameters.radius;
+                        const spinAngle = radius * parameters.spin;
+                        const branchAngle = (i % parameters.branches) / parameters.branches * Math.PI * 2;
 
-                positions[i3] = Math.cos(branchAngle + spinAngle) * radius + randomX;
-                positions[i3 + 1] = randomY;
-                positions[i3 + 2] = Math.sin(branchAngle + spinAngle) * radius + randomZ;
+                        const randomX = Math.pow(Math.random(), parameters.randomnessPower) * (Math.random() < 0.5 ? 1 : -1) * parameters.randomness * radius;
+                        const randomY = Math.pow(Math.random(), parameters.randomnessPower) * (Math.random() < 0.5 ? 1 : -1) * parameters.randomness * radius;
+                        const randomZ = Math.pow(Math.random(), parameters.randomnessPower) * (Math.random() < 0.5 ? 1 : -1) * parameters.randomness * radius;
 
-                const mixedColor = colorInside.clone();
-                mixedColor.lerp(colorOutside, radius / parameters.radius);
+                        positions[i3] = Math.cos(branchAngle + spinAngle) * radius + randomX;
+                        positions[i3 + 1] = randomY;
+                        positions[i3 + 2] = Math.sin(branchAngle + spinAngle) * radius + randomZ;
 
-                colors[i3] = mixedColor.r;
-                colors[i3 + 1] = mixedColor.g;
-                colors[i3 + 2] = mixedColor.b;
-            }
+                        const mixedColor = colorInside.clone();
+                        mixedColor.lerp(colorOutside, radius / parameters.radius);
 
-            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+                        colors[i3] = mixedColor.r;
+                        colors[i3 + 1] = mixedColor.g;
+                        colors[i3 + 2] = mixedColor.b;
+                    }
 
-            material = new THREE.PointsMaterial({
-                size: parameters.size,
-                sizeAttenuation: true,
-                depthWrite: false,
-                blending: THREE.AdditiveBlending,
-                vertexColors: true
-            });
+                    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
-            points = new THREE.Points(geometry, material);
-            scene.add(points);
-        };
+                    material = new THREE.PointsMaterial({
+                        size: parameters.size,
+                        sizeAttenuation: true,
+                        depthWrite: false,
+                        blending: THREE.AdditiveBlending,
+                        vertexColors: true
+                    });
 
-        generateGalaxy();
+                    points = new THREE.Points(geometry, material);
+                    scene.add(points);
+                };
 
-        // --- 3. POST PROCESSING (BLOOM) ---
-        const renderScene = new RenderPass(scene, camera);
-        
-        const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
-        bloomPass.threshold = 0;
-        bloomPass.strength = 1.5; 
-        bloomPass.radius = 0;
+                generateGalaxy();
 
-        const composer = new EffectComposer(renderer);
-        composer.addPass(renderScene);
-        composer.addPass(bloomPass);
-
-        // --- 4. CINEMATIC CAMERA STATE ---
-        const cineState = {
-            active: false,
-            speed: 0.2,
-            distance: 6.0,
-            shake: 0.2,     // "Camera Variation"
-            focusWander: 1.0, // "Tracking" looseness
-            rotationSpeed: 0.05
-        };
-
-        // --- 5. GUI ---
-        const gui = new GUI();
-        
-        // Galaxy Folder
-        const folderGalaxy = gui.addFolder('Galaxy Structure');
-        folderGalaxy.add(parameters, 'count').min(1000).max(100000).step(100).onFinishChange(generateGalaxy);
-        folderGalaxy.add(parameters, 'radius').min(0.01).max(20).step(0.01).onFinishChange(generateGalaxy);
-        folderGalaxy.add(parameters, 'branches').min(2).max(20).step(1).onFinishChange(generateGalaxy);
-        folderGalaxy.add(parameters, 'randomness').min(0).max(2).step(0.001).onFinishChange(generateGalaxy);
-        folderGalaxy.addColor(parameters, 'insideColor').onFinishChange(generateGalaxy);
-        folderGalaxy.addColor(parameters, 'outsideColor').onFinishChange(generateGalaxy);
-
-        // Bloom Folder
-        const folderBloom = gui.addFolder('Bloom FX');
-        folderBloom.add(bloomPass, 'strength').min(0).max(3).step(0.01).name('Intensity');
-        folderBloom.add(bloomPass, 'radius').min(0).max(1).step(0.01).name('Radius');
-        folderBloom.add(bloomPass, 'threshold').min(0).max(1).step(0.01).name('Threshold');
-
-        // Cinematic Folder
-        const folderCine = gui.addFolder('Cinematic Fly Thru');
-        folderCine.add(cineState, 'active').name('Enable Fly Mode');
-        folderCine.add(cineState, 'speed').min(0.01).max(2.0).name('Fly Speed');
-        folderCine.add(cineState, 'distance').min(1).max(15).name('Orbit Distance');
-        folderCine.add(cineState, 'shake').min(0).max(2).name('Camera Shake');
-        folderCine.add(cineState, 'focusWander').min(0).max(5).name('Focus Drift');
-        folderCine.add(cineState, 'rotationSpeed').min(0).max(0.5).step(0.01).name('Galaxy Spin');
-
-        // --- 6. ANIMATION LOOP ---
-        const clock = new THREE.Clock();
-        
-        const tick = () => {
-            const elapsedTime = clock.getElapsedTime();
-
-            // 1. Rotate Galaxy
-            points.rotation.y = elapsedTime * cineState.rotationSpeed;
-
-            // 2. Camera Logic
-            if(cineState.active) {
-                controls.enabled = false;
+                // --- 3. POST PROCESSING (BLOOM) ---
+                const renderScene = new RenderPass(scene, camera);
                 
-                // Base Orbit (The smooth path)
-                // We multiply time by speed
-                const t = elapsedTime * cineState.speed;
+                const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+                bloomPass.threshold = 0;
+                bloomPass.strength = 1.5; 
+                bloomPass.radius = 0;
+
+                const composer = new EffectComposer(renderer);
+                composer.addPass(renderScene);
+                composer.addPass(bloomPass);
+
+                // --- 4. CINEMATIC CAMERA STATE ---
+                const cineState = {
+                    active: false,
+                    speed: 0.2,
+                    distance: 6.0,
+                    shake: 0.2,     // "Camera Variation"
+                    focusWander: 1.0, // "Tracking" looseness
+                    rotationSpeed: 0.05
+                };
+
+                // --- 5. GUI ---
+                const gui = new GUI();
                 
-                // Calculate Base Position
-                // We use sine/cosine for a smooth loop, multiplied by distance
-                let camX = Math.cos(t) * cineState.distance;
-                let camZ = Math.sin(t) * cineState.distance;
-                // Vertical movement (bobbing up and down)
-                let camY = Math.sin(t * 0.5) * (cineState.distance * 0.4);
+                // Galaxy Folder
+                const folderGalaxy = gui.addFolder('Galaxy Structure');
+                folderGalaxy.add(parameters, 'count').min(1000).max(100000).step(100).onFinishChange(generateGalaxy);
+                folderGalaxy.add(parameters, 'radius').min(0.01).max(20).step(0.01).onFinishChange(generateGalaxy);
+                folderGalaxy.add(parameters, 'branches').min(2).max(20).step(1).onFinishChange(generateGalaxy);
+                folderGalaxy.add(parameters, 'randomness').min(0).max(2).step(0.001).onFinishChange(generateGalaxy);
+                folderGalaxy.addColor(parameters, 'insideColor').onFinishChange(generateGalaxy);
+                folderGalaxy.addColor(parameters, 'outsideColor').onFinishChange(generateGalaxy);
 
-                // Add "Camera Shake" / Variation
-                // We use higher frequency sine waves to simulate turbulence
-                camX += Math.sin(elapsedTime * 2.5) * cineState.shake;
-                camY += Math.cos(elapsedTime * 3.0) * cineState.shake;
-                camZ += Math.sin(elapsedTime * 2.0) * cineState.shake;
+                // Bloom Folder
+                const folderBloom = gui.addFolder('Bloom FX');
+                folderBloom.add(bloomPass, 'strength').min(0).max(3).step(0.01).name('Intensity');
+                folderBloom.add(bloomPass, 'radius').min(0).max(1).step(0.01).name('Radius');
+                folderBloom.add(bloomPass, 'threshold').min(0).max(1).step(0.01).name('Threshold');
 
-                camera.position.set(camX, camY, camZ);
+                // Cinematic Folder
+                const folderCine = gui.addFolder('Cinematic Fly Thru');
+                folderCine.add(cineState, 'active').name('Enable Fly Mode');
+                folderCine.add(cineState, 'speed').min(0.01).max(2.0).name('Fly Speed');
+                folderCine.add(cineState, 'distance').min(1).max(15).name('Orbit Distance');
+                folderCine.add(cineState, 'shake').min(0).max(2).name('Camera Shake');
+                folderCine.add(cineState, 'focusWander').min(0).max(5).name('Focus Drift');
+                folderCine.add(cineState, 'rotationSpeed').min(0).max(0.5).step(0.01).name('Galaxy Spin');
+
+                // --- 6. ANIMATION LOOP ---
+                const clock = new THREE.Clock();
                 
-                // Smart Tracking / Focus Drift
-                // Instead of looking strictly at 0,0,0, we look at a moving point near the center
-                const focusX = Math.sin(elapsedTime * 0.3) * cineState.focusWander;
-                const focusY = Math.cos(elapsedTime * 0.5) * cineState.focusWander;
-                const focusZ = Math.sin(elapsedTime * 0.4) * cineState.focusWander;
+                const tick = () => {
+                    const elapsedTime = clock.getElapsedTime();
 
-                camera.lookAt(focusX, focusY, focusZ);
+                    // 1. Rotate Galaxy
+                    points.rotation.y = elapsedTime * cineState.rotationSpeed;
 
-            } else {
-                controls.enabled = true;
-                controls.update();
-            }
+                    // 2. Camera Logic
+                    if(cineState.active) {
+                        controls.enabled = false;
+                        
+                        // Base Orbit (The smooth path)
+                        // We multiply time by speed
+                        const t = elapsedTime * cineState.speed;
+                        
+                        // Calculate Base Position
+                        // We use sine/cosine for a smooth loop, multiplied by distance
+                        let camX = Math.cos(t) * cineState.distance;
+                        let camZ = Math.sin(t) * cineState.distance;
+                        // Vertical movement (bobbing up and down)
+                        let camY = Math.sin(t * 0.5) * (cineState.distance * 0.4);
 
-            // 3. Render
-            composer.render();
-            
-            window.requestAnimationFrame(tick);
+                        // Add "Camera Shake" / Variation
+                        // We use higher frequency sine waves to simulate turbulence
+                        camX += Math.sin(elapsedTime * 2.5) * cineState.shake;
+                        camY += Math.cos(elapsedTime * 3.0) * cineState.shake;
+                        camZ += Math.sin(elapsedTime * 2.0) * cineState.shake;
+
+                        camera.position.set(camX, camY, camZ);
+                        
+                        // Smart Tracking / Focus Drift
+                        // Instead of looking strictly at 0,0,0, we look at a moving point near the center
+                        const focusX = Math.sin(elapsedTime * 0.3) * cineState.focusWander;
+                        const focusY = Math.cos(elapsedTime * 0.5) * cineState.focusWander;
+                        const focusZ = Math.sin(elapsedTime * 0.4) * cineState.focusWander;
+
+                        camera.lookAt(focusX, focusY, focusZ);
+
+                    } else {
+                        controls.enabled = true;
+                        controls.update();
+                    }
+
+                    // 3. Render
+                    composer.render();
+                    
+                    window.requestAnimationFrame(tick);
+                }
+
+                tick();
+
+                // Handle Resize
+                window.addEventListener('resize', () => {
+                    camera.aspect = window.innerWidth / window.innerHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                    composer.setSize(window.innerWidth, window.innerHeight);
+                });
+            };
+
+            init();
         }
-
-        tick();
-
-        // Handle Resize
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            composer.setSize(window.innerWidth, window.innerHeight);
-        });
     </script>
 </body>
 </html>
