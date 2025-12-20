@@ -352,6 +352,46 @@ body::after {
   display: flex;
   flex-direction: column;
   gap: 18px;
+  position: relative;
+}
+
+.panel__graphic {
+  width: 100%;
+  height: auto;
+  max-height: 120px;
+  opacity: 0.65;
+  filter: drop-shadow(0 0 10px rgba(76, 244, 255, 0.35));
+}
+
+.panel__graphic--radar {
+  max-height: 160px;
+}
+
+.panel__stroke {
+  fill: none;
+  stroke: var(--cyan);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.panel__stroke--muted {
+  stroke: var(--teal);
+  opacity: 0.6;
+}
+
+.panel__stroke--accent {
+  stroke: var(--magenta);
+  opacity: 0.75;
+}
+
+.panel__dash {
+  stroke-dasharray: 10 14;
+  animation: panel-dash 6s linear infinite;
+}
+
+.panel__pulse {
+  animation: panel-pulse 3.5s ease-in-out infinite;
 }
 
 .status-list,
@@ -588,6 +628,25 @@ canvas {
   }
   100% {
     stroke-dashoffset: -160;
+  }
+}
+
+@keyframes panel-dash {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -120;
+  }
+}
+
+@keyframes panel-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.9;
   }
 }
 
