@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Volumetric Nebula Raymarch</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            overflow: hidden;
+            background: radial-gradient(circle at top, rgba(15, 30, 60, 0.9), rgba(0, 0, 0, 0.98));
+            font-family: 'Segoe UI', sans-serif;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        canvas { display: block; width: 100vw; height: 100vh; }
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            pointer-events: none;
+            letter-spacing: 1px;
+        }
+        #ui h1 {
+            font-size: 1rem;
+            text-transform: uppercase;
+            font-weight: 300;
+            margin-bottom: 6px;
+        }
+        #ui p {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.55);
+        }
+        #webgl-fallback {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            background: radial-gradient(circle at top, rgba(27, 57, 132, 0.35), rgba(0, 0, 0, 0.95));
+            color: rgba(255, 255, 255, 0.8);
+            letter-spacing: 1px;
+            z-index: 20;
+        }
+        #webgl-fallback h1 {
+            font-weight: 200;
+            font-size: 1.3rem;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        #webgl-fallback p {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+    </style>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+</head>
+<body>
+    <div id="ui">
+        <h1>Volumetric Nebula</h1>
+        <p>Raymarched density field • ShaderMaterial • Orbit controls</p>
+    </div>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import GUI from 'https://unpkg.com/lil-gui@0.19.1/dist/lil-gui.esm.min.js';
+
+        const supportsWebgl = (() => {
+            const canvas = document.createElement('canvas');
+            return !!(canvas.getContext('webgl2') || canvas.getContext('webgl'));
+        })();
+
+        if (!supportsWebgl) {
+            const fallback = document.createElement('div');
+            fallback.id = 'webgl-fallback';
+            fallback.innerHTML = `
+                <h1>WebGL not supported on this device.</h1>
+                <p>Please try a modern browser or a device with WebGL enabled.</p>
+            `;
+            document.body.appendChild(fallback);
+        } else {
+            // --- Renderer + Scene ---
+            const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.setClearColor(0x000000, 1);
+            document.body.appendChild(renderer.domElement);
+
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 50);
+            camera.position.set(2.5, 1.5, 3.5);
+
+            const controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.minDistance = 1.5;
+            controls.maxDistance = 6;
+
+            // --- Shader uniforms + user-adjustable parameters ---
+            const parameters = {
+                density: 1.4,
+                scattering: 1.2,
+                speed: 0.35,
+                steps: 72,
+                lightColor: '#8fb9ff',
+                nebulaColor: '#ff6bb3'
+            };
+
+            const uniforms = {
+                uTime: { value: 0 },
+                uDensity: { value: parameters.density },
+                uScattering: { value: parameters.scattering },
+                uSpeed: { value: parameters.speed },
+                uSteps: { value: parameters.steps },
+                uLightColor: { value: new THREE.Color(parameters.lightColor) },
+                uNebulaColor: { value: new THREE.Color(parameters.nebulaColor) },
+                uInvProjection: { value: new THREE.Matrix4() },
+                uInvView: { value: new THREE.Matrix4() },
+                uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
+            };
+
+            // --- Full-screen quad geometry (clip-space) ---
+            const quad = new THREE.Mesh(
+                new THREE.PlaneGeometry(2, 2),
+                new THREE.ShaderMaterial({
+                    uniforms,
+                    vertexShader: `
+                        varying vec2 vUv;
+                        void main() {
+                            vUv = uv;
+                            gl_Position = vec4(position, 1.0);
+                        }
+                    `,
+                    fragmentShader: `
+                        precision highp float;
+
+                        uniform float uTime;
+                        uniform float uDensity;
+                        uniform float uScattering;
+                        uniform float uSpeed;
+                        uniform float uSteps;
+                        uniform vec2 uResolution;
+                        uniform vec3 uLightColor;
+                        uniform vec3 uNebulaColor;
+                        uniform mat4 uInvProjection;
+                        uniform mat4 uInvView;
+
+                        varying vec2 vUv;
+
+                        // Hash-based 3D noise for procedural density.
+                        float hash(vec3 p) {
+                            return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453123);
+                        }
+
+                        float noise(vec3 p) {
+                            vec3 i = floor(p);
+                            vec3 f = fract(p);
+                            f = f * f * (3.0 - 2.0 * f);
+
+                            float n000 = hash(i + vec3(0.0, 0.0, 0.0));
+                            float n100 = hash(i + vec3(1.0, 0.0, 0.0));
+                            float n010 = hash(i + vec3(0.0, 1.0, 0.0));
+                            float n110 = hash(i + vec3(1.0, 1.0, 0.0));
+                            float n001 = hash(i + vec3(0.0, 0.0, 1.0));
+                            float n101 = hash(i + vec3(1.0, 0.0, 1.0));
+                            float n011 = hash(i + vec3(0.0, 1.0, 1.0));
+                            float n111 = hash(i + vec3(1.0, 1.0, 1.0));
+
+                            float n00 = mix(n000, n100, f.x);
+                            float n10 = mix(n010, n110, f.x);
+                            float n01 = mix(n001, n101, f.x);
+                            float n11 = mix(n011, n111, f.x);
+
+                            float n0 = mix(n00, n10, f.y);
+                            float n1 = mix(n01, n11, f.y);
+
+                            return mix(n0, n1, f.z);
+                        }
+
+                        float fbm(vec3 p) {
+                            float value = 0.0;
+                            float amplitude = 0.5;
+                            float frequency = 1.0;
+                            for (int i = 0; i < 5; i++) {
+                                value += amplitude * noise(p * frequency);
+                                frequency *= 2.0;
+                                amplitude *= 0.5;
+                            }
+                            return value;
+                        }
+
+                        // Reconstruct world-space ray from the camera matrices.
+                        vec3 getRayDirection(vec2 uv) {
+                            vec4 clip = vec4(uv * 2.0 - 1.0, 1.0, 1.0);
+                            vec4 view = uInvProjection * clip;
+                            view /= view.w;
+                            vec4 world = uInvView * vec4(view.xyz, 0.0);
+                            return normalize(world.xyz);
+                        }
+
+                        vec3 sampleNebula(vec3 p, float time) {
+                            vec3 drift = vec3(0.0, time * uSpeed, time * 0.15 * uSpeed);
+                            float base = fbm(p * 0.9 + drift);
+                            float detail = fbm(p * 2.4 - drift * 0.6);
+                            float density = smoothstep(0.15, 0.85, base) * 0.7 + detail * 0.4;
+
+                            // Fade density toward the edges of the volume.
+                            float radius = length(p);
+                            float falloff = smoothstep(2.8, 0.6, radius);
+                            return vec3(density * falloff);
+                        }
+
+                        void main() {
+                            vec2 uv = vUv;
+                            vec3 ro = cameraPosition;
+                            vec3 rd = getRayDirection(uv);
+
+                            float t = 0.0;
+                            float maxT = 8.0;
+                            float stepSize = maxT / uSteps;
+                            float transmittance = 1.0;
+                            vec3 color = vec3(0.0);
+
+                            for (int i = 0; i < 140; i++) {
+                                if (float(i) >= uSteps) {
+                                    break;
+                                }
+
+                                vec3 pos = ro + rd * t;
+                                vec3 densitySample = sampleNebula(pos, uTime);
+                                float density = densitySample.x * uDensity;
+
+                                vec3 localColor = mix(uLightColor, uNebulaColor, densitySample.x);
+                                vec3 scatter = localColor * density * uScattering;
+
+                                color += scatter * transmittance * 0.08;
+                                transmittance *= exp(-density * 0.25);
+
+                                if (transmittance < 0.02) {
+                                    break;
+                                }
+
+                                t += stepSize;
+                            }
+
+                            vec3 background = mix(vec3(0.02, 0.03, 0.06), vec3(0.0, 0.0, 0.0), uv.y);
+                            vec3 finalColor = background + color;
+                            gl_FragColor = vec4(finalColor, 1.0);
+                        }
+                    `,
+                    depthWrite: false,
+                    depthTest: false
+                })
+            );
+            scene.add(quad);
+
+            // --- GUI ---
+            const gui = new GUI();
+            gui.title('Nebula Controls');
+            gui.add(parameters, 'density', 0.1, 3.0, 0.05).name('Density').onChange((value) => {
+                uniforms.uDensity.value = value;
+            });
+            gui.add(parameters, 'scattering', 0.1, 3.0, 0.05).name('Scattering').onChange((value) => {
+                uniforms.uScattering.value = value;
+            });
+            gui.add(parameters, 'speed', 0.0, 1.0, 0.01).name('Animation Speed').onChange((value) => {
+                uniforms.uSpeed.value = value;
+            });
+            gui.add(parameters, 'steps', 32, 140, 1).name('Ray Steps').onChange((value) => {
+                uniforms.uSteps.value = value;
+            });
+            gui.addColor(parameters, 'lightColor').name('Light Tint').onChange((value) => {
+                uniforms.uLightColor.value.set(value);
+            });
+            gui.addColor(parameters, 'nebulaColor').name('Nebula Tint').onChange((value) => {
+                uniforms.uNebulaColor.value.set(value);
+            });
+
+            const clock = new THREE.Clock();
+
+            const onResize = () => {
+                const { innerWidth, innerHeight } = window;
+                camera.aspect = innerWidth / innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(innerWidth, innerHeight);
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                uniforms.uResolution.value.set(innerWidth, innerHeight);
+            };
+            window.addEventListener('resize', onResize);
+
+            const animate = () => {
+                uniforms.uTime.value = clock.getElapsedTime();
+                controls.update();
+
+                // Keep camera matrices in sync for ray reconstruction.
+                uniforms.uInvProjection.value.copy(camera.projectionMatrixInverse);
+                uniforms.uInvView.value.copy(camera.matrixWorld);
+
+                renderer.render(scene, camera);
+                requestAnimationFrame(animate);
+            };
+
+            animate();
+        }
+    </script>
+</body>
+</html>
