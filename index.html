@@ -21,7 +21,7 @@
     </header>
 
     <main class="hud__grid" aria-live="polite">
-      <section id="system-status" class="panel panel--status" aria-labelledby="system-status-title" data-panel="system-status">
+      <section id="system-status" class="panel panel--status grid-area-status" aria-labelledby="system-status-title" data-panel="system-status">
         <h2 id="system-status-title">System Status</h2>
         <div class="panel__content">
           <ul class="status-list" data-typewriter="system">
@@ -38,7 +38,7 @@
         </div>
       </section>
 
-      <section id="telemetry-meters" class="panel panel--telemetry" aria-labelledby="telemetry-title" data-panel="telemetry">
+      <section id="telemetry-meters" class="panel panel--telemetry grid-area-telemetry" aria-labelledby="telemetry-title" data-panel="telemetry">
         <h2 id="telemetry-title">Telemetry Meters</h2>
         <div class="panel__content">
           <div class="meter-list" data-readouts="telemetry">
@@ -67,7 +67,7 @@
         </div>
       </section>
 
-      <section id="ship-logs" class="panel panel--logs" aria-labelledby="ship-logs-title" data-panel="logs">
+      <section id="ship-logs" class="panel panel--logs grid-area-logs" aria-labelledby="ship-logs-title" data-panel="logs">
         <h2 id="ship-logs-title">Mission Logs</h2>
         <div class="panel__content">
           <div class="log-window" role="log" aria-live="polite" aria-relevant="additions" data-scroll-log="primary">
@@ -80,7 +80,7 @@
         </div>
       </section>
 
-      <section id="radar-scan" class="panel panel--radar" aria-labelledby="radar-title" data-panel="radar">
+      <section id="radar-scan" class="panel panel--radar grid-area-radar" aria-labelledby="radar-title" data-panel="radar">
         <h2 id="radar-title">Radar / Scan Visual</h2>
         <div class="panel__content">
           <canvas id="radar-canvas" width="360" height="360" aria-label="Radar scan visual"></canvas>
@@ -92,7 +92,7 @@
         </div>
       </section>
 
-      <nav id="nav-pages" class="panel panel--nav" aria-labelledby="nav-title" data-panel="nav">
+      <nav id="nav-pages" class="panel panel--nav grid-area-nav" aria-labelledby="nav-title" data-panel="nav">
         <h2 id="nav-title">Navigation</h2>
         <div class="panel__content">
           <ol class="nav-list" aria-describedby="nav-title"></ol>
@@ -100,7 +100,7 @@
         </div>
       </nav>
 
-      <section id="preview-pane" class="panel panel--preview" aria-labelledby="preview-title" data-panel="preview">
+      <section id="preview-pane" class="panel panel--preview grid-area-preview" aria-labelledby="preview-title" data-panel="preview">
         <h2 id="preview-title">Live Preview</h2>
         <div class="panel__content">
           <div class="preview-window" role="img" aria-label="Live preview of the selected page">

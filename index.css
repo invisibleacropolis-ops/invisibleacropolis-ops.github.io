@@ -141,7 +141,43 @@ body::after {
 .hud__grid {
   display: grid;
   gap: 24px;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns:
+    minmax(240px, 1.1fr)
+    minmax(260px, 1.4fr)
+    minmax(220px, 1.1fr)
+    minmax(180px, 0.7fr);
+  grid-template-rows:
+    minmax(220px, 1fr)
+    minmax(240px, 1.1fr)
+    minmax(200px, 0.9fr);
+  grid-template-areas:
+    "status status telemetry nav"
+    "radar logs telemetry nav"
+    "radar preview preview nav";
+}
+
+.grid-area-status {
+  grid-area: status;
+}
+
+.grid-area-telemetry {
+  grid-area: telemetry;
+}
+
+.grid-area-logs {
+  grid-area: logs;
+}
+
+.grid-area-radar {
+  grid-area: radar;
+}
+
+.grid-area-nav {
+  grid-area: nav;
+}
+
+.grid-area-preview {
+  grid-area: preview;
 }
 
 .panel {
@@ -454,5 +490,42 @@ canvas {
   body::after,
   .hud::after {
     opacity: 0.4;
+  }
+}
+
+@media (max-width: 1200px) {
+  .hud__grid {
+    grid-template-columns: repeat(3, minmax(220px, 1fr));
+    grid-template-rows: repeat(3, minmax(200px, auto));
+    grid-template-areas:
+      "status status nav"
+      "telemetry logs nav"
+      "radar preview preview";
+  }
+}
+
+@media (max-width: 900px) {
+  .hud__grid {
+    grid-template-columns: repeat(2, minmax(240px, 1fr));
+    grid-template-rows: repeat(4, minmax(200px, auto));
+    grid-template-areas:
+      "status status"
+      "telemetry telemetry"
+      "radar nav"
+      "preview logs";
+  }
+}
+
+@media (max-width: 720px) {
+  .hud__grid {
+    grid-template-columns: minmax(220px, 1fr);
+    grid-template-rows: none;
+    grid-template-areas:
+      "status"
+      "telemetry"
+      "radar"
+      "logs"
+      "nav"
+      "preview";
   }
 }
