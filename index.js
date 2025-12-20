@@ -368,12 +368,90 @@ const initOutlineCycling = () => {
   }, 3200);
 };
 
+const targetPages = [
+  "audio-reactive.html",
+  "cloth.html",
+  "flow-field.html",
+  "fluid.html",
+  "galaxy.html",
+  "procedural-city.html",
+  "volumetric-nebula.html"
+];
+
+const getFallbackTitle = (filename) => filename.replace(".html", "");
+
+const parseTitle = (html, fallback) => {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+  const title = doc.querySelector("title")?.textContent?.trim();
+  return title || fallback;
+};
+
+const buildNavList = async () => {
+  const navList = document.querySelector(".nav-list");
+  if (!navList) return;
+  navList.innerHTML = "";
+
+  const items = await Promise.all(
+    targetPages.map(async (page) => {
+      const fallback = getFallbackTitle(page);
+      try {
+        const response = await fetch(page);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch ${page}`);
+        }
+        const html = await response.text();
+        return { page, title: parseTitle(html, fallback) };
+      } catch (error) {
+        console.warn(error);
+        return { page, title: fallback };
+      }
+    })
+  );
+
+  const previewWindow = document.querySelector(".preview-window");
+  const previewFrame = previewWindow?.querySelector(".preview-frame");
+  if (previewWindow && previewFrame) {
+    previewFrame.addEventListener("load", () => {
+      if (previewWindow.classList.contains("is-loading")) {
+        previewWindow.classList.remove("is-loading");
+      }
+    });
+  }
+
+  const showPreview = (page) => {
+    if (!previewWindow || !previewFrame) return;
+    previewWindow.classList.add("is-active", "is-loading");
+    previewFrame.src = page;
+  };
+
+  const hidePreview = () => {
+    if (!previewWindow || !previewFrame) return;
+    previewWindow.classList.remove("is-active", "is-loading");
+    previewFrame.src = "about:blank";
+  };
+
+  items.forEach((item) => {
+    const listItem = document.createElement("li");
+    const link = document.createElement("a");
+    link.href = item.page;
+    link.textContent = item.title;
+    link.addEventListener("mouseenter", () => showPreview(item.page));
+    link.addEventListener("mouseleave", hidePreview);
+    link.addEventListener("focus", () => showPreview(item.page));
+    link.addEventListener("blur", hidePreview);
+    listItem.appendChild(link);
+    navList.appendChild(listItem);
+  });
+};
+
 const init = () => {
   initReadouts();
   initMeters();
   initTypewriters();
   initOutlineCycling();
   document.querySelectorAll("[data-scroll-log]").forEach(initLogWindow);
+  buildNavList();
 };
 
 let lastFrame = performance.now();
