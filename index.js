@@ -30,6 +30,36 @@ const panelSizeMap = new Map();
 let panelResizeObserver = null;
 let layoutRefreshId = null;
 
+const overlayTargets = {
+  navPanel: null,
+  previewWindow: null,
+  telemetryPanel: null
+};
+
+const updateFocusOverlay = (key, element, options = {}) => {
+  if (!element) return;
+  const rect = element.getBoundingClientRect();
+  const padding = options.padding ?? 24;
+  const minWidth = options.minWidth ?? 180;
+  const minHeight = options.minHeight ?? 140;
+  const width = Math.max(rect.width + padding * 2, minWidth);
+  const height = Math.max(rect.height + padding * 2, minHeight);
+  const x = rect.left + rect.width / 2;
+  const y = rect.top + rect.height / 2;
+
+  const rootStyle = document.documentElement.style;
+  rootStyle.setProperty(`--focus-${key}-x`, `${x}px`);
+  rootStyle.setProperty(`--focus-${key}-y`, `${y}px`);
+  rootStyle.setProperty(`--focus-${key}-width`, `${width}px`);
+  rootStyle.setProperty(`--focus-${key}-height`, `${height}px`);
+};
+
+const refreshFocusOverlays = () => {
+  updateFocusOverlay("a", overlayTargets.navPanel, { padding: 26, minWidth: 200, minHeight: 160 });
+  updateFocusOverlay("b", overlayTargets.previewWindow, { padding: 48, minWidth: 260, minHeight: 200 });
+  updateFocusOverlay("c", overlayTargets.telemetryPanel, { padding: 38, minWidth: 220, minHeight: 180 });
+};
+
 const getGridMetrics = () => {
   const grid = document.querySelector(".hud__grid");
   if (!grid) return null;
@@ -114,6 +144,13 @@ const initLayoutManager = () => {
   });
 
   scheduleLayoutRefresh();
+};
+
+const initFocusOverlays = () => {
+  overlayTargets.navPanel = document.querySelector(".panel--nav");
+  overlayTargets.previewWindow = document.querySelector(".preview-window");
+  overlayTargets.telemetryPanel = document.querySelector(".panel--telemetry");
+  refreshFocusOverlays();
 };
 
 const readoutConfigs = {
@@ -560,12 +597,14 @@ const buildNavList = async () => {
     if (!previewWindow || !previewFrame) return;
     previewWindow.classList.add("is-active", "is-loading");
     previewFrame.src = page;
+    updateFocusOverlay("b", previewWindow, { padding: 48, minWidth: 260, minHeight: 200 });
   };
 
   const hidePreview = () => {
     if (!previewWindow || !previewFrame) return;
     previewWindow.classList.remove("is-active", "is-loading");
     previewFrame.src = "about:blank";
+    refreshFocusOverlays();
   };
 
   items.forEach((item) => {
@@ -574,9 +613,15 @@ const buildNavList = async () => {
     link.href = item.page;
     link.textContent = item.title;
     link.setAttribute("aria-label", `Open ${item.title} page`);
-    link.addEventListener("mouseenter", () => showPreview(item.page));
+    link.addEventListener("mouseenter", () => {
+      updateFocusOverlay("a", link, { padding: 16, minWidth: 140, minHeight: 64 });
+      showPreview(item.page);
+    });
     link.addEventListener("mouseleave", hidePreview);
-    link.addEventListener("focus", () => showPreview(item.page));
+    link.addEventListener("focus", () => {
+      updateFocusOverlay("a", link, { padding: 16, minWidth: 140, minHeight: 64 });
+      showPreview(item.page);
+    });
     link.addEventListener("blur", hidePreview);
     listItem.appendChild(link);
     navList.appendChild(listItem);
@@ -616,6 +661,8 @@ const init = () => {
   buildNavList();
   initLayoutManager();
   window.addEventListener("resize", scheduleLayoutRefresh);
+  initFocusOverlays();
+  window.addEventListener("resize", refreshFocusOverlays);
 
   updateMotionSettings(motionQuery.matches);
   motionQuery.addEventListener("change", (event) => {
