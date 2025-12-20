@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Procedural City Grid</title>
+  <style>
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      overflow: hidden;
+      background: #0b0f14;
+      color: #d6dbe3;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    }
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+    #ui {
+      position: absolute;
+      top: 24px;
+      left: 24px;
+      background: rgba(8, 12, 18, 0.65);
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(6px);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+      z-index: 10;
+    }
+    #ui h1 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    #ui p {
+      font-size: 0.78rem;
+      line-height: 1.4;
+      color: rgba(214, 219, 227, 0.75);
+    }
+    #webgl-fallback {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 10px;
+      text-align: center;
+      background: radial-gradient(circle at top, rgba(38, 64, 112, 0.4), #05070a);
+      color: rgba(255, 255, 255, 0.8);
+      z-index: 20;
+    }
+    #webgl-fallback h2 {
+      font-size: 1.2rem;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    #webgl-fallback p {
+      font-size: 0.9rem;
+      max-width: 420px;
+      color: rgba(255, 255, 255, 0.65);
+    }
+  </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="ui">
+    <h1>Procedural City Grid</h1>
+    <p>L-system-inspired constraints generate road blocks. Instanced towers form the skyline while
+      steering agents navigate lanes with seek, avoid, and lane-follow behaviors.</p>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import GUI from 'https://unpkg.com/lil-gui@0.19.1/dist/lil-gui.esm.min.js';
+
+    const supportsWebgl = (() => {
+      const canvas = document.createElement('canvas');
+      return !!(canvas.getContext('webgl2') || canvas.getContext('webgl'));
+    })();
+
+    if (!supportsWebgl) {
+      const fallback = document.createElement('div');
+      fallback.id = 'webgl-fallback';
+      fallback.innerHTML = `
+        <h2>WebGL not supported</h2>
+        <p>Please open this page in a modern browser with WebGL enabled.</p>
+      `;
+      document.body.appendChild(fallback);
+    } else {
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0b0f14);
+      scene.fog = new THREE.Fog(0x0b0f14, 12, 70);
+
+      const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 200);
+      camera.position.set(22, 20, 28);
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      document.body.appendChild(renderer.domElement);
+
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.maxPolarAngle = Math.PI / 2.1;
+      controls.target.set(0, 4, 0);
+
+      // --- Lighting system for time-of-day ---
+      const ambientLight = new THREE.AmbientLight(0x8aa1c2, 0.5);
+      scene.add(ambientLight);
+
+      const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
+      sunLight.position.set(12, 24, 10);
+      sunLight.castShadow = true;
+      sunLight.shadow.mapSize.set(2048, 2048);
+      sunLight.shadow.camera.near = 5;
+      sunLight.shadow.camera.far = 80;
+      sunLight.shadow.camera.left = -40;
+      sunLight.shadow.camera.right = 40;
+      sunLight.shadow.camera.top = 40;
+      sunLight.shadow.camera.bottom = -40;
+      scene.add(sunLight);
+
+      const hemiLight = new THREE.HemisphereLight(0x8cc6ff, 0x0c0f14, 0.45);
+      scene.add(hemiLight);
+
+      const ground = new THREE.Mesh(
+        new THREE.PlaneGeometry(120, 120),
+        new THREE.MeshStandardMaterial({ color: 0x0c0f14, roughness: 0.85, metalness: 0.05 })
+      );
+      ground.rotation.x = -Math.PI / 2;
+      ground.receiveShadow = true;
+      scene.add(ground);
+
+      // --- Procedural grid / L-system-inspired constraints ---
+      const gridConfig = {
+        size: 12,
+        spacing: 4.0,
+        jitter: 0.3,
+        gapProbability: 0.25
+      };
+
+      const roadGroup = new THREE.Group();
+      scene.add(roadGroup);
+
+      const roadMaterial = new THREE.MeshStandardMaterial({
+        color: 0x1b1f26,
+        roughness: 0.9,
+        metalness: 0.1
+      });
+
+      const roadSegments = [];
+      const roadNodes = new Map();
+
+      const registerNode = (x, z) => {
+        const key = `${x.toFixed(2)},${z.toFixed(2)}`;
+        if (!roadNodes.has(key)) {
+          roadNodes.set(key, new THREE.Vector3(x, 0, z));
+        }
+        return roadNodes.get(key);
+      };
+
+      // Simple L-system style generation: iteratively expand grid lines with constraints.
+      const buildRoadGrid = () => {
+        roadGroup.clear();
+        roadSegments.length = 0;
+        roadNodes.clear();
+
+        const half = gridConfig.size / 2;
+        const lineLength = gridConfig.size * gridConfig.spacing;
+        const roadWidth = 1.4;
+        const roadGeo = new THREE.BoxGeometry(lineLength, 0.1, roadWidth);
+        const crossGeo = new THREE.BoxGeometry(roadWidth, 0.1, lineLength);
+
+        for (let i = 0; i <= gridConfig.size; i++) {
+          if (Math.random() < gridConfig.gapProbability && i % 2 === 1) {
+            continue;
+          }
+          const x = (i - half) * gridConfig.spacing;
+          const jitter = (Math.random() - 0.5) * gridConfig.jitter;
+          const mesh = new THREE.Mesh(roadGeo, roadMaterial);
+          mesh.position.set(x + jitter, 0.05, 0);
+          mesh.receiveShadow = true;
+          roadGroup.add(mesh);
+          roadSegments.push({
+            start: new THREE.Vector3(mesh.position.x, 0, -lineLength / 2),
+            end: new THREE.Vector3(mesh.position.x, 0, lineLength / 2),
+            direction: new THREE.Vector3(0, 0, 1)
+          });
+          registerNode(mesh.position.x, -lineLength / 2);
+          registerNode(mesh.position.x, lineLength / 2);
+        }
+
+        for (let i = 0; i <= gridConfig.size; i++) {
+          if (Math.random() < gridConfig.gapProbability && i % 2 === 0) {
+            continue;
+          }
+          const z = (i - half) * gridConfig.spacing;
+          const jitter = (Math.random() - 0.5) * gridConfig.jitter;
+          const mesh = new THREE.Mesh(crossGeo, roadMaterial);
+          mesh.position.set(0, 0.05, z + jitter);
+          mesh.receiveShadow = true;
+          roadGroup.add(mesh);
+          roadSegments.push({
+            start: new THREE.Vector3(-lineLength / 2, 0, mesh.position.z),
+            end: new THREE.Vector3(lineLength / 2, 0, mesh.position.z),
+            direction: new THREE.Vector3(1, 0, 0)
+          });
+          registerNode(-lineLength / 2, mesh.position.z);
+          registerNode(lineLength / 2, mesh.position.z);
+        }
+      };
+
+      buildRoadGrid();
+
+      // --- Instanced buildings ---
+      const buildingGroup = new THREE.Group();
+      scene.add(buildingGroup);
+
+      const buildingGeometry = new THREE.BoxGeometry(1, 1, 1);
+      const buildingMaterial = new THREE.MeshStandardMaterial({
+        color: 0x8fa2b7,
+        roughness: 0.6,
+        metalness: 0.1
+      });
+
+      let buildingMesh = null;
+      const buildingFootprints = [];
+
+      const generateBuildings = (density) => {
+        if (buildingMesh) {
+          buildingMesh.geometry.dispose();
+          buildingMesh.material.dispose();
+          buildingGroup.remove(buildingMesh);
+        }
+
+        const instances = Math.floor(gridConfig.size * gridConfig.size * density);
+        buildingMesh = new THREE.InstancedMesh(buildingGeometry, buildingMaterial, instances);
+        buildingMesh.castShadow = true;
+        buildingMesh.receiveShadow = true;
+
+        const dummy = new THREE.Object3D();
+        buildingFootprints.length = 0;
+
+        const areaMin = -gridConfig.size * gridConfig.spacing * 0.45;
+        const areaMax = -areaMin;
+
+        for (let i = 0; i < instances; i++) {
+          const x = THREE.MathUtils.lerp(areaMin, areaMax, Math.random());
+          const z = THREE.MathUtils.lerp(areaMin, areaMax, Math.random());
+          const height = THREE.MathUtils.randFloat(2.5, 12.5);
+          const footprint = 1.2 + Math.random() * 1.6;
+
+          dummy.position.set(x, height / 2, z);
+          dummy.scale.set(footprint, height, footprint);
+          dummy.rotation.y = Math.random() * Math.PI * 2;
+          dummy.updateMatrix();
+          buildingMesh.setMatrixAt(i, dummy.matrix);
+
+          buildingFootprints.push({
+            position: new THREE.Vector3(x, 0, z),
+            radius: footprint * 0.8
+          });
+        }
+
+        buildingMesh.instanceMatrix.needsUpdate = true;
+        buildingGroup.add(buildingMesh);
+      };
+
+      // --- Vehicle agents ---
+      const vehicleGroup = new THREE.Group();
+      scene.add(vehicleGroup);
+
+      const vehicleGeometry = new THREE.BoxGeometry(0.6, 0.35, 1.4);
+      const vehicleMaterial = new THREE.MeshStandardMaterial({
+        color: 0xff8f3d,
+        roughness: 0.4,
+        metalness: 0.2
+      });
+
+      const vehicles = [];
+      const laneOffset = 0.45;
+
+      const pickRandomSegment = () => {
+        return roadSegments[Math.floor(Math.random() * roadSegments.length)];
+      };
+
+      const spawnVehicle = () => {
+        const segment = pickRandomSegment();
+        const t = Math.random();
+        const position = segment.start.clone().lerp(segment.end, t);
+        const direction = segment.direction.clone();
+
+        const mesh = new THREE.Mesh(vehicleGeometry, vehicleMaterial.clone());
+        mesh.castShadow = true;
+        mesh.position.set(position.x, 0.25, position.z);
+        vehicleGroup.add(mesh);
+
+        return {
+          mesh,
+          position,
+          velocity: direction.clone().multiplyScalar(0.6),
+          laneDirection: direction.clone(),
+          target: segment.end.clone(),
+          segment
+        };
+      };
+
+      const createVehicles = (count) => {
+        vehicles.splice(0, vehicles.length);
+        vehicleGroup.clear();
+        for (let i = 0; i < count; i++) {
+          vehicles.push(spawnVehicle());
+        }
+      };
+
+      const findNextTarget = (vehicle) => {
+        const segment = pickRandomSegment();
+        vehicle.segment = segment;
+        vehicle.laneDirection.copy(segment.direction);
+        vehicle.target.copy(segment.end);
+      };
+
+      const applySteering = (vehicle, delta, speedMultiplier) => {
+        // Seek: move toward current target
+        const desired = vehicle.target.clone().sub(vehicle.position);
+        const distance = desired.length();
+        if (distance < 0.5) {
+          findNextTarget(vehicle);
+        }
+        desired.normalize();
+
+        // Lane-follow: keep to centerline with an offset
+        const laneCenter = new THREE.Vector3(
+          vehicle.position.x,
+          0,
+          vehicle.position.z
+        );
+        if (Math.abs(vehicle.laneDirection.x) > 0) {
+          laneCenter.z = vehicle.segment.start.z + laneOffset * Math.sign(vehicle.velocity.x);
+        } else {
+          laneCenter.x = vehicle.segment.start.x - laneOffset * Math.sign(vehicle.velocity.z);
+        }
+        const laneCorrection = laneCenter.clone().sub(vehicle.position).multiplyScalar(0.8);
+
+        // Avoid: steer away from other vehicles and buildings
+        const avoid = new THREE.Vector3();
+        for (const other of vehicles) {
+          if (other === vehicle) continue;
+          const diff = vehicle.position.clone().sub(other.position);
+          const dist = diff.length();
+          if (dist > 0 && dist < 2.2) {
+            avoid.add(diff.normalize().multiplyScalar(1.4 / dist));
+          }
+        }
+        for (const building of buildingFootprints) {
+          const diff = vehicle.position.clone().sub(building.position);
+          const dist = diff.length();
+          if (dist > 0 && dist < building.radius + 1.2) {
+            avoid.add(diff.normalize().multiplyScalar(1.0 / dist));
+          }
+        }
+
+        const steering = new THREE.Vector3();
+        steering.add(desired.multiplyScalar(1.3));
+        steering.add(laneCorrection);
+        steering.add(avoid.multiplyScalar(2.0));
+
+        vehicle.velocity.add(steering.multiplyScalar(delta));
+        vehicle.velocity.clampLength(0.4, 1.6 * speedMultiplier);
+        vehicle.position.add(vehicle.velocity.clone().multiplyScalar(delta * speedMultiplier));
+        vehicle.mesh.position.copy(vehicle.position);
+
+        const heading = Math.atan2(vehicle.velocity.x, vehicle.velocity.z);
+        vehicle.mesh.rotation.y = heading;
+      };
+
+      // --- GUI controls ---
+      const settings = {
+        density: 0.8,
+        vehicleCount: 18,
+        speed: 1.0,
+        timeOfDay: 14
+      };
+
+      const updateTimeOfDay = () => {
+        const t = settings.timeOfDay / 24;
+        const sunAngle = t * Math.PI * 2 - Math.PI / 2;
+        const sunHeight = Math.sin(sunAngle) * 20 + 10;
+        const sunDistance = Math.cos(sunAngle) * 20;
+        sunLight.position.set(sunDistance, Math.max(3, sunHeight), 10);
+
+        const dayColor = new THREE.Color(0x8cc6ff);
+        const duskColor = new THREE.Color(0xff9d5c);
+        const nightColor = new THREE.Color(0x1b2233);
+
+        let skyColor = dayColor.clone();
+        if (t < 0.25 || t > 0.75) {
+          const nightMix = t < 0.25 ? (0.25 - t) / 0.25 : (t - 0.75) / 0.25;
+          skyColor.lerp(nightColor, nightMix);
+        } else if (t < 0.35 || t > 0.65) {
+          const duskMix = t < 0.35 ? (0.35 - t) / 0.1 : (t - 0.65) / 0.1;
+          skyColor.lerp(duskColor, 1 - duskMix);
+        }
+
+        scene.background = skyColor;
+        scene.fog.color.copy(skyColor);
+
+        const intensity = THREE.MathUtils.clamp(Math.cos(sunAngle) + 0.6, 0.2, 1.2);
+        sunLight.intensity = intensity * 1.4;
+        ambientLight.intensity = 0.35 + intensity * 0.4;
+        hemiLight.intensity = 0.2 + intensity * 0.4;
+      };
+
+      const gui = new GUI({ width: 260 });
+      gui.add(settings, 'density', 0.3, 1.2, 0.05)
+        .name('Building Density')
+        .onChange((value) => generateBuildings(value));
+      gui.add(settings, 'vehicleCount', 6, 40, 1)
+        .name('Vehicle Count')
+        .onChange((value) => createVehicles(value));
+      gui.add(settings, 'speed', 0.4, 2.0, 0.05)
+        .name('Vehicle Speed');
+      gui.add(settings, 'timeOfDay', 0, 24, 1)
+        .name('Time of Day')
+        .onChange(updateTimeOfDay);
+
+      generateBuildings(settings.density);
+      createVehicles(settings.vehicleCount);
+      updateTimeOfDay();
+
+      const clock = new THREE.Clock();
+
+      const animate = () => {
+        const delta = clock.getDelta();
+        controls.update();
+        vehicles.forEach(vehicle => applySteering(vehicle, delta, settings.speed));
+        renderer.render(scene, camera);
+        requestAnimationFrame(animate);
+      };
+
+      animate();
+
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    }
+  </script>
+</body>
+</html>
