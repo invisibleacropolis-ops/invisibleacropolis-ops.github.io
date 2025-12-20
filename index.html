@@ -95,14 +95,7 @@
       <nav id="nav-pages" class="panel panel--nav" aria-labelledby="nav-title" data-panel="nav">
         <h2 id="nav-title">Navigation</h2>
         <div class="panel__content">
-          <ol class="nav-list">
-            <li>Overview</li>
-            <li>Engineering</li>
-            <li>Astrogation</li>
-            <li>Science Bay</li>
-            <li>Armory</li>
-            <li>Communications</li>
-          </ol>
+          <ol class="nav-list" aria-describedby="nav-title"></ol>
           <p class="nav-hint" data-typewriter="nav">Select a deck to route data streams.</p>
         </div>
       </nav>
@@ -111,7 +104,9 @@
         <h2 id="preview-title">Live Preview</h2>
         <div class="panel__content">
           <div class="preview-window" role="img" aria-label="External camera feed placeholder">
-            <p class="preview-placeholder" data-typewriter="preview">Camera feed will render here.</p>
+            <iframe class="preview-frame" title="Preview frame" loading="lazy"></iframe>
+            <div class="preview-loading" aria-hidden="true">Loading preview...</div>
+            <p class="preview-placeholder" data-typewriter="preview">Hover a nav item to load the camera feed.</p>
           </div>
           <div class="preview-data" data-readouts="preview">
             <p>Sector: <span class="readout">--</span></p>
