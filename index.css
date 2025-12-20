@@ -238,6 +238,16 @@ body::after {
   overflow: hidden;
 }
 
+.meter::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(42, 250, 223, 0.18), rgba(76, 244, 255, 0.08));
+  transform: translateX(calc(-100% + (var(--meter-fill, 0%) * 1%)));
+  transition: transform 0.3s ease;
+  opacity: 0.45;
+}
+
 .meter::after {
   content: "";
   position: absolute;
@@ -245,6 +255,37 @@ body::after {
   background: linear-gradient(90deg, transparent, rgba(76, 244, 255, 0.2), transparent);
   transform: translateX(-100%);
   animation: window-draw 3s ease-in-out infinite;
+}
+
+.meter p,
+.meter .readout,
+.meter .sparkline {
+  position: relative;
+  z-index: 1;
+}
+
+.sparkline {
+  width: 100%;
+  height: 36px;
+  margin-top: 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(76, 244, 255, 0.15);
+  background: rgba(4, 10, 20, 0.65);
+}
+
+.panel.is-outline-draw::before {
+  animation: border-draw 1.6s ease forwards;
+  opacity: 0.9;
+}
+
+.panel.is-outline-dissolve::before {
+  animation: none;
+  opacity: 0.2;
+  mask-image: linear-gradient(90deg, #000 0 20%, transparent 65%);
+}
+
+.panel.is-outline-dissolve::after {
+  opacity: 0.15;
 }
 
 .log-window,
@@ -256,6 +297,13 @@ body::after {
   border: 1px solid rgba(76, 244, 255, 0.15);
   min-height: 160px;
   overflow: hidden;
+}
+
+.log-stream {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  will-change: transform;
 }
 
 .log-window::before,
