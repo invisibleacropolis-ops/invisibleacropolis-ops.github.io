@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Starship HUD Control Panel</title>
+</head>
+<body>
+  <div id="hud" class="hud" role="application" aria-label="Spaceship control panel">
+    <header class="hud__header">
+      <div class="hud__titleblock">
+        <p class="hud__eyebrow">IFS Asteria • Command Interface</p>
+        <h1 class="hud__title">Spaceship Control Panel</h1>
+        <p class="hud__subtitle">FTL Systems, Mission Telemetry, and Environmental Scan</p>
+      </div>
+      <div class="hud__status">
+        <p class="hud__status-label">Core Status</p>
+        <p class="hud__status-value" data-status-placeholder="primary">STANDBY</p>
+      </div>
+    </header>
+
+    <main class="hud__grid" aria-live="polite">
+      <section id="system-status" class="panel panel--status" aria-labelledby="system-status-title">
+        <h2 id="system-status-title">System Status</h2>
+        <div class="panel__content">
+          <ul class="status-list" data-typewriter="system">
+            <li>Initializing subsystem matrix...</li>
+            <li>Propulsion cores: pending telemetry.</li>
+            <li>Life support: awaiting diagnostics.</li>
+            <li>Navigation array: calibrating starfield.</li>
+          </ul>
+          <div class="status-readouts" data-readouts="system">
+            <p>Hull Integrity: <span class="readout">--%</span></p>
+            <p>Shield Capacity: <span class="readout">--%</span></p>
+            <p>Reactor Output: <span class="readout">-- GW</span></p>
+          </div>
+        </div>
+      </section>
+
+      <section id="telemetry-meters" class="panel panel--telemetry" aria-labelledby="telemetry-title">
+        <h2 id="telemetry-title">Telemetry Meters</h2>
+        <div class="panel__content">
+          <div class="meter-list" data-readouts="telemetry">
+            <div class="meter">
+              <p>Velocity</p>
+              <span class="readout">-- km/s</span>
+            </div>
+            <div class="meter">
+              <p>Fuel Flow</p>
+              <span class="readout">-- kg/s</span>
+            </div>
+            <div class="meter">
+              <p>Gravimetric Stress</p>
+              <span class="readout">-- m/s²</span>
+            </div>
+            <div class="meter">
+              <p>Thermal Output</p>
+              <span class="readout">-- °C</span>
+            </div>
+          </div>
+          <canvas id="telemetry-canvas" width="480" height="220" aria-label="Telemetry visualization"></canvas>
+        </div>
+      </section>
+
+      <section id="ship-logs" class="panel panel--logs" aria-labelledby="ship-logs-title">
+        <h2 id="ship-logs-title">Mission Logs</h2>
+        <div class="panel__content">
+          <div class="log-window" role="log" aria-live="polite" aria-relevant="additions" data-scroll-log="primary">
+            <p>[00:00:01] Command uplink established.</p>
+            <p>[00:00:03] Awaiting captain authorization.</p>
+            <p>[00:00:05] External sensors warming.</p>
+            <p>[00:00:09] Orbital drift correction queued.</p>
+            <p>[00:00:12] Hyperdrive field stable.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="radar-scan" class="panel panel--radar" aria-labelledby="radar-title">
+        <h2 id="radar-title">Radar / Scan Visual</h2>
+        <div class="panel__content">
+          <canvas id="radar-canvas" width="360" height="360" aria-label="Radar scan visual"></canvas>
+          <div class="scan-readouts" data-readouts="scan">
+            <p>Contacts: <span class="readout">--</span></p>
+            <p>Anomaly Index: <span class="readout">--</span></p>
+            <p>Signal Latency: <span class="readout">-- ms</span></p>
+          </div>
+        </div>
+      </section>
+
+      <nav id="nav-pages" class="panel panel--nav" aria-labelledby="nav-title">
+        <h2 id="nav-title">Navigation</h2>
+        <div class="panel__content">
+          <ol class="nav-list">
+            <li>Overview</li>
+            <li>Engineering</li>
+            <li>Astrogation</li>
+            <li>Science Bay</li>
+            <li>Armory</li>
+            <li>Communications</li>
+          </ol>
+          <p class="nav-hint" data-typewriter="nav">Select a deck to route data streams.</p>
+        </div>
+      </nav>
+
+      <section id="preview-pane" class="panel panel--preview" aria-labelledby="preview-title">
+        <h2 id="preview-title">Live Preview</h2>
+        <div class="panel__content">
+          <div class="preview-window" role="img" aria-label="External camera feed placeholder">
+            <p class="preview-placeholder" data-typewriter="preview">Camera feed will render here.</p>
+          </div>
+          <div class="preview-data" data-readouts="preview">
+            <p>Sector: <span class="readout">--</span></p>
+            <p>Exposure: <span class="readout">--</span></p>
+            <p>Drift: <span class="readout">--</span></p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
