@@ -111,6 +111,7 @@
                     randomnessPower: 3,
                     insideColor: '#ff6030',
                     outsideColor: '#1b3984',
+                    autoPerformance: true,
                 };
 
                 let geometry = null;
@@ -204,6 +205,10 @@
                 folderGalaxy.addColor(parameters, 'insideColor').onFinishChange(generateGalaxy);
                 folderGalaxy.addColor(parameters, 'outsideColor').onFinishChange(generateGalaxy);
 
+                // Performance Folder
+                const folderPerformance = gui.addFolder('Performance');
+                folderPerformance.add(parameters, 'autoPerformance').name('Auto Performance');
+
                 // Bloom Folder
                 const folderBloom = gui.addFolder('Bloom FX');
                 folderBloom.add(bloomPass, 'strength').min(0).max(3).step(0.01).name('Intensity');
@@ -221,9 +226,31 @@
 
                 // --- 6. ANIMATION LOOP ---
                 const clock = new THREE.Clock();
+                const performanceTuning = {
+                    highFrameTimeMs: 40,
+                    lowFrameTimeMs: 25,
+                    minCount: 1000,
+                    maxCount: 100000,
+                    decreaseRatio: 0.9,
+                    increaseRatio: 1.05,
+                    frameWindow: 60,
+                    adjustmentCooldownFrames: 45,
+                };
+                const frameTimeSamples = [];
+                let frameTimeSum = 0;
+                let cooldownFrames = 0;
                 
                 const tick = () => {
-                    const elapsedTime = clock.getElapsedTime();
+                    const deltaTime = clock.getDelta();
+                    const elapsedTime = clock.elapsedTime;
+                    const frameTimeMs = deltaTime * 1000;
+
+                    // Track rolling average frame time for adaptive performance tuning.
+                    frameTimeSamples.push(frameTimeMs);
+                    frameTimeSum += frameTimeMs;
+                    if (frameTimeSamples.length > performanceTuning.frameWindow) {
+                        frameTimeSum -= frameTimeSamples.shift();
+                    }
 
                     // 1. Rotate Galaxy
                     points.rotation.y = elapsedTime * cineState.rotationSpeed;
@@ -266,6 +293,34 @@
 
                     // 3. Render
                     composer.render();
+
+                    // 4. Adaptive performance: reduce or raise star count based on frame time.
+                    if (parameters.autoPerformance && frameTimeSamples.length > 0) {
+                        const averageFrameTime = frameTimeSum / frameTimeSamples.length;
+                        if (cooldownFrames > 0) {
+                            cooldownFrames -= 1;
+                        } else if (averageFrameTime > performanceTuning.highFrameTimeMs) {
+                            const reducedCount = Math.max(
+                                performanceTuning.minCount,
+                                Math.round((parameters.count * performanceTuning.decreaseRatio) / 100) * 100
+                            );
+                            if (reducedCount < parameters.count) {
+                                parameters.count = reducedCount;
+                                generateGalaxy();
+                                cooldownFrames = performanceTuning.adjustmentCooldownFrames;
+                            }
+                        } else if (averageFrameTime < performanceTuning.lowFrameTimeMs) {
+                            const increasedCount = Math.min(
+                                performanceTuning.maxCount,
+                                Math.round((parameters.count * performanceTuning.increaseRatio) / 100) * 100
+                            );
+                            if (increasedCount > parameters.count) {
+                                parameters.count = increasedCount;
+                                generateGalaxy();
+                                cooldownFrames = performanceTuning.adjustmentCooldownFrames;
+                            }
+                        }
+                    }
                     
                     window.requestAnimationFrame(tick);
                 }
