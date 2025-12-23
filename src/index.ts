@@ -1,9 +1,6 @@
 import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
-import { EffectComposer } from "https://unpkg.com/three@0.160.0/examples/jsm/postprocessing/EffectComposer.js";
-import { RenderPass } from "https://unpkg.com/three@0.160.0/examples/jsm/postprocessing/RenderPass.js";
-import { UnrealBloomPass } from "https://unpkg.com/three@0.160.0/examples/jsm/postprocessing/UnrealBloomPass.js";
-
 import { createHoverGlow } from "./effects/hoverGlow.ts";
+import { createPostProcessing } from "./effects/postprocessing.ts";
 import { createRayBurst } from "./effects/rayBurst.ts";
 import { createWeatherEffects } from "./effects/weather.ts";
 import { createFpsControls } from "./controls/fps.ts";
@@ -34,15 +31,17 @@ scene.background = new THREE.Color("#050608");
 
 const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 200);
 
-const composer = new EffectComposer(renderer);
-const renderPass = new RenderPass(scene, camera);
-composer.addPass(renderPass);
-
-const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.6, 0.6, 0);
-bloomPass.strength = 2.2;
-bloomPass.radius = 0.65;
-bloomPass.threshold = 0;
-composer.addPass(bloomPass);
+const postProcessing = createPostProcessing({
+  renderer,
+  scene,
+  camera,
+  antiAlias: "smaa",
+  bloom: {
+    strength: 1.25,
+    radius: 0.5,
+    threshold: 0.15,
+  },
+});
 
 const world = new THREE.Group();
 scene.add(world);
@@ -177,7 +176,7 @@ const resize = () => {
   const width = window.innerWidth;
   const height = window.innerHeight;
   renderer.setSize(width, height, false);
-  composer.setSize(width, height);
+  postProcessing.resize(width, height);
   camera.aspect = width / height;
   camera.updateProjectionMatrix();
 };
@@ -198,7 +197,7 @@ const animate = (time: number) => {
   hoverGlow.update(timeSeconds);
   rayBurst.update(timeSeconds, delta);
   fpsControls.update(delta);
-  composer.render();
+  postProcessing.render();
   requestAnimationFrame(animate);
 };
 
