@@ -11,6 +11,7 @@ The entry point (`src/index.ts`) defines a single `WORLD_SEED` constant. That se
 - `createTerrainMesh` (`src/scene/terrain.ts`) for the heightfield.
 - `createValleyMesh` (`src/scene/valleys.ts`) for carved bands.
 - `createRoads` (`src/scene/roads.ts`) for spline roads.
+- `createWater` (`src/scene/water.ts`) for animated water and river splines.
 
 Changing `WORLD_SEED` is the only required knob to regenerate the scene deterministically. The
 noise, valley bands, and road curves all derive their pseudo-random values from the same seed,
@@ -23,3 +24,14 @@ so rerunning with the same seed always yields the same world.
   `Math.random()`.
 - When adding new generators, accept a `seed` parameter and build on the shared RNG utilities
   in `src/scene/random.ts`.
+
+## Water parameters
+
+`createWater` in `src/scene/water.ts` accepts the following tuning parameters for animation and
+color styling:
+
+- `amplitude`: Controls the sine wave height applied in the vertex shader. Higher values
+  create larger ripples.
+- `speed`: Scales the wave phase progression. Higher values increase the rate of motion.
+- `tint`: Base color for the water surface and river strips. Use brighter values for
+  emissive-like glow that responds well to bloom.
