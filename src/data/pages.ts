@@ -1,6 +1,6 @@
 export type PageEntry = {
   title: string;
-  slug: string;
+  url: string;
   description?: string;
 };
 

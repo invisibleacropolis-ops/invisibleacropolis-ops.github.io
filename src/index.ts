@@ -1,6 +1,7 @@
 import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
-import { loadPages } from "./data/pages.ts";
+import { createRaycast } from "./interaction/raycast.ts";
+import { createLinks } from "./scene/links.ts";
 import { createRoads } from "./scene/roads.ts";
 import { createProps } from "./scene/props.ts";
 import { createTerrainMesh } from "./scene/terrain.ts";
@@ -96,6 +97,8 @@ const state = {
   lastTime: 0,
 };
 
+let linksScene: Awaited<ReturnType<typeof createLinks>> | null = null;
+
 const resize = () => {
   const width = window.innerWidth;
   const height = window.innerHeight;
@@ -110,6 +113,7 @@ const animate = (time: number) => {
   world.rotation.y += delta * 0.08;
   world.rotation.x = -0.35 + Math.sin(time * 0.0002) * 0.05;
   water.update(time * 0.001);
+  linksScene?.updateVisibility(camera);
   renderer.render(scene, camera);
   requestAnimationFrame(animate);
 };
@@ -119,9 +123,20 @@ const initialize = async () => {
   window.addEventListener("resize", resize);
 
   try {
-    const pages = await loadPages();
-    if (pages.length > 0) {
-      camera.position.z = Math.min(18, 10 + pages.length * 0.3);
+    linksScene = await createLinks({
+      radius: Math.max(terrain.width, terrain.depth) * 0.85 + 6,
+      elevation: 2.1,
+      palette: WORLD_PALETTE,
+    });
+    world.add(linksScene.group);
+
+    if (linksScene.pagesCount > 0) {
+      camera.position.z = Math.min(18, 10 + linksScene.pagesCount * 0.3);
+      createRaycast({
+        camera,
+        domElement: renderer.domElement,
+        targets: linksScene.labels.map((label) => label.mesh),
+      });
     }
   } catch (error) {
     console.warn("Failed to load pages.json", error);
