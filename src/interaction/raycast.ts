@@ -4,6 +4,9 @@ type RaycastOptions = {
   camera: THREE.Camera;
   domElement: HTMLElement;
   targets: THREE.Object3D[];
+  setEmissiveOnHover?: boolean;
+  onHoverStart?: (object: THREE.Object3D) => void;
+  onHoverEnd?: (object: THREE.Object3D) => void;
 };
 
 const getLinkTarget = (object: THREE.Object3D | null) => {
@@ -38,7 +41,14 @@ const setEmissive = (object: THREE.Object3D, color: number) => {
   }
 };
 
-export const createRaycast = ({ camera, domElement, targets }: RaycastOptions) => {
+export const createRaycast = ({
+  camera,
+  domElement,
+  targets,
+  setEmissiveOnHover = true,
+  onHoverStart,
+  onHoverEnd,
+}: RaycastOptions) => {
   const raycaster = new THREE.Raycaster();
   const pointer = new THREE.Vector2();
   let hovered: THREE.Object3D | null = null;
@@ -61,13 +71,19 @@ export const createRaycast = ({ camera, domElement, targets }: RaycastOptions) =
     }
 
     if (hovered) {
-      setEmissive(hovered, hovered.userData.baseEmissive ?? 0x000000);
+      if (setEmissiveOnHover) {
+        setEmissive(hovered, hovered.userData.baseEmissive ?? 0x000000);
+      }
+      onHoverEnd?.(hovered);
     }
 
     hovered = hit;
 
     if (hovered) {
-      setEmissive(hovered, hovered.userData.hoverEmissive ?? 0x222244);
+      if (setEmissiveOnHover) {
+        setEmissive(hovered, hovered.userData.hoverEmissive ?? 0x222244);
+      }
+      onHoverStart?.(hovered);
       domElement.style.cursor = "pointer";
     } else {
       domElement.style.cursor = "";
@@ -78,7 +94,10 @@ export const createRaycast = ({ camera, domElement, targets }: RaycastOptions) =
     if (!hovered) {
       return;
     }
-    setEmissive(hovered, hovered.userData.baseEmissive ?? 0x000000);
+    if (setEmissiveOnHover) {
+      setEmissive(hovered, hovered.userData.baseEmissive ?? 0x000000);
+    }
+    onHoverEnd?.(hovered);
     hovered = null;
     domElement.style.cursor = "";
   };
