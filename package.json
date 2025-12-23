@@ -1,0 +1,8 @@
+{
+  "name": "invisibleacropolis-ops",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/generate-pages-json.js",
+    "generate:pages": "node scripts/generate-pages-json.js"
+  }
+}
