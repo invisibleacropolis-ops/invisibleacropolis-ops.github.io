@@ -1,4 +1,5 @@
 import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
+import { mergeGeometries } from "https://unpkg.com/three@0.160.0/examples/jsm/utils/BufferGeometryUtils.js";
 
 import { createRng } from "./random.ts";
 import { WORLD_PALETTE } from "./palette.ts";
@@ -151,10 +152,15 @@ export const createWater = ({
   const riverGroup = new THREE.Group();
   const rng = createRng(seed ^ 0x51a9);
   const riverColor = new THREE.Color(tint).lerp(new THREE.Color(palette[3]), 0.35).multiplyScalar(1.4);
+  const riverGeometries: THREE.BufferGeometry[] = [];
 
   for (let i = 0; i < riverCount; i += 1) {
     const curve = createRiverCurve(rng, width, depth, heightAt, elevation + 0.05);
     const strip = createRiverStripGeometry(curve, riverWidth);
+    riverGeometries.push(strip);
+  }
+
+  if (riverGeometries.length > 0) {
     const riverMaterial = new THREE.MeshBasicMaterial({
       color: riverColor,
       wireframe: true,
@@ -163,8 +169,13 @@ export const createWater = ({
       side: THREE.DoubleSide,
     });
     riverMaterial.toneMapped = false;
-    const riverMesh = new THREE.Mesh(strip, riverMaterial);
-    riverGroup.add(riverMesh);
+
+    const mergedGeometry =
+      riverGeometries.length === 1 ? riverGeometries[0] : mergeGeometries(riverGeometries, false);
+    if (mergedGeometry) {
+      const riverMesh = new THREE.Mesh(mergedGeometry, riverMaterial);
+      riverGroup.add(riverMesh);
+    }
   }
 
   const update = (time: number) => {

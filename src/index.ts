@@ -1,4 +1,5 @@
 import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
+import Stats from "https://unpkg.com/three@0.160.0/examples/jsm/libs/stats.module.js";
 import { createHoverGlow } from "./effects/hoverGlow.ts";
 import { createPostProcessing } from "./effects/postprocessing.ts";
 import { createRayBurst } from "./effects/rayBurst.ts";
@@ -171,6 +172,22 @@ const state = {
 };
 
 let linksScene: Awaited<ReturnType<typeof createLinks>> | null = null;
+const stats = new Stats();
+const debugState = {
+  enabled: false,
+};
+
+const setDebugEnabled = (enabled: boolean) => {
+  debugState.enabled = enabled;
+  if (enabled) {
+    stats.showPanel(0);
+    stats.dom.style.cssText =
+      "position:fixed;top:0;left:0;z-index:9999;opacity:0.9;pointer-events:none;";
+    document.body.appendChild(stats.dom);
+  } else if (stats.dom.parentElement) {
+    stats.dom.parentElement.removeChild(stats.dom);
+  }
+};
 
 const resize = () => {
   const width = window.innerWidth;
@@ -198,12 +215,24 @@ const animate = (time: number) => {
   rayBurst.update(timeSeconds, delta);
   fpsControls.update(delta);
   postProcessing.render();
+  if (debugState.enabled) {
+    stats.update();
+  }
   requestAnimationFrame(animate);
 };
 
 const initialize = async () => {
   resize();
   window.addEventListener("resize", resize);
+  window.addEventListener("keydown", (event) => {
+    if (event.code === "KeyP") {
+      setDebugEnabled(!debugState.enabled);
+    }
+  });
+  const debugParam = new URLSearchParams(window.location.search).get("debug");
+  if (debugParam === "1") {
+    setDebugEnabled(true);
+  }
 
   try {
     linksScene = await createLinks({
