@@ -5,6 +5,7 @@ import { UnrealBloomPass } from "https://unpkg.com/three@0.160.0/examples/jsm/po
 
 import { createHoverGlow } from "./effects/hoverGlow.ts";
 import { createRayBurst } from "./effects/rayBurst.ts";
+import { createFpsControls } from "./controls/fps.ts";
 import { createRaycast } from "./interaction/raycast.ts";
 import { createLinks } from "./scene/links.ts";
 import { createRoads } from "./scene/roads.ts";
@@ -30,7 +31,6 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color("#050608");
 
 const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 200);
-camera.position.set(0, 7, 12);
 
 const composer = new EffectComposer(renderer);
 const renderPass = new RenderPass(scene, camera);
@@ -56,6 +56,16 @@ const terrain = createTerrainMesh({
   palette: WORLD_PALETTE,
 });
 world.add(terrain.mesh);
+
+const fpsControls = createFpsControls({
+  camera,
+  domElement: renderer.domElement,
+  heightAt: terrain.heightAt,
+  eyeHeight: 1.7,
+  moveSpeed: 6,
+});
+
+camera.position.set(0, terrain.heightAt(0, 0) + 1.7, 6);
 
 const valleyMesh = createValleyMesh({
   seed: WORLD_SEED,
@@ -144,12 +154,11 @@ const animate = (time: number) => {
   const delta = (time - state.lastTime) * 0.001;
   const timeSeconds = time * 0.001;
   state.lastTime = time;
-  world.rotation.y += delta * 0.08;
-  world.rotation.x = -0.35 + Math.sin(time * 0.0002) * 0.05;
   water.update(timeSeconds);
   linksScene?.updateVisibility(camera);
   hoverGlow.update(timeSeconds);
   rayBurst.update(timeSeconds, delta);
+  fpsControls.update(delta);
   composer.render();
   requestAnimationFrame(animate);
 };
@@ -168,6 +177,10 @@ const initialize = async () => {
 
     if (linksScene.pagesCount > 0) {
       camera.position.z = Math.min(18, 10 + linksScene.pagesCount * 0.3);
+      camera.position.y = Math.max(
+        camera.position.y,
+        terrain.heightAt(camera.position.x, camera.position.z) + 1.7,
+      );
       createRaycast({
         camera,
         domElement: renderer.domElement,
