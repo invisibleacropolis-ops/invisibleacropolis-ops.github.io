@@ -4,6 +4,7 @@ import { loadPages } from "./data/pages.ts";
 import { createRoads } from "./scene/roads.ts";
 import { createTerrainMesh } from "./scene/terrain.ts";
 import { createValleyMesh } from "./scene/valleys.ts";
+import { createWater } from "./scene/water.ts";
 import { WORLD_PALETTE } from "./scene/palette.ts";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#scene");
@@ -58,6 +59,22 @@ const roads = createRoads({
 });
 world.add(roads);
 
+const water = createWater({
+  seed: WORLD_SEED,
+  width: terrain.width,
+  depth: terrain.depth,
+  amplitude: 0.18,
+  speed: 0.7,
+  tint: WORLD_PALETTE[0],
+  elevation: 0.08,
+  riverCount: 3,
+  riverWidth: 0.2,
+  palette: WORLD_PALETTE,
+  heightAt: terrain.heightAt,
+});
+world.add(water.mesh);
+world.add(water.rivers);
+
 const ambientLight = new THREE.AmbientLight("#9aa8ff", 0.6);
 scene.add(ambientLight);
 
@@ -82,6 +99,7 @@ const animate = (time: number) => {
   state.lastTime = time;
   world.rotation.y += delta * 0.08;
   world.rotation.x = -0.35 + Math.sin(time * 0.0002) * 0.05;
+  water.update(time * 0.001);
   renderer.render(scene, camera);
   requestAnimationFrame(animate);
 };
