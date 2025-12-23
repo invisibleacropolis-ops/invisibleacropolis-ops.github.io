@@ -19,14 +19,7 @@ const sampleTerrainHeight = (x: number, z: number, seed: number, height: number)
   return (base * 0.75 + detail * 0.35) * height;
 };
 
-export const createTerrainMesh = ({
-  seed,
-  width = 12,
-  depth = 12,
-  segments = 32,
-  height = 2,
-  palette = WORLD_PALETTE,
-}: TerrainOptions) => {
+const createTerrainGeometry = (width: number, depth: number, segments: number, seed: number, height: number) => {
   const geometry = new THREE.PlaneGeometry(width, depth, segments, segments);
   geometry.rotateX(-Math.PI / 2);
 
@@ -44,6 +37,17 @@ export const createTerrainMesh = ({
   position.needsUpdate = true;
   geometry.computeVertexNormals();
 
+  return geometry;
+};
+
+export const createTerrainMesh = ({
+  seed,
+  width = 12,
+  depth = 12,
+  segments = 32,
+  height = 2,
+  palette = WORLD_PALETTE,
+}: TerrainOptions) => {
   const material = new THREE.MeshBasicMaterial({
     color: palette[0],
     wireframe: true,
@@ -51,7 +55,18 @@ export const createTerrainMesh = ({
     opacity: 0.9,
   });
 
-  const mesh = new THREE.Mesh(geometry, material);
+  const valleyField = createValleyField(seed, 4);
+  const highGeometry = createTerrainGeometry(width, depth, segments, seed, height);
+  const midSegments = Math.max(10, Math.round(segments * 0.55));
+  const lowSegments = Math.max(6, Math.round(segments * 0.3));
+  const midGeometry = createTerrainGeometry(width, depth, midSegments, seed, height);
+  const lowGeometry = createTerrainGeometry(width, depth, lowSegments, seed, height);
+
+  const mesh = new THREE.LOD();
+  // Use progressively lower detail at farther distances to reduce fragment and vertex load.
+  mesh.addLevel(new THREE.Mesh(highGeometry, material), 0);
+  mesh.addLevel(new THREE.Mesh(midGeometry, material), width * 1.1);
+  mesh.addLevel(new THREE.Mesh(lowGeometry, material), width * 2.2);
 
   const heightAt = (x: number, z: number) => {
     const terrainHeight = sampleTerrainHeight(x, z, seed, height);

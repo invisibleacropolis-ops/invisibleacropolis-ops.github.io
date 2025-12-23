@@ -53,14 +53,13 @@ export type ValleyMeshOptions = {
   palette?: string[];
 };
 
-export const createValleyMesh = ({
-  seed,
-  width,
-  depth,
-  segments,
-  height,
-  palette = WORLD_PALETTE,
-}: ValleyMeshOptions) => {
+const createValleyGeometry = (
+  width: number,
+  depth: number,
+  segments: number,
+  seed: number,
+  height: number,
+) => {
   const geometry = new THREE.PlaneGeometry(width, depth, segments, segments);
   geometry.rotateX(-Math.PI / 2);
 
@@ -75,7 +74,17 @@ export const createValleyMesh = ({
   }
 
   position.needsUpdate = true;
+  return geometry;
+};
 
+export const createValleyMesh = ({
+  seed,
+  width,
+  depth,
+  segments,
+  height,
+  palette = WORLD_PALETTE,
+}: ValleyMeshOptions) => {
   const material = new THREE.MeshBasicMaterial({
     color: palette[2],
     wireframe: true,
@@ -83,5 +92,17 @@ export const createValleyMesh = ({
     opacity: 0.55,
   });
 
-  return new THREE.Mesh(geometry, material);
+  const highGeometry = createValleyGeometry(width, depth, segments, seed, height);
+  const midSegments = Math.max(10, Math.round(segments * 0.55));
+  const lowSegments = Math.max(6, Math.round(segments * 0.3));
+  const midGeometry = createValleyGeometry(width, depth, midSegments, seed, height);
+  const lowGeometry = createValleyGeometry(width, depth, lowSegments, seed, height);
+
+  const mesh = new THREE.LOD();
+  // LOD keeps distant valley wireframes light-weight while preserving nearby detail.
+  mesh.addLevel(new THREE.Mesh(highGeometry, material), 0);
+  mesh.addLevel(new THREE.Mesh(midGeometry, material), width * 1.1);
+  mesh.addLevel(new THREE.Mesh(lowGeometry, material), width * 2.2);
+
+  return mesh;
 };

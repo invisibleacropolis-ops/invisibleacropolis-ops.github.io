@@ -23,6 +23,7 @@ export type LinksOptions = {
   radius: number;
   elevation?: number;
   maxVisible?: number;
+  maxDistance?: number;
   palette?: string[];
 };
 
@@ -68,6 +69,7 @@ export const createLinks = async ({
   radius,
   elevation = 2.1,
   maxVisible = 3,
+  maxDistance,
   palette = WORLD_PALETTE,
 }: LinksOptions): Promise<LinksScene> => {
   const [font, pages] = await Promise.all([loadFont(), loadPages()]);
@@ -105,12 +107,20 @@ export const createLinks = async ({
   const projectionMatrix = new THREE.Matrix4();
   const tempPositionA = new THREE.Vector3();
   const tempPositionB = new THREE.Vector3();
+  const clampedMaxVisible = Math.min(4, Math.max(2, Math.round(maxVisible)));
+  const maxVisibleDistance = maxDistance ?? Math.max(radius * 1.35, 12);
 
   const updateVisibility = (camera: THREE.Camera) => {
     projectionMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
     frustum.setFromProjectionMatrix(projectionMatrix);
 
-    const candidates = labels.filter(({ mesh }) => frustum.intersectsObject(mesh));
+    const candidates = labels.filter(({ mesh }) => {
+      if (!frustum.intersectsObject(mesh)) {
+        return false;
+      }
+      const distance = camera.position.distanceTo(mesh.getWorldPosition(tempPositionA));
+      return distance <= maxVisibleDistance;
+    });
 
     candidates.sort((a, b) => {
       const distanceA = camera.position.distanceTo(a.mesh.getWorldPosition(tempPositionA));
@@ -122,7 +132,7 @@ export const createLinks = async ({
       mesh.visible = false;
     });
 
-    candidates.slice(0, maxVisible).forEach(({ mesh }) => {
+    candidates.slice(0, clampedMaxVisible).forEach(({ mesh }) => {
       mesh.visible = true;
     });
   };
