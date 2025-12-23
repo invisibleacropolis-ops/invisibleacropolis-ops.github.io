@@ -35,3 +35,35 @@ color styling:
 - `speed`: Scales the wave phase progression. Higher values increase the rate of motion.
 - `tint`: Base color for the water surface and river strips. Use brighter values for
   emissive-like glow that responds well to bloom.
+
+## Sky parameters
+
+`createSky` in `src/scene/sky.ts` builds a shader-driven sky dome and star field. The following
+options are exposed for tuning:
+
+- `radius`: World-space radius of the sky sphere. Increase to ensure it stays behind far
+  geometry.
+- `topColor` / `bottomColor`: Gradient colors for the daytime sky.
+- `nightColor`: Base tone used when the sun dips below the horizon.
+- `cloudScale`: Frequency multiplier for the cloud noise field. Higher values produce
+  smaller, tighter cloud bands.
+- `cloudSpeed`: Rate that the cloud noise scrolls over the sky.
+- `cloudIntensity`: Strength of the cloud overlay on the gradient.
+- `starCount`: Number of points emitted for the night sky.
+- `starSize`: Point size (in screen pixels) used for stars.
+- `dayDuration`: Number of seconds for a full day/night cycle; shorter values make the sun
+  animate faster.
+
+## Weather parameters
+
+`createWeatherEffects` in `src/effects/weather.ts` supplies lightweight fog and optional rain
+streaks:
+
+- `fogColor`: Tint for the scene fog (used by Three.js `FogExp2`).
+- `fogDensity`: Exponential fog density; keep low for a light haze.
+- `rainEnabled`: Toggles the wireframe rain streak mesh on/off.
+- `rainCount`: Number of streak meshes spawned when rain is enabled.
+- `rainHeight`: Spawn height for rain drops before they fall.
+- `rainSpeed`: Base fall speed; each drop is randomized around this value.
+- `rainOpacity`: Material opacity for rain streaks.
+- `rainWireframe`: Set to `true` to keep rain streaks as wireframes.

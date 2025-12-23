@@ -5,11 +5,13 @@ import { UnrealBloomPass } from "https://unpkg.com/three@0.160.0/examples/jsm/po
 
 import { createHoverGlow } from "./effects/hoverGlow.ts";
 import { createRayBurst } from "./effects/rayBurst.ts";
+import { createWeatherEffects } from "./effects/weather.ts";
 import { createFpsControls } from "./controls/fps.ts";
 import { createRaycast } from "./interaction/raycast.ts";
 import { createLinks } from "./scene/links.ts";
 import { createRoads } from "./scene/roads.ts";
 import { createProps } from "./scene/props.ts";
+import { createSky } from "./scene/sky.ts";
 import { createTerrainMesh } from "./scene/terrain.ts";
 import { createValleyMesh } from "./scene/valleys.ts";
 import { createWater } from "./scene/water.ts";
@@ -121,6 +123,36 @@ const keyLight = new THREE.DirectionalLight("#ffffff", 0.5);
 keyLight.position.set(3, 6, 6);
 scene.add(keyLight);
 
+const sky = createSky({
+  radius: 120,
+  seed: WORLD_SEED,
+  topColor: "#2e6edb",
+  bottomColor: "#f2f6ff",
+  nightColor: "#020512",
+  cloudScale: 0.45,
+  cloudSpeed: 0.02,
+  cloudIntensity: 0.5,
+  starCount: 360,
+  dayDuration: 180,
+});
+scene.add(sky.mesh, sky.stars);
+
+const weather = createWeatherEffects({
+  scene,
+  seed: WORLD_SEED,
+  areaWidth: terrain.width * 1.4,
+  areaDepth: terrain.depth * 1.4,
+  fogColor: "#8aa3c7",
+  fogDensity: 0.02,
+  rainEnabled: false,
+});
+scene.add(weather.group);
+
+const dayAmbient = new THREE.Color("#9aa8ff");
+const nightAmbient = new THREE.Color("#1f2b50");
+const daySun = new THREE.Color("#ffffff");
+const duskSun = new THREE.Color("#ffb978");
+
 const hoverGlow = createHoverGlow({
   duration: 2,
   fadeOutDuration: 0.6,
@@ -155,6 +187,13 @@ const animate = (time: number) => {
   const timeSeconds = time * 0.001;
   state.lastTime = time;
   water.update(timeSeconds);
+  const skyState = sky.update(timeSeconds);
+  weather.update(timeSeconds, delta);
+  keyLight.position.copy(skyState.sunDirection).multiplyScalar(10);
+  keyLight.intensity = 0.25 + 0.65 * skyState.dayFactor;
+  keyLight.color.copy(duskSun).lerp(daySun, skyState.dayFactor);
+  ambientLight.intensity = 0.2 + 0.5 * skyState.dayFactor;
+  ambientLight.color.copy(nightAmbient).lerp(dayAmbient, skyState.dayFactor);
   linksScene?.updateVisibility(camera);
   hoverGlow.update(timeSeconds);
   rayBurst.update(timeSeconds, delta);
