@@ -1,0 +1,30 @@
+[
+  {
+    "title": "Audio Reactive Spectrum Sculpt",
+    "url": "/audio-reactive.html"
+  },
+  {
+    "title": "XPBD Cloth Playground",
+    "url": "/cloth.html"
+  },
+  {
+    "title": "GPU Flow Field Particles",
+    "url": "/flow-field.html"
+  },
+  {
+    "title": "WebGL Fluid Volume",
+    "url": "/fluid.html"
+  },
+  {
+    "title": "Interactive 3D Nebula Galaxy",
+    "url": "/galaxy.html"
+  },
+  {
+    "title": "Procedural City Grid",
+    "url": "/procedural-city.html"
+  },
+  {
+    "title": "Volumetric Nebula Raymarch",
+    "url": "/volumetric-nebula.html"
+  }
+]
