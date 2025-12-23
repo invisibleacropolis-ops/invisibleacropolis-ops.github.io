@@ -2,6 +2,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
 import { loadPages } from "./data/pages.ts";
 import { createRoads } from "./scene/roads.ts";
+import { createProps } from "./scene/props.ts";
 import { createTerrainMesh } from "./scene/terrain.ts";
 import { createValleyMesh } from "./scene/valleys.ts";
 import { createWater } from "./scene/water.ts";
@@ -74,6 +75,15 @@ const water = createWater({
 });
 world.add(water.mesh);
 world.add(water.rivers);
+
+const props = createProps({
+  seed: WORLD_SEED,
+  width: terrain.width,
+  depth: terrain.depth,
+  heightAt: terrain.heightAt,
+  palette: WORLD_PALETTE,
+});
+world.add(props);
 
 const ambientLight = new THREE.AmbientLight("#9aa8ff", 0.6);
 scene.add(ambientLight);
