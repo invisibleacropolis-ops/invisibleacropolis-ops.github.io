@@ -1,69 +1,90 @@
 # World Generation
 
-This project keeps the Three.js scene deterministic so that a given seed always produces the
-same terrain, valleys, and road layout. This makes it safe to iterate on visuals without
-surprising layout shifts.
+The Three.js scene is deterministic: a single seed drives terrain noise, prop placement, road
+curves, and water paths. This makes it safe to iterate on visuals without layout shifts.
 
-## Deterministic seeds
+## Seed control
 
-The entry point (`src/index.ts`) defines a single `WORLD_SEED` constant. That seed flows into:
+`src/index.ts` defines a single `WORLD_SEED` constant. That seed is passed into every generator:
 
-- `createTerrainMesh` (`src/scene/terrain.ts`) for the heightfield.
-- `createValleyMesh` (`src/scene/valleys.ts`) for carved bands.
-- `createRoads` (`src/scene/roads.ts`) for spline roads.
-- `createWater` (`src/scene/water.ts`) for animated water and river splines.
+- `createTerrainMesh` (`src/scene/terrain.ts`)
+- `createValleyMesh` (`src/scene/valleys.ts`)
+- `createRoads` (`src/scene/roads.ts`)
+- `createWater` (`src/scene/water.ts`)
+- `createProps` (`src/scene/props.ts`)
+- `createSky` (`src/scene/sky.ts`)
+- `createWeatherEffects` (`src/effects/weather.ts`)
 
-Changing `WORLD_SEED` is the only required knob to regenerate the scene deterministically. The
-noise, valley bands, and road curves all derive their pseudo-random values from the same seed,
-so rerunning with the same seed always yields the same world.
+Changing `WORLD_SEED` is the only required knob to regenerate the scene deterministically.
+The noise fields, valley bands, prop distribution, and road/water splines all derive from the
+same base seed and internal seed offsets.
 
-## Tips for engineers
+## Terrain and valley parameters
 
-- Keep the seed stored in a single constant so that animations, roads, and terrain match.
-- If you need multiple scenes, derive sub-seeds by hashing the base seed instead of using
-  `Math.random()`.
-- When adding new generators, accept a `seed` parameter and build on the shared RNG utilities
-  in `src/scene/random.ts`.
+`createTerrainMesh` options:
+- `width` / `depth`: World footprint in world units.
+- `segments`: Grid resolution for the heightfield (LOD variants are derived from this).
+- `height`: Vertical scale for the heightfield.
+- `palette`: Color palette for wireframe shading.
 
-## Water parameters
+`createValleyMesh` options:
+- `width` / `depth` / `segments`: Match the terrain dimensions for alignment.
+- `height`: Vertical depth scale for valley bands.
+- `palette`: Uses a different palette entry for contrast.
 
-`createWater` in `src/scene/water.ts` accepts the following tuning parameters for animation and
-color styling:
+The terrain mesh exposes `heightAt(x, z)` so other generators can conform to surface height.
 
-- `amplitude`: Controls the sine wave height applied in the vertex shader. Higher values
-  create larger ripples.
-- `speed`: Scales the wave phase progression. Higher values increase the rate of motion.
-- `tint`: Base color for the water surface and river strips. Use brighter values for
-  emissive-like glow that responds well to bloom.
+## Roads
 
-## Sky parameters
+`createRoads` options (`src/scene/roads.ts`):
+- `count`: Number of spline road paths.
+- `elevation`: Vertical offset above the terrain.
+- `heightAt`: Optional callback so roads follow terrain height.
+- `width` / `depth` control the placement bounds.
 
-`createSky` in `src/scene/sky.ts` builds a shader-driven sky dome and star field. The following
-options are exposed for tuning:
+Roads use catmull-rom splines sampled into line segments, and they share the world seed so
+layouts stay consistent with terrain changes.
 
-- `radius`: World-space radius of the sky sphere. Increase to ensure it stays behind far
-  geometry.
-- `topColor` / `bottomColor`: Gradient colors for the daytime sky.
-- `nightColor`: Base tone used when the sun dips below the horizon.
-- `cloudScale`: Frequency multiplier for the cloud noise field. Higher values produce
-  smaller, tighter cloud bands.
-- `cloudSpeed`: Rate that the cloud noise scrolls over the sky.
-- `cloudIntensity`: Strength of the cloud overlay on the gradient.
-- `starCount`: Number of points emitted for the night sky.
-- `starSize`: Point size (in screen pixels) used for stars.
-- `dayDuration`: Number of seconds for a full day/night cycle; shorter values make the sun
-  animate faster.
+## Water + rivers
 
-## Weather parameters
+`createWater` options (`src/scene/water.ts`):
+- `segments`: Mesh resolution for the animated plane.
+- `amplitude` / `speed`: Vertex shader wave height and phase speed.
+- `tint`: Base emissive-like color for the water surface.
+- `elevation`: Offset above the terrain.
+- `riverCount` / `riverWidth`: Number and thickness of river strips.
+- `heightAt`: Optional callback so river splines ride above the terrain.
 
-`createWeatherEffects` in `src/effects/weather.ts` supplies lightweight fog and optional rain
-streaks:
+The water plane is animated via shader uniforms (`time`, `amplitude`, `speed`) and updated
+per frame in the main render loop.
 
-- `fogColor`: Tint for the scene fog (used by Three.js `FogExp2`).
-- `fogDensity`: Exponential fog density; keep low for a light haze.
-- `rainEnabled`: Toggles the wireframe rain streak mesh on/off.
-- `rainCount`: Number of streak meshes spawned when rain is enabled.
-- `rainHeight`: Spawn height for rain drops before they fall.
-- `rainSpeed`: Base fall speed; each drop is randomized around this value.
-- `rainOpacity`: Material opacity for rain streaks.
-- `rainWireframe`: Set to `true` to keep rain streaks as wireframes.
+## Props
+
+`createProps` options (`src/scene/props.ts`):
+- `width` / `depth`: Sampling bounds.
+- `heightAt`: Required callback so trees/bushes/rocks sit on the terrain.
+- `palette`: Colors for vegetation and rocks.
+
+Prop sampling is weighted by slope and height, so trees prefer flatter ground while rocks
+populate steeper terrain.
+
+## Sky + day/night
+
+`createSky` options (`src/scene/sky.ts`):
+- `radius`: Size of the sky dome.
+- `topColor` / `bottomColor` / `nightColor`: Gradient colors for day/night.
+- `cloudColor` / `cloudScale` / `cloudSpeed` / `cloudIntensity`: Cloud styling.
+- `starColor` / `starCount` / `starSize`: Star field tuning.
+- `dayDuration`: Length of a full day/night cycle in seconds.
+
+The sky update returns `sunDirection` and `dayFactor`, which `index.ts` uses to drive lighting.
+
+## Weather
+
+`createWeatherEffects` options (`src/effects/weather.ts`):
+- `fogColor` / `fogDensity`: Fog parameters for the scene.
+- `rainEnabled`: Toggle for rain streak meshes.
+- `rainCount` / `rainHeight` / `rainSpeed`: Density and motion of rain.
+- `rainOpacity` / `rainColor` / `rainWireframe`: Rain material styling.
+
+When rain is enabled, drops are updated each frame using the elapsed `delta` time.
