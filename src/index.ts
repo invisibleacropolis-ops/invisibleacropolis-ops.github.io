@@ -1,5 +1,10 @@
 import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
+import { EffectComposer } from "https://unpkg.com/three@0.160.0/examples/jsm/postprocessing/EffectComposer.js";
+import { RenderPass } from "https://unpkg.com/three@0.160.0/examples/jsm/postprocessing/RenderPass.js";
+import { UnrealBloomPass } from "https://unpkg.com/three@0.160.0/examples/jsm/postprocessing/UnrealBloomPass.js";
 
+import { createHoverGlow } from "./effects/hoverGlow.ts";
+import { createRayBurst } from "./effects/rayBurst.ts";
 import { createRaycast } from "./interaction/raycast.ts";
 import { createLinks } from "./scene/links.ts";
 import { createRoads } from "./scene/roads.ts";
@@ -17,12 +22,25 @@ if (!canvas) {
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
 renderer.setPixelRatio(window.devicePixelRatio);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color("#050608");
 
 const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 200);
 camera.position.set(0, 7, 12);
+
+const composer = new EffectComposer(renderer);
+const renderPass = new RenderPass(scene, camera);
+composer.addPass(renderPass);
+
+const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.6, 0.6, 0);
+bloomPass.strength = 2.2;
+bloomPass.radius = 0.65;
+bloomPass.threshold = 0;
+composer.addPass(bloomPass);
 
 const world = new THREE.Group();
 scene.add(world);
@@ -93,6 +111,20 @@ const keyLight = new THREE.DirectionalLight("#ffffff", 0.5);
 keyLight.position.set(3, 6, 6);
 scene.add(keyLight);
 
+const hoverGlow = createHoverGlow({
+  duration: 2,
+  fadeOutDuration: 0.6,
+  baseIntensity: 1,
+  peakIntensity: 2.8,
+});
+
+const rayBurst = createRayBurst({
+  scene,
+  color: "#b7c9ff",
+  raysPerSecond: 20,
+  maxRays: 80,
+});
+
 const state = {
   lastTime: 0,
 };
@@ -103,18 +135,22 @@ const resize = () => {
   const width = window.innerWidth;
   const height = window.innerHeight;
   renderer.setSize(width, height, false);
+  composer.setSize(width, height);
   camera.aspect = width / height;
   camera.updateProjectionMatrix();
 };
 
 const animate = (time: number) => {
   const delta = (time - state.lastTime) * 0.001;
+  const timeSeconds = time * 0.001;
   state.lastTime = time;
   world.rotation.y += delta * 0.08;
   world.rotation.x = -0.35 + Math.sin(time * 0.0002) * 0.05;
-  water.update(time * 0.001);
+  water.update(timeSeconds);
   linksScene?.updateVisibility(camera);
-  renderer.render(scene, camera);
+  hoverGlow.update(timeSeconds);
+  rayBurst.update(timeSeconds, delta);
+  composer.render();
   requestAnimationFrame(animate);
 };
 
@@ -136,6 +172,15 @@ const initialize = async () => {
         camera,
         domElement: renderer.domElement,
         targets: linksScene.labels.map((label) => label.mesh),
+        setEmissiveOnHover: false,
+        onHoverStart: (object) => {
+          hoverGlow.start(object);
+          rayBurst.start(object);
+        },
+        onHoverEnd: (object) => {
+          hoverGlow.stop(object);
+          rayBurst.stop();
+        },
       });
     }
   } catch (error) {
