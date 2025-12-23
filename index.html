@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Invisible Acropolis</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: "Inter", system-ui, sans-serif;
+      }
+
+      body {
+        margin: 0;
+        background: #050608;
+      }
+
+      canvas#scene {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      .ui {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        pointer-events: none;
+        color: #f5f5f7;
+      }
+
+      .ui header,
+      .ui footer {
+        padding: 24px;
+      }
+
+      .ui header h1 {
+        margin: 0 0 6px;
+        font-size: 20px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .ui header p {
+        margin: 0;
+        max-width: 420px;
+        line-height: 1.5;
+        color: #c8c9cc;
+      }
+
+      .ui footer {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: #8f9095;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene" aria-label="Three.js scene"></canvas>
+    <div class="ui" aria-hidden="true">
+      <header>
+        <h1>Invisible Acropolis</h1>
+        <p>A minimal Three.js entry point ready for generative visuals and page-driven data.</p>
+      </header>
+      <footer>
+        <span>Full-screen canvas</span>
+        <span>Data ready</span>
+      </footer>
+    </div>
+    <script type="module" src="/src/index.ts"></script>
+  </body>
+</html>
