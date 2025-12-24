@@ -11,7 +11,7 @@ import { createRoads } from "./scene/roads.ts";
 import { createProps } from "./scene/props.ts";
 import { createSky } from "./scene/sky.ts";
 import { createTerrainMesh } from "./scene/terrain.ts";
-import { createValleyMesh } from "./scene/valleys.ts";
+
 import { createWater } from "./scene/water.ts";
 import { WORLD_PALETTE } from "./scene/palette.ts";
 import { createDevPanel } from "./dev/devPanel.ts";
@@ -75,16 +75,7 @@ const fpsControls = createFpsControls({
 
 camera.position.set(0, terrain.heightAt(0, 0) + 1.7, 6);
 
-const valleyMesh = createValleyMesh({
-  seed: WORLD_SEED,
-  width: terrain.width,
-  depth: terrain.depth,
-  segments: terrain.segments,
-  height: terrain.height * 0.9,
-  palette: WORLD_PALETTE,
-});
-valleyMesh.position.y = 0.05;
-world.add(valleyMesh);
+
 
 const roads = createRoads({
   seed: WORLD_SEED,
