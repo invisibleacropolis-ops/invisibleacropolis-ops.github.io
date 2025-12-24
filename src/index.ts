@@ -31,7 +31,7 @@ renderer.toneMappingExposure = 1.1;
 const scene = new THREE.Scene();
 scene.background = new THREE.Color("#050608");
 
-const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 200);
+const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 2000);
 
 const postProcessing = createPostProcessing({
   renderer,
@@ -57,10 +57,10 @@ const WORLD_SEED = 1337;
 
 const terrain = createTerrainMesh({
   seed: WORLD_SEED,
-  width: 14,
-  depth: 14,
-  segments: 36,
-  height: 2.6,
+  width: 140,
+  depth: 140,
+  segments: 80,
+  height: 26,
   palette: WORLD_PALETTE,
 });
 world.add(terrain.mesh);
@@ -70,7 +70,7 @@ const fpsControls = createFpsControls({
   domElement: renderer.domElement,
   heightAt: terrain.heightAt,
   eyeHeight: 1.7,
-  moveSpeed: 6,
+  moveSpeed: 60,
 });
 
 camera.position.set(0, terrain.heightAt(0, 0) + 1.7, 6);
@@ -130,7 +130,7 @@ keyLight.position.set(3, 6, 6);
 scene.add(keyLight);
 
 const sky = createSky({
-  radius: 120,
+  radius: 1200,
   seed: WORLD_SEED,
   topColor: "#2e6edb",
   bottomColor: "#f2f6ff",
@@ -149,7 +149,7 @@ const weather = createWeatherEffects({
   areaWidth: terrain.width * 1.4,
   areaDepth: terrain.depth * 1.4,
   fogColor: "#8aa3c7",
-  fogDensity: 0.02,
+  fogDensity: 0.002,
   rainEnabled: false,
 });
 scene.add(weather.group);
@@ -160,10 +160,8 @@ const daySun = new THREE.Color("#ffffff");
 const duskSun = new THREE.Color("#ffb978");
 
 const hoverGlow = createHoverGlow({
-  duration: 2,
-  fadeOutDuration: 0.6,
-  baseIntensity: 1,
-  peakIntensity: 2.8,
+  duration: 0.3,
+  fadeOutDuration: 0.2,
 });
 
 const rayBurst = createRayBurst({

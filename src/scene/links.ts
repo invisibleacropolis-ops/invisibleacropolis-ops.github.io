@@ -55,13 +55,13 @@ const createLabelMesh = (font: Font, title: string, color: string) => {
     geometry.translate(-center.x, -center.y, -center.z);
   }
 
-  const material = new THREE.MeshStandardMaterial({ color, emissive: "#101018", roughness: 0.6 });
+  const material = new THREE.MeshBasicMaterial({ color, wireframe: true });
   const mesh = new THREE.Mesh(geometry, material);
   mesh.castShadow = false;
   mesh.receiveShadow = false;
   mesh.frustumCulled = true;
-  mesh.userData.baseEmissive = material.emissive.getHex();
-  mesh.userData.hoverEmissive = new THREE.Color("#35386b").getHex();
+  mesh.userData.baseColor = material.color.getHex();
+  mesh.userData.hoverColor = new THREE.Color("#7799ff").getHex();
   return mesh;
 };
 

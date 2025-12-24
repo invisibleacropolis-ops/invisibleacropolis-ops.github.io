@@ -84,10 +84,10 @@ export const createProps = ({ seed, width, depth, heightAt, palette = WORLD_PALE
   const bushGeometry = new THREE.SphereGeometry(0.25, 7, 6);
   const rockGeometry = new THREE.IcosahedronGeometry(0.22, 0);
 
-  const trunkMaterial = new THREE.MeshStandardMaterial({ color: "#b2936b", roughness: 1 });
-  const canopyMaterial = new THREE.MeshStandardMaterial({ color: palette[3], roughness: 0.9 });
-  const bushMaterial = new THREE.MeshStandardMaterial({ color: palette[2], roughness: 0.95 });
-  const rockMaterial = new THREE.MeshStandardMaterial({ color: palette[1], roughness: 0.85 });
+  const trunkMaterial = new THREE.MeshBasicMaterial({ color: "#b2936b", wireframe: true });
+  const canopyMaterial = new THREE.MeshBasicMaterial({ color: palette[3], wireframe: true });
+  const bushMaterial = new THREE.MeshBasicMaterial({ color: palette[2], wireframe: true });
+  const rockMaterial = new THREE.MeshBasicMaterial({ color: palette[1], wireframe: true });
 
   const trunks = new THREE.InstancedMesh(trunkGeometry, trunkMaterial, treeSamples.length);
   const canopies = new THREE.InstancedMesh(canopyGeometry, canopyMaterial, treeSamples.length);
