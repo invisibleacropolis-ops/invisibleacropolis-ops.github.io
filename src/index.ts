@@ -50,10 +50,10 @@ const WORLD_SEED = 1337;
 
 const terrain = createTerrainMesh({
   seed: WORLD_SEED,
-  width: 14000,
-  depth: 14000,
-  segments: 200,
-  height: 800,
+  width: 7000,
+  depth: 7000,
+  segments: 150,
+  height: 400,
   palette: WORLD_PALETTE,
 });
 world.add(terrain.mesh);
@@ -61,13 +61,13 @@ world.add(terrain.mesh);
 const flyControls = createFlyControls({
   camera,
   domElement: renderer.domElement,
-  moveSpeed: 500,
-  acceleration: 800,
+  moveSpeed: 300,
+  acceleration: 500,
   friction: 2.5,
 });
 
 // Start camera high for overview
-camera.position.set(0, 500, 2000);
+camera.position.set(0, 250, 1000);
 
 
 
@@ -115,7 +115,7 @@ keyLight.position.set(3, 6, 6);
 scene.add(keyLight);
 
 const sky = createSky({
-  radius: 25000,
+  radius: 15000,
   seed: WORLD_SEED,
   topColor: "#2e6edb",
   bottomColor: "#f2f6ff",

@@ -40,10 +40,10 @@ const createTerrainGeometry = (
 
 export const createTerrainMesh = ({
   seed,
-  width = 14000,
-  depth = 14000,
-  segments = 200,
-  height = 800,
+  width = 7000,
+  depth = 7000,
+  segments = 150,
+  height = 400,
   palette = WORLD_PALETTE,
 }: TerrainOptions) => {
   const worldSize = Math.max(width, depth);
