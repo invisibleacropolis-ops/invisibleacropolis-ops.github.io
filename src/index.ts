@@ -31,7 +31,7 @@ renderer.toneMappingExposure = 1.1;
 const scene = new THREE.Scene();
 scene.background = new THREE.Color("#050608");
 
-const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 2000);
+const camera = new THREE.PerspectiveCamera(55, 1, 1, 50000);
 
 const postProcessing = createPostProcessing({
   renderer,
@@ -50,10 +50,10 @@ const WORLD_SEED = 1337;
 
 const terrain = createTerrainMesh({
   seed: WORLD_SEED,
-  width: 140,
-  depth: 140,
-  segments: 80,
-  height: 26,
+  width: 14000,
+  depth: 14000,
+  segments: 200,
+  height: 800,
   palette: WORLD_PALETTE,
 });
 world.add(terrain.mesh);
@@ -61,13 +61,13 @@ world.add(terrain.mesh);
 const flyControls = createFlyControls({
   camera,
   domElement: renderer.domElement,
-  moveSpeed: 50,
-  acceleration: 100,
+  moveSpeed: 500,
+  acceleration: 800,
   friction: 2.5,
 });
 
-// Start camera higher for bird's eye view
-camera.position.set(0, 25, 40);
+// Start camera high for overview
+camera.position.set(0, 500, 2000);
 
 
 
@@ -115,7 +115,7 @@ keyLight.position.set(3, 6, 6);
 scene.add(keyLight);
 
 const sky = createSky({
-  radius: 1200,
+  radius: 25000,
   seed: WORLD_SEED,
   topColor: "#2e6edb",
   bottomColor: "#f2f6ff",
@@ -134,7 +134,7 @@ const weather = createWeatherEffects({
   areaWidth: terrain.width * 1.4,
   areaDepth: terrain.depth * 1.4,
   fogColor: "#8aa3c7",
-  fogDensity: 0.002,
+  fogDensity: 0.00005,
   rainEnabled: false,
 });
 scene.add(weather.group);

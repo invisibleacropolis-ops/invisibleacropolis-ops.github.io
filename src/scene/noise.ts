@@ -81,24 +81,6 @@ export const ridgedNoise2D = (
 };
 
 /**
- * Domain warping - distorts coordinates for more organic terrain
- */
-export const warpedFbm2D = (
-  x: number,
-  z: number,
-  seed: number,
-  warpStrength = 2,
-  octaves = 4,
-) => {
-  // First pass: get warp offsets
-  const warpX = fbm2D(x * 0.3, z * 0.3, seed + 100, 2, 2, 0.5) * warpStrength;
-  const warpZ = fbm2D(x * 0.3, z * 0.3, seed + 200, 2, 2, 0.5) * warpStrength;
-
-  // Second pass: sample with warped coordinates
-  return fbm2D(x + warpX, z + warpZ, seed, octaves, 2, 0.5);
-};
-
-/**
  * Smoothstep function for blending regions
  */
 export const smoothBlend = (edge0: number, edge1: number, x: number) => {
@@ -109,52 +91,67 @@ export const smoothBlend = (edge0: number, edge1: number, x: number) => {
 /**
  * Multi-layer terrain height sampler with realistic distribution
  * Returns height with: 50% flat, 30% hills, 20% mountains
+ * 
+ * This function uses normalized coordinates (0-1 range) internally
+ * to ensure consistent results regardless of world size.
  */
 export const sampleRealisticTerrain = (
   x: number,
   z: number,
   seed: number,
   maxHeight: number,
+  worldSize: number,
 ) => {
-  // Region mask determines terrain type (low frequency for large regions)
-  const regionNoise = fbm2D(x * 0.015, z * 0.015, seed, 3, 2, 0.5);
+  // Normalize coordinates to 0-1 range based on world size
+  // This ensures terrain features scale properly with world size
+  const nx = x / worldSize;
+  const nz = z / worldSize;
 
-  // Add some warping to make regions more organic
-  const warpX = fbm2D(x * 0.01, z * 0.01, seed + 500, 2, 2, 0.5) * 8;
-  const warpZ = fbm2D(x * 0.01, z * 0.01, seed + 600, 2, 2, 0.5) * 8;
-  const warpedRegion = fbm2D((x + warpX) * 0.015, (z + warpZ) * 0.015, seed, 3, 2, 0.5);
+  // Region mask determines terrain type
+  // Use very low frequency for continent-scale regions
+  const regionNoise = fbm2D(nx * 8, nz * 8, seed, 4, 2, 0.5);
 
-  // Blend between noise sources
+  // Add warping for organic region shapes
+  const warpX = fbm2D(nx * 4, nz * 4, seed + 500, 2, 2, 0.5) * 0.3;
+  const warpZ = fbm2D(nx * 4, nz * 4, seed + 600, 2, 2, 0.5) * 0.3;
+  const warpedRegion = fbm2D((nx + warpX) * 8, (nz + warpZ) * 8, seed, 4, 2, 0.5);
+
+  // Blend region noise sources
   const region = (regionNoise + warpedRegion) * 0.5;
 
   // Calculate blend factors for terrain types
-  // 0.0 - 0.5 = flat (50%)
-  // 0.5 - 0.8 = hills (30%) 
-  // 0.8 - 1.0 = mountains (20%)
-  const flatFactor = 1 - smoothBlend(0.35, 0.55, region);
-  const hillFactor = smoothBlend(0.4, 0.6, region) * (1 - smoothBlend(0.7, 0.85, region));
-  const mountainFactor = smoothBlend(0.75, 0.9, region);
+  // 0.0 - 0.50 = flat plains (50%)
+  // 0.50 - 0.80 = hills and valleys (30%)
+  // 0.80 - 1.0 = mountains (20%)
+  const flatFactor = 1 - smoothBlend(0.40, 0.55, region);
+  const hillFactor = smoothBlend(0.45, 0.60, region) * (1 - smoothBlend(0.70, 0.85, region));
+  const mountainFactor = smoothBlend(0.75, 0.88, region);
 
-  // Calculate heights for each terrain type
-  // Flat: very gentle variation
-  const flatHeight = fbm2D(x * 0.08, z * 0.08, seed + 1000, 2, 2, 0.4) * 0.15;
+  // FLAT PLAINS: Very gentle undulation
+  const flatHeight = fbm2D(nx * 30, nz * 30, seed + 1000, 2, 2, 0.4) * 0.05;
 
-  // Hills: rolling hills with medium variation
-  const hillBase = warpedFbm2D(x * 0.04, z * 0.04, seed + 2000, 3, 3);
-  const hillDetail = fbm2D(x * 0.12, z * 0.12, seed + 2100, 3, 2, 0.45) * 0.3;
-  const hillHeight = (hillBase * 0.7 + hillDetail) * 0.4;
+  // HILLS: Rolling terrain with valleys
+  const hillBase = fbm2D(nx * 20, nz * 20, seed + 2000, 4, 2, 0.5);
+  const hillDetail = fbm2D(nx * 60, nz * 60, seed + 2100, 3, 2, 0.45) * 0.2;
+  // Create valley cuts using absolute noise
+  const valleyMask = 1 - Math.pow(Math.abs(fbm2D(nx * 15, nz * 15, seed + 2200, 3, 2, 0.5) * 2 - 1), 0.5) * 0.4;
+  const hillHeight = (hillBase * 0.6 + hillDetail) * 0.35 * valleyMask;
 
-  // Mountains: ridged noise for peaks
-  const mountainBase = ridgedNoise2D(x * 0.025, z * 0.025, seed + 3000, 4, 2.2, 0.55);
-  const mountainDetail = fbm2D(x * 0.08, z * 0.08, seed + 3100, 3, 2, 0.4) * 0.25;
-  const mountainHeight = (mountainBase * 0.85 + mountainDetail * 0.15);
+  // MOUNTAINS: Ridged noise for dramatic peaks
+  const mountainBase = ridgedNoise2D(nx * 12, nz * 12, seed + 3000, 5, 2.2, 0.55);
+  const mountainDetail = fbm2D(nx * 40, nz * 40, seed + 3100, 3, 2, 0.4) * 0.15;
+  // Add dramatic height multiplier for mountains
+  const mountainHeight = Math.pow(mountainBase, 1.3) * 0.9 + mountainDetail;
 
-  // Combine all terrain types
-  const height = (
+  // Combine all terrain types with proper weighting
+  const combinedHeight = (
     flatHeight * flatFactor +
     hillHeight * hillFactor +
     mountainHeight * mountainFactor
-  ) * maxHeight;
+  );
+
+  // Apply maxHeight and ensure mountains are properly tall
+  const height = combinedHeight * maxHeight;
 
   return height;
 };
@@ -162,8 +159,10 @@ export const sampleRealisticTerrain = (
 /**
  * Returns terrain type at position (0 = flat, 1 = hills, 2 = mountains)
  */
-export const getTerrainType = (x: number, z: number, seed: number): number => {
-  const region = fbm2D(x * 0.015, z * 0.015, seed, 3, 2, 0.5);
+export const getTerrainType = (x: number, z: number, seed: number, worldSize: number): number => {
+  const nx = x / worldSize;
+  const nz = z / worldSize;
+  const region = fbm2D(nx * 8, nz * 8, seed, 4, 2, 0.5);
 
   if (region < 0.5) return 0; // flat
   if (region < 0.8) return 1; // hills

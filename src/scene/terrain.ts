@@ -18,6 +18,7 @@ const createTerrainGeometry = (
   segments: number,
   seed: number,
   height: number,
+  worldSize: number,
 ) => {
   const geometry = new THREE.PlaneGeometry(width, depth, segments, segments);
   geometry.rotateX(-Math.PI / 2);
@@ -27,7 +28,7 @@ const createTerrainGeometry = (
   for (let i = 0; i < position.count; i += 1) {
     const x = position.getX(i);
     const z = position.getZ(i);
-    const terrainHeight = sampleRealisticTerrain(x, z, seed, height);
+    const terrainHeight = sampleRealisticTerrain(x, z, seed, height, worldSize);
     position.setY(i, terrainHeight);
   }
 
@@ -39,12 +40,14 @@ const createTerrainGeometry = (
 
 export const createTerrainMesh = ({
   seed,
-  width = 140,
-  depth = 140,
-  segments = 100,
-  height = 30,
+  width = 14000,
+  depth = 14000,
+  segments = 200,
+  height = 800,
   palette = WORLD_PALETTE,
 }: TerrainOptions) => {
+  const worldSize = Math.max(width, depth);
+
   const material = new THREE.MeshBasicMaterial({
     color: palette[0],
     wireframe: true,
@@ -52,24 +55,25 @@ export const createTerrainMesh = ({
     opacity: 0.9,
   });
 
-  const highGeometry = createTerrainGeometry(width, depth, segments, seed, height);
-  const midSegments = Math.max(20, Math.round(segments * 0.5));
-  const lowSegments = Math.max(10, Math.round(segments * 0.25));
-  const midGeometry = createTerrainGeometry(width, depth, midSegments, seed, height);
-  const lowGeometry = createTerrainGeometry(width, depth, lowSegments, seed, height);
+  // Create LOD levels with different detail
+  const highGeometry = createTerrainGeometry(width, depth, segments, seed, height, worldSize);
+  const midSegments = Math.max(50, Math.round(segments * 0.5));
+  const lowSegments = Math.max(25, Math.round(segments * 0.25));
+  const midGeometry = createTerrainGeometry(width, depth, midSegments, seed, height, worldSize);
+  const lowGeometry = createTerrainGeometry(width, depth, lowSegments, seed, height, worldSize);
 
   const mesh = new THREE.LOD();
   // Use progressively lower detail at farther distances
   mesh.addLevel(new THREE.Mesh(highGeometry, material), 0);
-  mesh.addLevel(new THREE.Mesh(midGeometry, material), width * 0.6);
-  mesh.addLevel(new THREE.Mesh(lowGeometry, material), width * 1.2);
+  mesh.addLevel(new THREE.Mesh(midGeometry, material), width * 0.3);
+  mesh.addLevel(new THREE.Mesh(lowGeometry, material), width * 0.6);
 
   const heightAt = (x: number, z: number) => {
-    return sampleRealisticTerrain(x, z, seed, height);
+    return sampleRealisticTerrain(x, z, seed, height, worldSize);
   };
 
   const terrainTypeAt = (x: number, z: number) => {
-    return getTerrainType(x, z, seed);
+    return getTerrainType(x, z, seed, worldSize);
   };
 
   return {
@@ -80,5 +84,6 @@ export const createTerrainMesh = ({
     height,
     heightAt,
     terrainTypeAt,
+    worldSize,
   };
 };
