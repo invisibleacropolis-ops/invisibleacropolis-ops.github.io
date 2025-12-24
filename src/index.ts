@@ -265,8 +265,11 @@ const initialize = async () => {
 
   try {
     linksScene = await createLinks({
-      radius: Math.max(terrain.width, terrain.depth) * 0.85 + 6,
-      elevation: 2.1,
+      width: terrain.width,
+      depth: terrain.depth,
+      seed: WORLD_SEED,
+      heightAt: terrain.heightAt,
+      elevation: 6,
       palette: WORLD_PALETTE,
     });
     enableBloom(linksScene.group); // Bloom on links? Maybe. Let's say yes for uniformity.

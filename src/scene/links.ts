@@ -4,6 +4,7 @@ import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry.js";
 
 import { loadPages, type PageEntry } from "../data/pages.ts";
 import { WORLD_PALETTE } from "./palette.ts";
+import { createRng } from "./random.ts";
 
 const FONT_URL = "/helvetiker_regular.typeface.json";
 
@@ -20,11 +21,16 @@ export type LinksScene = {
 };
 
 export type LinksOptions = {
-  radius: number;
+  radius?: number; // Kept for backwards compatibility but unused
+  width?: number;
+  depth?: number;
+  seed?: number;
+  heightAt?: (x: number, z: number) => number;
   elevation?: number;
   maxVisible?: number;
   maxDistance?: number;
   palette?: string[];
+  spacing?: number;
 };
 
 const loadFont = async () => {
@@ -67,14 +73,20 @@ const createLabelMesh = (font: Font, title: string, color: string) => {
 
 export const createLinks = async ({
   radius,
-  elevation = 2.1,
+  width = 5000,
+  depth = 5000,
+  seed = 123,
+  heightAt,
+  elevation = 6,
   maxVisible = 3,
   maxDistance,
   palette = WORLD_PALETTE,
+  spacing = 300,
 }: LinksOptions): Promise<LinksScene> => {
   const [font, pages] = await Promise.all([loadFont(), loadPages()]);
   const group = new THREE.Group();
   const labels: LinkLabel[] = [];
+  const rng = createRng(seed ^ 0x9f3d);
 
   if (pages.length === 0) {
     return {
@@ -85,18 +97,57 @@ export const createLinks = async ({
     };
   }
 
-  const angleStep = (Math.PI * 2) / pages.length;
   const color = palette[4] ?? "#cdd9ff";
+  const placedPositions: { x: number; z: number }[] = [];
 
-  pages.forEach((page, index) => {
-    const angle = angleStep * index;
-    const x = Math.cos(angle) * radius;
-    const z = Math.sin(angle) * radius;
-    const y = elevation + Math.sin(angle * 1.8) * 0.4;
+  pages.forEach((page) => {
+    let bestX = 0;
+    let bestZ = 0;
+    let bestDist = -1;
+
+    // Try to find a spot far from others
+    for (let attempt = 0; attempt < 30; attempt++) {
+      const x = (rng() - 0.5) * width * 0.8;
+      const z = (rng() - 0.5) * depth * 0.8;
+
+      let minDist = Infinity;
+      // Also check distance from center (0,0) to avoid spawn point if desired
+      minDist = Math.min(minDist, Math.sqrt(x * x + z * z));
+
+      for (const pos of placedPositions) {
+        const d = Math.sqrt((x - pos.x) ** 2 + (z - pos.z) ** 2);
+        if (d < minDist) minDist = d;
+      }
+
+      if (minDist > spacing && minDist > bestDist) {
+        bestX = x;
+        bestZ = z;
+        bestDist = minDist;
+        if (minDist > spacing * 1.5) break; // Good enough
+      }
+    }
+
+    if (bestDist < 0) {
+      // Fallback
+      bestX = (rng() - 0.5) * width * 0.8;
+      bestZ = (rng() - 0.5) * depth * 0.8;
+    }
+
+    placedPositions.push({ x: bestX, z: bestZ });
+
+    const y = heightAt ? heightAt(bestX, bestZ) : 0;
+
+    // Links float slightly above terrain
+    const finalY = y + elevation + 5 + rng() * 10;
 
     const mesh = createLabelMesh(font, page.title, color);
-    mesh.position.set(x, y, z);
-    mesh.lookAt(0, y, 0);
+    mesh.position.set(bestX, finalY, bestZ);
+    mesh.lookAt(0, finalY, 0); // Still look at center? Or look at camera? 
+    // Usually billboards look at camera. TextGeometry doesn't auto-billboard.
+    // For now, let's look at center, or maybe just random rotation?
+    // User didn't specify rotation. Let's make them face the center for now as before.
+    mesh.lookAt(0, finalY, 0);
+
     mesh.userData.linkUrl = page.url;
 
     group.add(mesh);
@@ -108,7 +159,7 @@ export const createLinks = async ({
   const tempPositionA = new THREE.Vector3();
   const tempPositionB = new THREE.Vector3();
   const clampedMaxVisible = Math.min(4, Math.max(2, Math.round(maxVisible)));
-  const maxVisibleDistance = maxDistance ?? Math.max(radius * 1.35, 12);
+  const maxVisibleDistance = maxDistance ?? Math.max(width * 0.3, 2000); // Updated default max distance
 
   const updateVisibility = (camera: THREE.Camera) => {
     projectionMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
