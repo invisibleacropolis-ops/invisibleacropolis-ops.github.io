@@ -52,7 +52,7 @@ const terrain = createTerrainMesh({
   seed: WORLD_SEED,
   width: 7000,
   depth: 7000,
-  segments: 150,
+  segments: 105,
   height: 400,
   palette: WORLD_PALETTE,
 });
