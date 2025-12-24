@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import Stats from "three/examples/jsm/libs/stats.module.js";
 
-import { createPostProcessing } from "./effects/postprocessing.ts";
+import { createSelectiveBloomPostProcessing, BLOOM_LAYER } from "./effects/postprocessing.ts";
 import { createRayBurst } from "./effects/rayBurst.ts";
 import { createWeatherEffects } from "./effects/weather.ts";
 import { createFlyControls } from "./controls/fps.ts";
@@ -33,11 +33,16 @@ scene.background = new THREE.Color("#050608");
 
 const camera = new THREE.PerspectiveCamera(55, 1, 1, 50000);
 
-const postProcessing = createPostProcessing({
+const postProcessing = createSelectiveBloomPostProcessing({
   renderer,
   scene,
   camera,
   antiAlias: "smaa",
+  bloom: {
+    strength: 0.6,
+    radius: 0.4,
+    threshold: 0.0,
+  },
 });
 
 const world = new THREE.Group();
@@ -45,7 +50,7 @@ scene.add(world);
 
 const WORLD_SEED = 1337;
 
-// Lights (created early, don't depend on terrain)
+// Lights
 const ambientLight = new THREE.AmbientLight("#9aa8ff", 0.6);
 scene.add(ambientLight);
 
@@ -83,7 +88,7 @@ const nightAmbient = new THREE.Color("#1f2b50");
 const daySun = new THREE.Color("#ffffff");
 const duskSun = new THREE.Color("#ffb978");
 
-// Terrain-dependent objects (set in initialize)
+// Terrain-dependent objects
 let terrain: Awaited<ReturnType<typeof createTerrainMeshFromHeightmap>> | null = null;
 let sky: ReturnType<typeof createSky> | null = null;
 let weather: ReturnType<typeof createWeatherEffects> | null = null;
@@ -145,14 +150,19 @@ const animate = (time: number) => {
   requestAnimationFrame(animate);
 };
 
+// Start bloom on object (recursive)
+const enableBloom = (object: THREE.Object3D) => {
+  object.traverse((obj) => {
+    obj.layers.enable(BLOOM_LAYER);
+  });
+};
+
 const initialize = async () => {
   resize();
   window.addEventListener("resize", resize);
 
-  // Show loading message
   console.log("Loading terrain from heightmap...");
 
-  // Load terrain from heightmap (async)
   terrain = await createTerrainMeshFromHeightmap({
     heightmapUrl: "/heightmap.jpg",
     width: 7000,
@@ -161,10 +171,10 @@ const initialize = async () => {
     height: 500,
     palette: WORLD_PALETTE,
   });
+  enableBloom(terrain.mesh); // Enable bloom on terrain
   world.add(terrain.mesh);
   console.log("Terrain loaded!");
 
-  // Now create everything that depends on terrain
   flyControls = createFlyControls({
     camera,
     domElement: renderer.domElement,
@@ -173,7 +183,6 @@ const initialize = async () => {
     friction: 2.5,
   });
 
-  // Start camera high for overview
   camera.position.set(0, 350, 1500);
 
   const roads = createRoads({
@@ -185,6 +194,8 @@ const initialize = async () => {
     palette: WORLD_PALETTE,
     heightAt: terrain.heightAt,
   });
+  // Note: Roads might not want bloom if they are lines, or they might. Let's enable for now.
+  enableBloom(roads);
   world.add(roads);
 
   const water = createWater({
@@ -200,6 +211,8 @@ const initialize = async () => {
     palette: WORLD_PALETTE,
     heightAt: terrain.heightAt,
   });
+  enableBloom(water.mesh); // Bloom on water mesh (waves)
+  enableBloom(water.rivers);
   world.add(water.mesh);
   world.add(water.rivers);
 
@@ -210,15 +223,18 @@ const initialize = async () => {
     heightAt: terrain.heightAt,
     palette: WORLD_PALETTE,
   });
+  enableBloom(propsManager.group); // Bloom on trees/rocks
   world.add(propsManager.group);
 
-  // Create dev panel with props controls
+  // Create dev panel
   const devPanel = createDevPanel({
     propsConfig: propsManager.config,
     onPropsChange: (config) => {
       propsManager.setConfig(config);
-      propsManager.regenerate(world);
+      const newGroup = propsManager.regenerate(world);
+      enableBloom(newGroup); // Re-enable bloom on regenerated props
     },
+    bloomPass: postProcessing.bloomPass,
   });
 
   sky = createSky({
@@ -233,6 +249,7 @@ const initialize = async () => {
     starCount: 360,
     dayDuration: 180,
   });
+  // Sky doesn't get enableBloom(), so it won't bloom! 
   scene.add(sky.mesh, sky.stars);
 
   weather = createWeatherEffects({
@@ -252,10 +269,10 @@ const initialize = async () => {
       elevation: 2.1,
       palette: WORLD_PALETTE,
     });
+    enableBloom(linksScene.group); // Bloom on links? Maybe. Let's say yes for uniformity.
     world.add(linksScene.group);
 
     if (linksScene.pagesCount > 0) {
-      // Add links to proximity effect system
       proximityEffect.addTargets(linksScene.labels.map((label) => label.mesh));
       proximityEffect.onEnter((mesh) => {
         rayBurst.start(mesh);
