@@ -129,6 +129,7 @@ const createTerrainGeometryFromHeightmap = (
     geometry.rotateX(-Math.PI / 2);
 
     const position = geometry.attributes.position;
+    const colors: number[] = [];
 
     for (let i = 0; i < position.count; i++) {
         const x = position.getX(i);
@@ -143,7 +144,18 @@ const createTerrainGeometryFromHeightmap = (
 
         // Apply height
         position.setY(i, h * maxHeight);
+
+        // Calculate color based on height
+        // Low (0) -> Dark Blue, High (1) -> White
+        const color = new THREE.Color().lerpColors(
+            new THREE.Color("#00008b"), // Dark Blue
+            new THREE.Color("#ffffff"), // White
+            h
+        );
+        colors.push(color.r, color.g, color.b);
     }
+
+    geometry.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
 
     position.needsUpdate = true;
     geometry.computeVertexNormals();
@@ -164,7 +176,7 @@ export const createTerrainMeshFromHeightmap = async ({
     console.log(`Loaded heightmap: ${heightmap.width}x${heightmap.height}`);
 
     const material = new THREE.MeshBasicMaterial({
-        color: palette[0],
+        vertexColors: true,
         wireframe: true,
         transparent: true,
         opacity: 0.9,

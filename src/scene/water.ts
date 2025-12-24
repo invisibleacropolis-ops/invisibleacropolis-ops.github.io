@@ -141,6 +141,7 @@ export const createWater = ({
     vertexShader,
     fragmentShader,
     transparent: true,
+    wireframe: true,
     side: THREE.DoubleSide,
   });
   material.depthWrite = false;

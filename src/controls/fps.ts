@@ -134,11 +134,11 @@ export const createFlyControls = ({
     // Apply velocity to camera position
     camera.position.add(velocity.clone().multiplyScalar(delta));
 
-    // Keep camera above a minimum height
-    if (camera.position.y < 1) {
-      camera.position.y = 1;
-      velocity.y = Math.max(0, velocity.y);
-    }
+    // Constraint removed as requested
+    // if (camera.position.y < 1) {
+    //   camera.position.y = 1;
+    //   velocity.y = Math.max(0, velocity.y);
+    // }
   };
 
   const dispose = () => {

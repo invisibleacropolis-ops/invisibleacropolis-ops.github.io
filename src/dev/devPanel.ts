@@ -48,17 +48,17 @@ export const createDevPanel = ({
         propsFolder.close();
 
         propsFolder
-            .add(settings.props, "totalDensity", 0, 2, 0.1)
+            .add(settings.props, "totalDensity", 0, 20, 0.1)
             .name("Total Density")
             .onChange(() => onPropsChange(settings.props));
 
         propsFolder
-            .add(settings.props, "treeDensity", 0, 2, 0.1)
+            .add(settings.props, "treeDensity", 0, 20, 0.1)
             .name("Tree Density")
             .onChange(() => onPropsChange(settings.props));
 
         propsFolder
-            .add(settings.props, "rockDensity", 0, 2, 0.1)
+            .add(settings.props, "rockDensity", 0, 20, 0.1)
             .name("Rock Density")
             .onChange(() => onPropsChange(settings.props));
 
