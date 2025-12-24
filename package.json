@@ -1,8 +1,20 @@
 {
   "name": "invisibleacropolis-ops",
   "private": true,
+  "type": "module",
   "scripts": {
-    "build": "node scripts/generate-pages-json.js",
-    "generate:pages": "node scripts/generate-pages-json.js"
+    "dev": "vite",
+    "build": "npm run generate:pages && vite build",
+    "preview": "vite preview",
+    "generate:pages": "node scripts/generate-pages-json.cjs"
+  },
+  "devDependencies": {
+    "@types/three": "^0.160.0",
+    "typescript": "^5.3.3",
+    "vite": "^5.4.11"
+  },
+  "dependencies": {
+    "lil-gui": "^0.21.0",
+    "three": "^0.160.0"
   }
 }

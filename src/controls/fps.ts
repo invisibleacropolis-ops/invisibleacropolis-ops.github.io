@@ -1,5 +1,5 @@
-import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
-import { PointerLockControls } from "https://unpkg.com/three@0.160.0/examples/jsm/controls/PointerLockControls.js";
+import * as THREE from "three";
+import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
 
 export type FpsControlsOptions = {
   camera: THREE.Camera;
@@ -77,7 +77,7 @@ export const createFpsControls = ({
     direction.set(
       Number(movement.right) - Number(movement.left),
       0,
-      Number(movement.backward) - Number(movement.forward),
+      Number(movement.forward) - Number(movement.backward),
     );
 
     if (direction.lengthSq() > 0) {

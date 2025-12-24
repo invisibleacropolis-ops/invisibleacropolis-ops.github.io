@@ -1,5 +1,5 @@
-import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
-import Stats from "https://unpkg.com/three@0.160.0/examples/jsm/libs/stats.module.js";
+import * as THREE from "three";
+import Stats from "three/examples/jsm/libs/stats.module.js";
 import { createHoverGlow } from "./effects/hoverGlow.ts";
 import { createPostProcessing } from "./effects/postprocessing.ts";
 import { createRayBurst } from "./effects/rayBurst.ts";
@@ -14,6 +14,7 @@ import { createTerrainMesh } from "./scene/terrain.ts";
 import { createValleyMesh } from "./scene/valleys.ts";
 import { createWater } from "./scene/water.ts";
 import { WORLD_PALETTE } from "./scene/palette.ts";
+import { createDevPanel } from "./dev/devPanel.ts";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#scene");
 
@@ -38,10 +39,15 @@ const postProcessing = createPostProcessing({
   camera,
   antiAlias: "smaa",
   bloom: {
-    strength: 1.25,
-    radius: 0.5,
-    threshold: 0.15,
+    strength: 0.6,
+    radius: 0.3,
+    threshold: 0.4,
   },
+});
+
+// Create dev panel with bloom controls
+const devPanel = createDevPanel({
+  bloomPass: postProcessing.bloomPass,
 });
 
 const world = new THREE.Group();

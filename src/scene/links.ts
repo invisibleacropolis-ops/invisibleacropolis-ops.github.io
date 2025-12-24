@@ -1,11 +1,11 @@
-import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
-import { FontLoader } from "https://unpkg.com/three@0.160.0/examples/jsm/loaders/FontLoader.js";
-import { TextGeometry } from "https://unpkg.com/three@0.160.0/examples/jsm/geometries/TextGeometry.js";
+import * as THREE from "three";
+import { FontLoader, Font } from "three/examples/jsm/loaders/FontLoader.js";
+import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry.js";
 
 import { loadPages, type PageEntry } from "../data/pages.ts";
 import { WORLD_PALETTE } from "./palette.ts";
 
-const FONT_URL = "https://unpkg.com/three@0.160.0/examples/fonts/helvetiker_regular.typeface.json";
+const FONT_URL = "/helvetiker_regular.typeface.json";
 
 export type LinkLabel = {
   mesh: THREE.Mesh;
@@ -39,7 +39,7 @@ const loadFont = async () => {
   return loader.parse(fontData);
 };
 
-const createLabelMesh = (font: THREE.Font, title: string, color: string) => {
+const createLabelMesh = (font: Font, title: string, color: string) => {
   const geometry = new TextGeometry(title, {
     font,
     size: 0.5,
@@ -81,7 +81,7 @@ export const createLinks = async ({
       group,
       labels,
       pagesCount: 0,
-      updateVisibility: () => {},
+      updateVisibility: () => { },
     };
   }
 
