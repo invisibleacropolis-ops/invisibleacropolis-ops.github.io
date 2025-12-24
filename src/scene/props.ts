@@ -92,13 +92,12 @@ const sampleTrees = (
 ): TreeSample[] => {
   const samples: TreeSample[] = [];
 
-  // Fewer, larger, more spaced forest clusters
-  // Only 4-6 major forests for 20% coverage
-  const forestCenters = generateClusterCenters(rng, width, depth, 5, width * 0.15);
+  // 15 major forests with 24-45 trees each
+  const forestCenters = generateClusterCenters(rng, width, depth, 15, width * 0.1);
 
   for (const center of forestCenters) {
-    // Fewer trees per forest (8-15 instead of 15-40)
-    const treesInForest = Math.floor(8 + rng() * 8);
+    // 24-45 trees per forest
+    const treesInForest = Math.floor(24 + rng() * 22);
 
     for (let i = 0; i < treesInForest; i++) {
       const angle = rng() * Math.PI * 2;
@@ -131,12 +130,12 @@ const sampleTrees = (
     }
   }
 
-  // Small groups - very few (2-4 groups total)
-  const groupCount = 3;
+  // Small groups - 9 groups total
+  const groupCount = 9;
   for (let g = 0; g < groupCount; g++) {
     const cx = (rng() - 0.5) * width * 0.7;
     const cz = (rng() - 0.5) * depth * 0.7;
-    const groupSize = 2 + Math.floor(rng() * 3); // 2-4 trees
+    const groupSize = 3 + Math.floor(rng() * 5); // 3-7 trees
     const groupType = ["pine", "oak", "birch", "shrub"][Math.floor(rng() * 4)] as TreeType;
 
     for (let i = 0; i < groupSize; i++) {
@@ -156,8 +155,8 @@ const sampleTrees = (
     }
   }
 
-  // Single isolated trees - very sparse (5-8 total)
-  const singleCount = 6;
+  // Single isolated trees - 18 total
+  const singleCount = 18;
   for (let i = 0; i < singleCount; i++) {
     const x = (rng() - 0.5) * width * 0.8;
     const z = (rng() - 0.5) * depth * 0.8;
@@ -188,8 +187,8 @@ const sampleRocks = (
 ): RockSample[] => {
   const samples: RockSample[] = [];
 
-  // Only 3-5 rock clusters for 10% coverage
-  const clusterCount = 4;
+  // 12 rock clusters for 10% coverage
+  const clusterCount = 12;
 
   for (let c = 0; c < clusterCount; c++) {
     const cx = (rng() - 0.5) * width * 0.8;
@@ -202,8 +201,8 @@ const sampleRocks = (
       if (rng() > 0.4) continue;
     }
 
-    // 2-4 rocks per cluster
-    const rocksInCluster = 2 + Math.floor(rng() * 3);
+    // 3-6 rocks per cluster
+    const rocksInCluster = 3 + Math.floor(rng() * 4);
 
     for (let i = 0; i < rocksInCluster; i++) {
       const x = cx + (rng() - 0.5) * 20;
