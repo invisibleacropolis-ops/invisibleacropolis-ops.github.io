@@ -8,7 +8,7 @@ import { createFlyControls } from "./controls/fps.ts";
 import { createProximityEffect } from "./effects/proximityEffect.ts";
 import { createLinks } from "./scene/links.ts";
 import { createRoads } from "./scene/roads.ts";
-import { createProps } from "./scene/props.ts";
+import { createPropsManager } from "./scene/props.ts";
 import { createSky } from "./scene/sky.ts";
 import { createTerrainMesh } from "./scene/terrain.ts";
 
@@ -40,8 +40,7 @@ const postProcessing = createPostProcessing({
   antiAlias: "smaa",
 });
 
-// Create dev panel (empty for now)
-const devPanel = createDevPanel();
+// Dev panel created after propsManager below
 
 const world = new THREE.Group();
 scene.add(world);
@@ -98,14 +97,23 @@ const water = createWater({
 world.add(water.mesh);
 world.add(water.rivers);
 
-const props = createProps({
+const propsManager = createPropsManager({
   seed: WORLD_SEED,
   width: terrain.width,
   depth: terrain.depth,
   heightAt: terrain.heightAt,
   palette: WORLD_PALETTE,
 });
-world.add(props);
+world.add(propsManager.group);
+
+// Create dev panel with props controls
+const devPanel = createDevPanel({
+  propsConfig: propsManager.config,
+  onPropsChange: (config) => {
+    propsManager.setConfig(config);
+    propsManager.regenerate(world);
+  },
+});
 
 const ambientLight = new THREE.AmbientLight("#9aa8ff", 0.6);
 scene.add(ambientLight);

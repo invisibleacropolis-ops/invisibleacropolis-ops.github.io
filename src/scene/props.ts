@@ -3,12 +3,24 @@ import * as THREE from "three";
 import { createRng } from "./random.ts";
 import { WORLD_PALETTE } from "./palette.ts";
 
+export type PropsConfig = {
+  /** Overall multiplier for all props (0-2, default 1) */
+  totalDensity: number;
+  /** Tree density multiplier (0-2, default 1) */
+  treeDensity: number;
+  /** Rock density multiplier (0-2, default 1) */
+  rockDensity: number;
+  /** Clustering factor - higher = more grouped, lower = more spread (0.2-2, default 1) */
+  clusteringFactor: number;
+};
+
 export type PropsOptions = {
   seed: number;
   width: number;
   depth: number;
   heightAt: (x: number, z: number) => number;
   palette?: string[];
+  config?: Partial<PropsConfig>;
 };
 
 type PropSample = {
@@ -36,6 +48,13 @@ type RockSample = PropSample & {
   rotZ: number;
 };
 
+const DEFAULT_CONFIG: PropsConfig = {
+  totalDensity: 1,
+  treeDensity: 1,
+  rockDensity: 1,
+  clusteringFactor: 1,
+};
+
 const sampleSlope = (x: number, z: number, heightAt: (x: number, z: number) => number) => {
   const offset = 2;
   const hL = heightAt(x - offset, z);
@@ -47,7 +66,6 @@ const sampleSlope = (x: number, z: number, heightAt: (x: number, z: number) => n
   return Math.sqrt(dx * dx + dz * dz);
 };
 
-// Generate sparse cluster centers
 const generateClusterCenters = (
   rng: () => number,
   width: number,
@@ -75,7 +93,7 @@ const generateClusterCenters = (
       centers.push({
         x,
         z,
-        radius: 80 + rng() * 150  // Larger, sparser forests
+        radius: 80 + rng() * 150
       });
     }
   }
@@ -83,26 +101,30 @@ const generateClusterCenters = (
   return centers;
 };
 
-// Sample trees - 20% world coverage, 25% of previous density
 const sampleTrees = (
   rng: () => number,
   width: number,
   depth: number,
   heightAt: (x: number, z: number) => number,
+  config: PropsConfig,
 ): TreeSample[] => {
   const samples: TreeSample[] = [];
+  const density = config.totalDensity * config.treeDensity;
+  const clustering = config.clusteringFactor;
 
-  // 15 major forests with 24-45 trees each
-  const forestCenters = generateClusterCenters(rng, width, depth, 15, width * 0.1);
+  // Forest clusters - count scaled by density, spacing by clustering
+  const forestCount = Math.round(15 * density);
+  const forestSpacing = width * (0.1 / clustering);
+  const forestCenters = generateClusterCenters(rng, width, depth, forestCount, forestSpacing);
 
   for (const center of forestCenters) {
-    // 24-45 trees per forest
-    const treesInForest = Math.floor(24 + rng() * 22);
+    // Trees per forest scaled by density and clustering
+    const treesInForest = Math.floor((24 + rng() * 22) * density * clustering);
 
     for (let i = 0; i < treesInForest; i++) {
       const angle = rng() * Math.PI * 2;
-      // More spread out within cluster
-      const distance = Math.sqrt(rng()) * center.radius;
+      // Spread controlled by clustering (higher = tighter)
+      const distance = Math.sqrt(rng()) * center.radius / clustering;
 
       const x = center.x + Math.cos(angle) * distance;
       const z = center.z + Math.sin(angle) * distance;
@@ -130,17 +152,18 @@ const sampleTrees = (
     }
   }
 
-  // Small groups - 9 groups total
-  const groupCount = 9;
+  // Small groups
+  const groupCount = Math.round(9 * density);
   for (let g = 0; g < groupCount; g++) {
     const cx = (rng() - 0.5) * width * 0.7;
     const cz = (rng() - 0.5) * depth * 0.7;
-    const groupSize = 3 + Math.floor(rng() * 5); // 3-7 trees
+    const groupSize = Math.floor((3 + rng() * 5) * clustering);
     const groupType = ["pine", "oak", "birch", "shrub"][Math.floor(rng() * 4)] as TreeType;
 
     for (let i = 0; i < groupSize; i++) {
-      const x = cx + (rng() - 0.5) * 30;
-      const z = cz + (rng() - 0.5) * 30;
+      const spread = 30 / clustering;
+      const x = cx + (rng() - 0.5) * spread;
+      const z = cz + (rng() - 0.5) * spread;
       const y = heightAt(x, z);
       const slope = sampleSlope(x, z, heightAt);
 
@@ -155,8 +178,8 @@ const sampleTrees = (
     }
   }
 
-  // Single isolated trees - 18 total
-  const singleCount = 18;
+  // Single trees (inversely affected by clustering)
+  const singleCount = Math.round(18 * density / clustering);
   for (let i = 0; i < singleCount; i++) {
     const x = (rng() - 0.5) * width * 0.8;
     const z = (rng() - 0.5) * depth * 0.8;
@@ -178,17 +201,18 @@ const sampleTrees = (
   return samples;
 };
 
-// Sample rocks - 10% world coverage, very sparse clusters
 const sampleRocks = (
   rng: () => number,
   width: number,
   depth: number,
   heightAt: (x: number, z: number) => number,
+  config: PropsConfig,
 ): RockSample[] => {
   const samples: RockSample[] = [];
+  const density = config.totalDensity * config.rockDensity;
+  const clustering = config.clusteringFactor;
 
-  // 12 rock clusters for 10% coverage
-  const clusterCount = 12;
+  const clusterCount = Math.round(12 * density);
 
   for (let c = 0; c < clusterCount; c++) {
     const cx = (rng() - 0.5) * width * 0.8;
@@ -196,17 +220,16 @@ const sampleRocks = (
     const cy = heightAt(cx, cz);
     const slope = sampleSlope(cx, cz, heightAt);
 
-    // Prefer rocky/elevated areas
     if (cy < 50 && slope < 0.2) {
       if (rng() > 0.4) continue;
     }
 
-    // 3-6 rocks per cluster
-    const rocksInCluster = 3 + Math.floor(rng() * 4);
+    const rocksInCluster = Math.floor((3 + rng() * 4) * clustering);
 
     for (let i = 0; i < rocksInCluster; i++) {
-      const x = cx + (rng() - 0.5) * 20;
-      const z = cz + (rng() - 0.5) * 20;
+      const spread = 20 / clustering;
+      const x = cx + (rng() - 0.5) * spread;
+      const z = cz + (rng() - 0.5) * spread;
       const y = heightAt(x, z);
 
       if (y < 0) continue;
@@ -230,7 +253,6 @@ const sampleRocks = (
   return samples;
 };
 
-// Create tree geometries
 const createTreeGeometries = () => {
   return {
     pine: {
@@ -256,25 +278,13 @@ const createTreeGeometries = () => {
   };
 };
 
-/**
- * Creates instanced props with sparse, naturalistic distribution
- * ~20% tree coverage, ~10% rock coverage
- * Total props reduced to ~25% of original density
- */
-export const createProps = ({
-  seed,
-  width,
-  depth,
-  heightAt,
-  palette = WORLD_PALETTE
-}: PropsOptions) => {
-  const rng = createRng(seed ^ 0x8a2f);
+const buildPropsGroup = (
+  treeSamples: TreeSample[],
+  rockSamples: RockSample[],
+  palette: string[],
+): THREE.Group => {
   const group = new THREE.Group();
 
-  const treeSamples = sampleTrees(rng, width, depth, heightAt);
-  const rockSamples = sampleRocks(rng, width, depth, heightAt);
-
-  // Group trees by type
   const treesByType: Record<TreeType, TreeSample[]> = {
     pine: [],
     oak: [],
@@ -293,7 +303,6 @@ export const createProps = ({
 
   const dummy = new THREE.Object3D();
 
-  // Create instanced meshes for each tree type
   for (const [type, samples] of Object.entries(treesByType) as [TreeType, TreeSample[]][]) {
     if (samples.length === 0) continue;
 
@@ -310,11 +319,7 @@ export const createProps = ({
       dummy.updateMatrix();
       trunks.setMatrixAt(index, dummy.matrix);
 
-      dummy.position.set(
-        sample.x,
-        sample.y + (3 + geoms.canopyOffset) * scale,
-        sample.z
-      );
+      dummy.position.set(sample.x, sample.y + (3 + geoms.canopyOffset) * scale, sample.z);
       dummy.rotation.set(0, sample.rotation, 0);
       dummy.scale.set(scale, scale * 1.1, scale);
       dummy.updateMatrix();
@@ -329,7 +334,6 @@ export const createProps = ({
     group.add(trunks, canopies);
   }
 
-  // Create rocks
   const rockGeometry = new THREE.IcosahedronGeometry(2, 0);
 
   if (rockSamples.length > 0) {
@@ -353,4 +357,56 @@ export const createProps = ({
   }
 
   return group;
+};
+
+/**
+ * Creates a props manager with configurable density and clustering
+ */
+export const createPropsManager = ({
+  seed,
+  width,
+  depth,
+  heightAt,
+  palette = WORLD_PALETTE,
+  config: initialConfig = {},
+}: PropsOptions) => {
+  const config: PropsConfig = { ...DEFAULT_CONFIG, ...initialConfig };
+  let currentGroup: THREE.Group | null = null;
+
+  const generate = () => {
+    const rng = createRng(seed ^ 0x8a2f);
+    const treeSamples = sampleTrees(rng, width, depth, heightAt, config);
+    const rockSamples = sampleRocks(rng, width, depth, heightAt, config);
+    return buildPropsGroup(treeSamples, rockSamples, palette);
+  };
+
+  currentGroup = generate();
+
+  const regenerate = (parent: THREE.Object3D) => {
+    if (currentGroup && currentGroup.parent) {
+      currentGroup.parent.remove(currentGroup);
+    }
+    currentGroup = generate();
+    parent.add(currentGroup);
+    return currentGroup;
+  };
+
+  const getConfig = () => ({ ...config });
+
+  const setConfig = (updates: Partial<PropsConfig>) => {
+    Object.assign(config, updates);
+  };
+
+  return {
+    group: currentGroup,
+    config,
+    regenerate,
+    getConfig,
+    setConfig,
+  };
+};
+
+// Legacy function for backwards compatibility
+export const createProps = (options: PropsOptions) => {
+  return createPropsManager(options).group;
 };
