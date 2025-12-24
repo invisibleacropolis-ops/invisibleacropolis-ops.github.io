@@ -38,17 +38,10 @@ const postProcessing = createPostProcessing({
   scene,
   camera,
   antiAlias: "smaa",
-  bloom: {
-    strength: 0.6,
-    radius: 0.05,
-    threshold: 0.5,
-  },
 });
 
-// Create dev panel with bloom controls
-const devPanel = createDevPanel({
-  bloomPass: postProcessing.bloomPass,
-});
+// Create dev panel (empty for now)
+const devPanel = createDevPanel();
 
 const world = new THREE.Group();
 scene.add(world);
