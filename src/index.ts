@@ -1,11 +1,11 @@
 import * as THREE from "three";
 import Stats from "three/examples/jsm/libs/stats.module.js";
-import { createHoverGlow } from "./effects/hoverGlow.ts";
+
 import { createPostProcessing } from "./effects/postprocessing.ts";
 import { createRayBurst } from "./effects/rayBurst.ts";
 import { createWeatherEffects } from "./effects/weather.ts";
 import { createFpsControls } from "./controls/fps.ts";
-import { createRaycast } from "./interaction/raycast.ts";
+import { createProximityEffect } from "./effects/proximityEffect.ts";
 import { createLinks } from "./scene/links.ts";
 import { createRoads } from "./scene/roads.ts";
 import { createProps } from "./scene/props.ts";
@@ -159,16 +159,18 @@ const nightAmbient = new THREE.Color("#1f2b50");
 const daySun = new THREE.Color("#ffffff");
 const duskSun = new THREE.Color("#ffb978");
 
-const hoverGlow = createHoverGlow({
-  duration: 0.3,
-  fadeOutDuration: 0.2,
-});
+
 
 const rayBurst = createRayBurst({
   scene,
   color: "#b7c9ff",
   raysPerSecond: 20,
   maxRays: 80,
+});
+
+const proximityEffect = createProximityEffect({
+  maxDistance: 40,
+  minDistance: 8,
 });
 
 const state = {
@@ -215,7 +217,7 @@ const animate = (time: number) => {
   ambientLight.intensity = 0.2 + 0.5 * skyState.dayFactor;
   ambientLight.color.copy(nightAmbient).lerp(dayAmbient, skyState.dayFactor);
   linksScene?.updateVisibility(camera);
-  hoverGlow.update(timeSeconds);
+  proximityEffect.update(camera);
   rayBurst.update(timeSeconds, delta);
   fpsControls.update(delta);
   postProcessing.render();
@@ -252,19 +254,14 @@ const initialize = async () => {
         camera.position.y,
         terrain.heightAt(camera.position.x, camera.position.z) + 1.7,
       );
-      createRaycast({
-        camera,
-        domElement: renderer.domElement,
-        targets: linksScene.labels.map((label) => label.mesh),
-        setEmissiveOnHover: false,
-        onHoverStart: (object) => {
-          hoverGlow.start(object);
-          rayBurst.start(object);
-        },
-        onHoverEnd: (object) => {
-          hoverGlow.stop(object);
-          rayBurst.stop();
-        },
+
+      // Add links to proximity effect system
+      proximityEffect.addTargets(linksScene.labels.map((label) => label.mesh));
+      proximityEffect.onEnter((mesh) => {
+        rayBurst.start(mesh);
+      });
+      proximityEffect.onExit(() => {
+        rayBurst.stop();
       });
     }
   } catch (error) {
