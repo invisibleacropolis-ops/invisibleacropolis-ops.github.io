@@ -4,7 +4,7 @@ import Stats from "three/examples/jsm/libs/stats.module.js";
 import { createPostProcessing } from "./effects/postprocessing.ts";
 import { createRayBurst } from "./effects/rayBurst.ts";
 import { createWeatherEffects } from "./effects/weather.ts";
-import { createFpsControls } from "./controls/fps.ts";
+import { createFlyControls } from "./controls/fps.ts";
 import { createProximityEffect } from "./effects/proximityEffect.ts";
 import { createLinks } from "./scene/links.ts";
 import { createRoads } from "./scene/roads.ts";
@@ -40,8 +40,8 @@ const postProcessing = createPostProcessing({
   antiAlias: "smaa",
   bloom: {
     strength: 0.6,
-    radius: 0.3,
-    threshold: 0.4,
+    radius: 0.05,
+    threshold: 0.5,
   },
 });
 
@@ -65,15 +65,16 @@ const terrain = createTerrainMesh({
 });
 world.add(terrain.mesh);
 
-const fpsControls = createFpsControls({
+const flyControls = createFlyControls({
   camera,
   domElement: renderer.domElement,
-  heightAt: terrain.heightAt,
-  eyeHeight: 1.7,
-  moveSpeed: 60,
+  moveSpeed: 50,
+  acceleration: 100,
+  friction: 2.5,
 });
 
-camera.position.set(0, terrain.heightAt(0, 0) + 1.7, 6);
+// Start camera higher for bird's eye view
+camera.position.set(0, 25, 40);
 
 
 
@@ -210,7 +211,7 @@ const animate = (time: number) => {
   linksScene?.updateVisibility(camera);
   proximityEffect.update(camera);
   rayBurst.update(timeSeconds, delta);
-  fpsControls.update(delta);
+  flyControls.update(delta);
   postProcessing.render();
   if (debugState.enabled) {
     stats.update();
