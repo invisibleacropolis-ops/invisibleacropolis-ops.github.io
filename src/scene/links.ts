@@ -72,7 +72,7 @@ const createLabelMesh = (font: Font, title: string, color: string) => {
   const mesh = new THREE.Mesh(geometry, material);
   mesh.castShadow = false;
   mesh.receiveShadow = false;
-  mesh.frustumCulled = true;
+  mesh.frustumCulled = false;
   mesh.userData.baseColor = material.color.getHex();
   mesh.userData.hoverColor = new THREE.Color("#7799ff").getHex();
   return mesh;
@@ -176,36 +176,9 @@ export const createLinks = async ({
     labels.push({ mesh, page });
   });
 
-  const frustum = new THREE.Frustum();
-  const projectionMatrix = new THREE.Matrix4();
-  const tempPositionA = new THREE.Vector3();
-  const tempPositionB = new THREE.Vector3();
-  const clampedMaxVisible = Math.min(4, Math.max(2, Math.round(maxVisible)));
-  const maxVisibleDistance = maxDistance ?? Math.max(width * 0.3, 2000);
-
   const updateVisibility = (camera: THREE.Camera) => {
-    projectionMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
-    frustum.setFromProjectionMatrix(projectionMatrix);
-
-    const candidates = labels.filter(({ mesh }) => {
-      if (!frustum.intersectsObject(mesh)) {
-        return false;
-      }
-      const distance = camera.position.distanceTo(mesh.getWorldPosition(tempPositionA));
-      return distance <= maxVisibleDistance;
-    });
-
-    candidates.sort((a, b) => {
-      const distanceA = camera.position.distanceTo(a.mesh.getWorldPosition(tempPositionA));
-      const distanceB = camera.position.distanceTo(b.mesh.getWorldPosition(tempPositionB));
-      return distanceA - distanceB;
-    });
-
+    // No culling or distance limits
     labels.forEach(({ mesh }) => {
-      mesh.visible = false;
-    });
-
-    candidates.slice(0, clampedMaxVisible).forEach(({ mesh }) => {
       mesh.visible = true;
     });
   };
