@@ -11,6 +11,7 @@ export type TerrainOptions = {
     colorHigh?: string;
     gradientStart?: number;
     gradientEnd?: number;
+    gradientSkew?: number;
     palette?: string[];
 };
 
@@ -18,12 +19,10 @@ type HeightmapData = {
     data: Uint8ClampedArray;
     width: number;
     height: number;
-    min: number; // 0-255
-    max: number; // 0-255
 };
 
 /**
- * Load heightmap image and extract grayscale values, computing min/max
+ * Load heightmap image
  */
 const loadHeightmap = async (url: string): Promise<HeightmapData> => {
     return new Promise((resolve, reject) => {
@@ -43,27 +42,11 @@ const loadHeightmap = async (url: string): Promise<HeightmapData> => {
 
             ctx.drawImage(img, 0, 0);
             const imageData = ctx.getImageData(0, 0, img.width, img.height);
-            const data = imageData.data;
-
-            // Compute min/max for normalization
-            let min = 255;
-            let max = 0;
-            // Iterate every 4th byte (R channel of RGBA)
-            // Or stride to be faster? Every pixel matters for min/max though.
-            for (let i = 0; i < data.length; i += 4) {
-                const val = data[i];
-                if (val < min) min = val;
-                if (val > max) max = val;
-            }
-
-            console.log(`Heightmap loaded. Range: ${min} to ${max}`);
 
             resolve({
-                data: data,
+                data: imageData.data,
                 width: img.width,
                 height: img.height,
-                min,
-                max
             });
         };
 
@@ -76,8 +59,7 @@ const loadHeightmap = async (url: string): Promise<HeightmapData> => {
 };
 
 /**
- * Bilinear interpolated heightmap sampling for smoother terrain
- * Returns 0-1 based on 0-255 raw value.
+ * Bilinear interpolated heightmap sampling (0-1)
  */
 const sampleHeightmapBilinear = (
     heightmap: HeightmapData,
@@ -108,11 +90,7 @@ const sampleHeightmapBilinear = (
     const v01 = getPixel(x0, y1);
     const v11 = getPixel(x1, y1);
 
-    // Bilinear interpolation
-    const v0 = v00 * (1 - tx) + v10 * tx;
-    const v1 = v01 * (1 - tx) + v11 * tx;
-
-    return v0 * (1 - ty) + v1 * ty;
+    return (v00 * (1 - tx) + v10 * tx) * (1 - ty) + (v01 * (1 - tx) + v11 * tx) * ty;
 };
 
 const createTerrainGeometryFromHeightmap = (
@@ -125,6 +103,7 @@ const createTerrainGeometryFromHeightmap = (
     colorHigh: string,
     gradientStart: number,
     gradientEnd: number,
+    gradientSkew: number,
 ) => {
     const geometry = new THREE.PlaneGeometry(width, depth, segments, segments);
     geometry.rotateX(-Math.PI / 2);
@@ -132,44 +111,56 @@ const createTerrainGeometryFromHeightmap = (
     const position = geometry.attributes.position;
     const colors: number[] = [];
 
-    // Precompute range for normalization
-    // sampleHeightmapBilinear returns value / 255.
-    const minH = heightmap.min / 255;
-    const maxH = heightmap.max / 255;
-    const hRange = maxH - minH;
+    // Pass 1: Set Heights and Find Min/Max Y
+    let minY = Infinity;
+    let maxY = -Infinity;
 
     for (let i = 0; i < position.count; i++) {
         const x = position.getX(i);
         const z = position.getZ(i);
 
-        // Convert world coords to UV (0-1)
         const u = (x / width) + 0.5;
         const v = (z / depth) + 0.5;
 
-        // Sample heightmap with bilinear interpolation (raw geometric height factor 0-1)
         const h = sampleHeightmapBilinear(heightmap, u, v);
+        const y = h * maxHeight;
 
-        // Apply height (physical shape uses raw height to maintain topography)
-        position.setY(i, h * maxHeight);
+        position.setY(i, y);
 
-        // Calculate color based on NORMALIZED height relative to actual terrain bounds
-        // 1. Normalize h to 0-1 range based on actual min/max in data
-        let hNormalized = 0;
-        if (hRange > 0.001) {
-            hNormalized = (h - minH) / hRange;
-        } else {
-            hNormalized = 0.5; // Flat terrain
-        }
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+    }
 
-        // 2. Map normalized height to user's gradient range (Start/End)
-        // If Gradient Start = 0 and End = 1, then lowest vertex = 0, highest = 1.
+    // Safety check if flat
+    let yRange = maxY - minY;
+    if (yRange < 0.001) {
+        yRange = 1; // Avoid divide by zero
+        minY = 0;
+    }
+
+    // Pass 2: Calculate Colors based on geometry range
+    for (let i = 0; i < position.count; i++) {
+        const y = position.getY(i);
+
+        // 1. Normalize based on actual mesh bounds (0 to 1)
+        let normalizedY = (y - minY) / yRange;
+
+        // 2. Apply Skew (Power curve)
+        // If skew > 1, midtones become darker/lower (t stays small longer)
+        // If skew < 1, midtones become brighter/higher
+        // Ensure strictly positive base for pow
+        normalizedY = Math.pow(Math.max(0, normalizedY), gradientSkew);
+
+        // 3. Map to User Gradient Range
         let t = 0;
         const userRange = gradientEnd - gradientStart;
-        if (userRange > 0.0001) {
-            t = (hNormalized - gradientStart) / userRange;
+        if (Math.abs(userRange) > 0.0001) {
+            t = (normalizedY - gradientStart) / userRange;
         } else {
-            t = hNormalized >= gradientStart ? 1 : 0;
+            t = normalizedY >= gradientStart ? 1 : 0;
         }
+
+        // Clamp
         t = Math.max(0, Math.min(1, t));
 
         const color = new THREE.Color().lerpColors(
@@ -198,10 +189,13 @@ export const createTerrainMeshFromHeightmap = async ({
     colorHigh = "#ffffff",
     gradientStart = 0.0,
     gradientEnd = 1.0,
+    gradientSkew = 1.0,
     palette = WORLD_PALETTE,
 }: TerrainOptions = {}) => {
-    // Load heightmap
     const heightmap = await loadHeightmap(heightmapUrl);
+
+    // Log range for debugging
+    // We don't have min/max pixels here anymore, but logic adapts.
 
     const material = new THREE.MeshBasicMaterial({
         vertexColors: true,
@@ -212,15 +206,15 @@ export const createTerrainMeshFromHeightmap = async ({
 
     // Create LOD levels
     const highGeometry = createTerrainGeometryFromHeightmap(
-        heightmap, width, depth, segments, height, colorLow, colorHigh, gradientStart, gradientEnd
+        heightmap, width, depth, segments, height, colorLow, colorHigh, gradientStart, gradientEnd, gradientSkew
     );
     const midSegments = Math.max(30, Math.round(segments * 0.5));
-    const lowSegments = Math.max(15, Math.round(segments * 0.25));
     const midGeometry = createTerrainGeometryFromHeightmap(
-        heightmap, width, depth, midSegments, height, colorLow, colorHigh, gradientStart, gradientEnd
+        heightmap, width, depth, midSegments, height, colorLow, colorHigh, gradientStart, gradientEnd, gradientSkew
     );
+    const lowSegments = Math.max(15, Math.round(segments * 0.25));
     const lowGeometry = createTerrainGeometryFromHeightmap(
-        heightmap, width, depth, lowSegments, height, colorLow, colorHigh, gradientStart, gradientEnd
+        heightmap, width, depth, lowSegments, height, colorLow, colorHigh, gradientStart, gradientEnd, gradientSkew
     );
 
     const mesh = new THREE.LOD();
@@ -228,7 +222,6 @@ export const createTerrainMeshFromHeightmap = async ({
     mesh.addLevel(new THREE.Mesh(midGeometry, material), width * 0.4);
     mesh.addLevel(new THREE.Mesh(lowGeometry, material), width * 0.8);
 
-    // Create heightAt function for props placement
     const heightAt = (x: number, z: number) => {
         const u = (x / width) + 0.5;
         const v = (z / depth) + 0.5;

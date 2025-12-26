@@ -161,6 +161,7 @@ const defaultSettings: DevSettings = {
     colorHigh: "#ffffff",
     gradientStart: 0.0,
     gradientEnd: 1.0,
+    gradientSkew: 1.0,
   }
 };
 
@@ -225,6 +226,7 @@ const generateWorld = async (config: TerrainConfig, propsConfig?: any) => {
     colorHigh: config.colorHigh,
     gradientStart: config.gradientStart,
     gradientEnd: config.gradientEnd,
+    gradientSkew: config.gradientSkew,
     palette: WORLD_PALETTE,
   });
   enableBloom(terrain.mesh);

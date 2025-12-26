@@ -10,6 +10,7 @@ export type TerrainConfig = {
     colorHigh: string;
     gradientStart: number;
     gradientEnd: number;
+    gradientSkew: number;
 };
 
 export type DevSettings = {
@@ -57,6 +58,7 @@ export const createDevPanel = ({
             colorHigh: "#ffffff",
             gradientStart: 0.0,
             gradientEnd: 1.0,
+            gradientSkew: 1.0,
         },
     };
 
@@ -159,6 +161,11 @@ export const createDevPanel = ({
         terrainFolder
             .add(settings.terrain!, "gradientEnd", 0, 1, 0.01)
             .name("Gradient End")
+            .onFinishChange(() => onTerrainChange(settings.terrain!));
+
+        terrainFolder
+            .add(settings.terrain!, "gradientSkew", 0.1, 5, 0.1)
+            .name("Gradient Skew")
             .onFinishChange(() => onTerrainChange(settings.terrain!));
     }
 
