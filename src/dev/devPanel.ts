@@ -15,6 +15,8 @@ export type TerrainConfig = {
 
 export type LinksConfig = {
     size: number;
+    placementRadius: number;
+    placementShape: "ring" | "square" | "random";
 };
 
 export type DevSettings = {
@@ -35,7 +37,8 @@ export type DevPanelOptions = {
     terrainConfig?: TerrainConfig;
     onTerrainChange?: (config: TerrainConfig) => void;
     linksConfig?: LinksConfig;
-    onLinksChange?: (config: LinksConfig) => void;
+    onLinkSizeChange?: (size: number) => void;
+    onLinkLayoutChange?: (config: LinksConfig) => void;
     onSaveDefaults?: (settings: DevSettings) => void;
 };
 
@@ -46,7 +49,8 @@ export const createDevPanel = ({
     terrainConfig,
     onTerrainChange,
     linksConfig,
-    onLinksChange,
+    onLinkSizeChange,
+    onLinkLayoutChange,
     onSaveDefaults,
 }: DevPanelOptions = {}) => {
     const gui = new GUI({ title: "Dev Panel", width: 300 });
@@ -71,6 +75,8 @@ export const createDevPanel = ({
         },
         links: linksConfig ? { ...linksConfig } : {
             size: 150.0,
+            placementRadius: 2000,
+            placementShape: "ring",
         },
     };
 
@@ -109,14 +115,28 @@ export const createDevPanel = ({
     }
 
     // Links folder
-    if (settings.links && onLinksChange) {
+    if (settings.links) {
         const linksFolder = gui.addFolder("Links");
         linksFolder.close();
 
-        linksFolder
-            .add(settings.links, "size", 10, 1000, 10)
-            .name("Text Size")
-            .onChange(() => onLinksChange(settings.links!));
+        if (onLinkSizeChange) {
+            linksFolder
+                .add(settings.links, "size", 10, 1000, 10)
+                .name("Text Size")
+                .onChange((value: number) => onLinkSizeChange(value));
+        }
+
+        if (onLinkLayoutChange) {
+            linksFolder
+                .add(settings.links, "placementRadius", 500, 3500, 100)
+                .name("Placement Radius")
+                .onFinishChange(() => onLinkLayoutChange(settings.links!));
+
+            linksFolder
+                .add(settings.links, "placementShape", ["ring", "square", "random"])
+                .name("Shape")
+                .onFinishChange(() => onLinkLayoutChange(settings.links!));
+        }
     }
 
     // Bloom folder

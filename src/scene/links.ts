@@ -21,10 +21,12 @@ export type LinksScene = {
   setSize: (size: number) => void;
 };
 
+export type PlacementShape = "ring" | "square" | "random";
+
 export type LinksOptions = {
   radius?: number; // Unused
-  width?: number;
-  depth?: number;
+  width?: number; // Unused
+  depth?: number; // Unused
   seed?: number;
   heightAt?: (x: number, z: number) => number;
   elevation?: number;
@@ -32,7 +34,9 @@ export type LinksOptions = {
   maxDistance?: number;
   palette?: string[];
   spacing?: number;
-  size?: number; // Base size scaling factor
+  size?: number;
+  placementShape?: PlacementShape;
+  placementRadius?: number;
 };
 
 const loadFont = async () => {
@@ -74,18 +78,60 @@ const createLabelMesh = (font: Font, title: string, color: string) => {
   return mesh;
 };
 
+const getPlacementPosition = (
+  index: number,
+  total: number,
+  shape: PlacementShape,
+  radius: number,
+  rng: () => number
+): { x: number, z: number } => {
+  if (shape === "ring") {
+    const angle = (index / total) * Math.PI * 2;
+    return {
+      x: Math.cos(angle) * radius,
+      z: Math.sin(angle) * radius
+    };
+  } else if (shape === "square") {
+    // Distribute along perimeter of square (side = radius * 2)
+    const t = index / total; // 0 to 1
+    const side = radius * 2;
+
+    if (t < 0.25) { // Top (z = -radius)
+      const localT = t / 0.25;
+      return { x: -radius + localT * side, z: -radius };
+    } else if (t < 0.5) { // Right (x = radius)
+      const localT = (t - 0.25) / 0.25;
+      return { x: radius, z: -radius + localT * side };
+    } else if (t < 0.75) { // Bottom (z = radius)
+      const localT = (t - 0.5) / 0.25;
+      return { x: radius - localT * side, z: radius };
+    } else { // Left (x = -radius)
+      const localT = (t - 0.75) / 0.25;
+      return { x: -radius, z: radius - localT * side };
+    }
+  } else { // Random
+    const angle = rng() * Math.PI * 2;
+    const r = Math.sqrt(rng()) * radius;
+    return {
+      x: Math.cos(angle) * r,
+      z: Math.sin(angle) * r
+    };
+  }
+};
+
 export const createLinks = async ({
   radius,
   width = 5000,
   depth = 5000,
   seed = 123,
   heightAt,
-  elevation = 6,
+  elevation = 0,
   maxVisible = 3,
   maxDistance,
   palette = WORLD_PALETTE,
-  spacing = 300,
-  size = 5.0, // Default 10x larger than previous 0.5 (effective)
+  size = 5.0,
+  placementShape = "ring",
+  placementRadius = 2000,
 }: LinksOptions): Promise<LinksScene> => {
   const [font, pages] = await Promise.all([loadFont(), loadPages()]);
   const group = new THREE.Group();
@@ -103,52 +149,28 @@ export const createLinks = async ({
   }
 
   const color = palette[4] ?? "#cdd9ff";
-  const placedPositions: { x: number; z: number }[] = [];
 
-  pages.forEach((page) => {
-    let bestX = 0;
-    let bestZ = 0;
-    let bestDist = -1;
+  pages.forEach((page, index) => {
 
-    // Try to find a spot far from others
-    for (let attempt = 0; attempt < 30; attempt++) {
-      const x = (rng() - 0.5) * width * 0.8;
-      const z = (rng() - 0.5) * depth * 0.8;
+    const pos = getPlacementPosition(index, pages.length, placementShape, placementRadius, rng);
 
-      let minDist = Infinity;
-      minDist = Math.min(minDist, Math.sqrt(x * x + z * z));
+    // Get Terrain Height
+    const y = heightAt ? heightAt(pos.x, pos.z) : 0;
 
-      for (const pos of placedPositions) {
-        const d = Math.sqrt((x - pos.x) ** 2 + (z - pos.z) ** 2);
-        if (d < minDist) minDist = d;
-      }
-
-      if (minDist > spacing && minDist > bestDist) {
-        bestX = x;
-        bestZ = z;
-        bestDist = minDist;
-        if (minDist > spacing * 1.5) break;
-      }
-    }
-
-    if (bestDist < 0) {
-      bestX = (rng() - 0.5) * width * 0.8;
-      bestZ = (rng() - 0.5) * depth * 0.8;
-    }
-
-    placedPositions.push({ x: bestX, z: bestZ });
-
-    const y = heightAt ? heightAt(bestX, bestZ) : 0;
-    const finalY = y + elevation + 5 + rng() * 10;
+    // Sit on terrain: Y + half size + elevation
+    const finalY = y + (size * 0.5) + elevation;
 
     const mesh = createLabelMesh(font, page.title, color);
-    mesh.position.set(bestX, finalY, bestZ);
+
+    mesh.position.set(pos.x, finalY, pos.z);
     mesh.lookAt(0, finalY, 0);
 
-    // Apply initial size
     mesh.scale.set(size, size, size);
 
     mesh.userData.linkUrl = page.url;
+    mesh.userData.elevation = elevation;
+    // Store exact terrain height for resize calculations
+    mesh.userData.terrainY = y;
 
     group.add(mesh);
     labels.push({ mesh, page });
@@ -191,6 +213,9 @@ export const createLinks = async ({
   const setSize = (newSize: number) => {
     labels.forEach(({ mesh }) => {
       mesh.scale.set(newSize, newSize, newSize);
+      const tY = mesh.userData.terrainY || 0;
+      const elev = mesh.userData.elevation || 0;
+      mesh.position.y = tY + (newSize * 0.5) + elev;
     });
   };
 

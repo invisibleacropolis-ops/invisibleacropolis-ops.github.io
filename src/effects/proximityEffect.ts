@@ -110,6 +110,11 @@ export const createProximityEffect = ({
         }
     };
 
+    const setDistances = (min: number, max: number) => {
+        minDistance = min;
+        maxDistance = max;
+    };
+
     const getActiveTarget = () => activeTarget?.mesh ?? null;
 
     return {
@@ -119,5 +124,6 @@ export const createProximityEffect = ({
         onExit,
         update,
         getActiveTarget,
+        setDistances,
     };
 };
