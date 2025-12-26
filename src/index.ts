@@ -2,7 +2,7 @@ import * as THREE from "three";
 import Stats from "three/examples/jsm/libs/stats.module.js";
 
 import { createSelectiveBloomPostProcessing, BLOOM_LAYER } from "./effects/postprocessing.ts";
-import { createRayBurst } from "./effects/rayBurst.ts";
+
 import { createWeatherEffects } from "./effects/weather.ts";
 import { createFlyControls } from "./controls/fps.ts";
 import { createProximityEffect } from "./effects/proximityEffect.ts";
@@ -76,7 +76,7 @@ let proximityEffect: ReturnType<typeof createProximityEffect> | null = null;
 
 // Effects
 let weather: ReturnType<typeof createWeatherEffects> | null = null;
-const rayBurst = createRayBurst({ scene });
+
 
 // Persistent Settings
 const SETTINGS_KEY = "invisible_acropolis_dev_settings";
@@ -235,7 +235,7 @@ const animate = () => {
 
   if (controls) controls.update(delta);
   if (weather) weather.update(time, delta);
-  if (rayBurst) rayBurst.update(time, delta);
+
   if (sky) sky.update(time);
 
   if (linksScene) linksScene.updateVisibility(camera);
@@ -312,10 +312,7 @@ const initialize = async () => {
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
 
-  // Attach RayBurst
-  if (rayBurst) {
-    rayBurst.start(camera);
-  }
+
 
   window.addEventListener("click", () => {
     // If FPS controls are locked, click handles shooting? 
