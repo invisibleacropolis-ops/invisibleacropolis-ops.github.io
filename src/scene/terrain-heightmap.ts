@@ -18,10 +18,12 @@ type HeightmapData = {
     data: Uint8ClampedArray;
     width: number;
     height: number;
+    min: number; // 0-255
+    max: number; // 0-255
 };
 
 /**
- * Load heightmap image and extract grayscale values
+ * Load heightmap image and extract grayscale values, computing min/max
  */
 const loadHeightmap = async (url: string): Promise<HeightmapData> => {
     return new Promise((resolve, reject) => {
@@ -41,11 +43,27 @@ const loadHeightmap = async (url: string): Promise<HeightmapData> => {
 
             ctx.drawImage(img, 0, 0);
             const imageData = ctx.getImageData(0, 0, img.width, img.height);
+            const data = imageData.data;
+
+            // Compute min/max for normalization
+            let min = 255;
+            let max = 0;
+            // Iterate every 4th byte (R channel of RGBA)
+            // Or stride to be faster? Every pixel matters for min/max though.
+            for (let i = 0; i < data.length; i += 4) {
+                const val = data[i];
+                if (val < min) min = val;
+                if (val > max) max = val;
+            }
+
+            console.log(`Heightmap loaded. Range: ${min} to ${max}`);
 
             resolve({
-                data: imageData.data,
+                data: data,
                 width: img.width,
                 height: img.height,
+                min,
+                max
             });
         };
 
@@ -59,6 +77,7 @@ const loadHeightmap = async (url: string): Promise<HeightmapData> => {
 
 /**
  * Bilinear interpolated heightmap sampling for smoother terrain
+ * Returns 0-1 based on 0-255 raw value.
  */
 const sampleHeightmapBilinear = (
     heightmap: HeightmapData,
@@ -113,6 +132,12 @@ const createTerrainGeometryFromHeightmap = (
     const position = geometry.attributes.position;
     const colors: number[] = [];
 
+    // Precompute range for normalization
+    // sampleHeightmapBilinear returns value / 255.
+    const minH = heightmap.min / 255;
+    const maxH = heightmap.max / 255;
+    const hRange = maxH - minH;
+
     for (let i = 0; i < position.count; i++) {
         const x = position.getX(i);
         const z = position.getZ(i);
@@ -121,20 +146,29 @@ const createTerrainGeometryFromHeightmap = (
         const u = (x / width) + 0.5;
         const v = (z / depth) + 0.5;
 
-        // Sample heightmap with bilinear interpolation
+        // Sample heightmap with bilinear interpolation (raw geometric height factor 0-1)
         const h = sampleHeightmapBilinear(heightmap, u, v);
 
-        // Apply height
+        // Apply height (physical shape uses raw height to maintain topography)
         position.setY(i, h * maxHeight);
 
-        // Calculate color based on height
-        // Map h to gradient range
-        let t = 0;
-        const range = gradientEnd - gradientStart;
-        if (range > 0.0001) {
-            t = (h - gradientStart) / range;
+        // Calculate color based on NORMALIZED height relative to actual terrain bounds
+        // 1. Normalize h to 0-1 range based on actual min/max in data
+        let hNormalized = 0;
+        if (hRange > 0.001) {
+            hNormalized = (h - minH) / hRange;
         } else {
-            t = h >= gradientStart ? 1 : 0;
+            hNormalized = 0.5; // Flat terrain
+        }
+
+        // 2. Map normalized height to user's gradient range (Start/End)
+        // If Gradient Start = 0 and End = 1, then lowest vertex = 0, highest = 1.
+        let t = 0;
+        const userRange = gradientEnd - gradientStart;
+        if (userRange > 0.0001) {
+            t = (hNormalized - gradientStart) / userRange;
+        } else {
+            t = hNormalized >= gradientStart ? 1 : 0;
         }
         t = Math.max(0, Math.min(1, t));
 
@@ -168,7 +202,6 @@ export const createTerrainMeshFromHeightmap = async ({
 }: TerrainOptions = {}) => {
     // Load heightmap
     const heightmap = await loadHeightmap(heightmapUrl);
-    console.log(`Loaded heightmap: ${heightmap.width}x${heightmap.height}`);
 
     const material = new THREE.MeshBasicMaterial({
         vertexColors: true,
@@ -213,5 +246,4 @@ export const createTerrainMeshFromHeightmap = async ({
     };
 };
 
-// Keep old function for fallback
 export { createTerrainMesh } from "./terrain-procedural.ts";
