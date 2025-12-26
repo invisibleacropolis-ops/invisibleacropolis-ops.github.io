@@ -5,6 +5,11 @@ import type { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBl
 export type TerrainConfig = {
     size: number;
     segments: number;
+    height: number;
+    colorLow: string;
+    colorHigh: string;
+    gradientStart: number;
+    gradientEnd: number;
 };
 
 export type DevPanelOptions = {
@@ -45,6 +50,11 @@ export const createDevPanel = ({
         terrain: terrainConfig ? { ...terrainConfig } : {
             size: 7000,
             segments: 120,
+            height: 500,
+            colorLow: "#00008b",
+            colorHigh: "#ffffff",
+            gradientStart: 0.0,
+            gradientEnd: 1.0,
         },
     };
 
@@ -122,6 +132,31 @@ export const createDevPanel = ({
         terrainFolder
             .add(settings.terrain!, "segments", 120, 240, 1)
             .name("Polygon Count")
+            .onFinishChange(() => onTerrainChange(settings.terrain!));
+
+        terrainFolder
+            .add(settings.terrain!, "height", 100, 1500, 10)
+            .name("Height Strength")
+            .onFinishChange(() => onTerrainChange(settings.terrain!));
+
+        terrainFolder
+            .addColor(settings.terrain!, "colorLow")
+            .name("Lower Color")
+            .onFinishChange(() => onTerrainChange(settings.terrain!));
+
+        terrainFolder
+            .addColor(settings.terrain!, "colorHigh")
+            .name("Upper Color")
+            .onFinishChange(() => onTerrainChange(settings.terrain!));
+
+        terrainFolder
+            .add(settings.terrain!, "gradientStart", 0, 1, 0.01)
+            .name("Gradient Start")
+            .onFinishChange(() => onTerrainChange(settings.terrain!));
+
+        terrainFolder
+            .add(settings.terrain!, "gradientEnd", 0, 1, 0.01)
+            .name("Gradient End")
             .onFinishChange(() => onTerrainChange(settings.terrain!));
     }
 

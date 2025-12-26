@@ -7,6 +7,10 @@ export type TerrainOptions = {
     depth?: number;
     segments?: number;
     height?: number;
+    colorLow?: string;
+    colorHigh?: string;
+    gradientStart?: number;
+    gradientEnd?: number;
     palette?: string[];
 };
 
@@ -54,32 +58,6 @@ const loadHeightmap = async (url: string): Promise<HeightmapData> => {
 };
 
 /**
- * Sample height from heightmap at normalized coordinates (0-1)
- */
-const sampleHeightmap = (
-    heightmap: HeightmapData,
-    u: number,
-    v: number,
-): number => {
-    // Clamp to valid range
-    u = Math.max(0, Math.min(1, u));
-    v = Math.max(0, Math.min(1, v));
-
-    // Convert to pixel coordinates
-    const x = Math.floor(u * (heightmap.width - 1));
-    const y = Math.floor(v * (heightmap.height - 1));
-
-    // Get pixel index (RGBA = 4 bytes per pixel)
-    const index = (y * heightmap.width + x) * 4;
-
-    // Use red channel (for grayscale image, R=G=B)
-    const r = heightmap.data[index];
-
-    // Return normalized height (0-1)
-    return r / 255;
-};
-
-/**
  * Bilinear interpolated heightmap sampling for smoother terrain
  */
 const sampleHeightmapBilinear = (
@@ -124,6 +102,10 @@ const createTerrainGeometryFromHeightmap = (
     depth: number,
     segments: number,
     maxHeight: number,
+    colorLow: string,
+    colorHigh: string,
+    gradientStart: number,
+    gradientEnd: number,
 ) => {
     const geometry = new THREE.PlaneGeometry(width, depth, segments, segments);
     geometry.rotateX(-Math.PI / 2);
@@ -146,11 +128,20 @@ const createTerrainGeometryFromHeightmap = (
         position.setY(i, h * maxHeight);
 
         // Calculate color based on height
-        // Low (0) -> Dark Blue, High (1) -> White
+        // Map h to gradient range
+        let t = 0;
+        const range = gradientEnd - gradientStart;
+        if (range > 0.0001) {
+            t = (h - gradientStart) / range;
+        } else {
+            t = h >= gradientStart ? 1 : 0;
+        }
+        t = Math.max(0, Math.min(1, t));
+
         const color = new THREE.Color().lerpColors(
-            new THREE.Color("#00008b"), // Dark Blue
-            new THREE.Color("#ffffff"), // White
-            h
+            new THREE.Color(colorLow),
+            new THREE.Color(colorHigh),
+            t
         );
         colors.push(color.r, color.g, color.b);
     }
@@ -169,6 +160,10 @@ export const createTerrainMeshFromHeightmap = async ({
     depth = 7000,
     segments = 150,
     height = 600,
+    colorLow = "#00008b",
+    colorHigh = "#ffffff",
+    gradientStart = 0.0,
+    gradientEnd = 1.0,
     palette = WORLD_PALETTE,
 }: TerrainOptions = {}) => {
     // Load heightmap
@@ -184,15 +179,15 @@ export const createTerrainMeshFromHeightmap = async ({
 
     // Create LOD levels
     const highGeometry = createTerrainGeometryFromHeightmap(
-        heightmap, width, depth, segments, height
+        heightmap, width, depth, segments, height, colorLow, colorHigh, gradientStart, gradientEnd
     );
     const midSegments = Math.max(30, Math.round(segments * 0.5));
     const lowSegments = Math.max(15, Math.round(segments * 0.25));
     const midGeometry = createTerrainGeometryFromHeightmap(
-        heightmap, width, depth, midSegments, height
+        heightmap, width, depth, midSegments, height, colorLow, colorHigh, gradientStart, gradientEnd
     );
     const lowGeometry = createTerrainGeometryFromHeightmap(
-        heightmap, width, depth, lowSegments, height
+        heightmap, width, depth, lowSegments, height, colorLow, colorHigh, gradientStart, gradientEnd
     );
 
     const mesh = new THREE.LOD();

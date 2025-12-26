@@ -90,7 +90,7 @@ const duskSun = new THREE.Color("#ffb978");
 
 // World Objects
 let terrain: Awaited<ReturnType<typeof createTerrainMeshFromHeightmap>> | null = null;
-let roads: THREE.Group | null = null;
+let roads: THREE.Object3D | null = null;
 let water: ReturnType<typeof createWater> | null = null;
 let propsManager: ReturnType<typeof createPropsManager> | null = null;
 
@@ -178,7 +178,11 @@ const generateWorld = async (config: TerrainConfig) => {
     width: config.size,
     depth: config.size,
     segments: config.segments,
-    height: 500, // Fixed height for now
+    height: config.height,
+    colorLow: config.colorLow,
+    colorHigh: config.colorHigh,
+    gradientStart: config.gradientStart,
+    gradientEnd: config.gradientEnd,
     palette: WORLD_PALETTE,
   });
   enableBloom(terrain.mesh);
@@ -276,6 +280,11 @@ const initialize = async () => {
   await generateWorld({
     size: 7000,
     segments: 120,
+    height: 500,
+    colorLow: "#00008b",
+    colorHigh: "#ffffff",
+    gradientStart: 0.0,
+    gradientEnd: 1.0,
   });
 
   // Camera Spawn & Controls
@@ -354,6 +363,11 @@ const initialize = async () => {
     terrainConfig: {
       size: 7000,
       segments: 120,
+      height: 500,
+      colorLow: "#00008b",
+      colorHigh: "#ffffff",
+      gradientStart: 0.0,
+      gradientEnd: 1.0,
     },
     onTerrainChange: (config) => {
       // Async regeneration
