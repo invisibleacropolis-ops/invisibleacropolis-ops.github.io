@@ -149,6 +149,7 @@ export const createWater = ({
 
   const mesh = new THREE.Mesh(geometry, material);
   mesh.position.y = elevation;
+  mesh.visible = false; // Hide base plane as requested
 
   const riverGroup = new THREE.Group();
   const rng = createRng(seed ^ 0x51a9);

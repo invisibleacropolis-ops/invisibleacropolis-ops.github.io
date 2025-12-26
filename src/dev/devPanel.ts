@@ -163,10 +163,26 @@ export const createDevPanel = ({
             .name("Gradient End")
             .onFinishChange(() => onTerrainChange(settings.terrain!));
 
+        const skewProxy = {
+            get value() {
+                const s = settings.terrain!.gradientSkew;
+                return s >= 1 ? (s - 1) : -((1 / s) - 1);
+            },
+            set value(v: number) {
+                if (v >= 0) {
+                    settings.terrain!.gradientSkew = 1 + v;
+                } else {
+                    settings.terrain!.gradientSkew = 1 / (1 - v);
+                }
+                onTerrainChange(settings.terrain!);
+            }
+        };
+
         terrainFolder
-            .add(settings.terrain!, "gradientSkew", 0.1, 5, 0.1)
-            .name("Gradient Skew")
-            .onFinishChange(() => onTerrainChange(settings.terrain!));
+            .add(skewProxy, "value", -9, 9, 0.1)
+            .name("Gradient Skew (Bi-directional)")
+            .onChange(() => { /* onChange handled in setter */ });
+
     }
 
     // Global Actions
