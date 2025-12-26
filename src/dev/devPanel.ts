@@ -12,14 +12,6 @@ export type TerrainConfig = {
     gradientEnd: number;
 };
 
-export type DevPanelOptions = {
-    propsConfig?: PropsConfig;
-    onPropsChange?: (config: PropsConfig) => void;
-    bloomPass?: UnrealBloomPass;
-    terrainConfig?: TerrainConfig;
-    onTerrainChange?: (config: TerrainConfig) => void;
-};
-
 export type DevSettings = {
     props: PropsConfig;
     bloom?: {
@@ -30,12 +22,22 @@ export type DevSettings = {
     terrain?: TerrainConfig;
 };
 
+export type DevPanelOptions = {
+    propsConfig?: PropsConfig;
+    onPropsChange?: (config: PropsConfig) => void;
+    bloomPass?: UnrealBloomPass;
+    terrainConfig?: TerrainConfig;
+    onTerrainChange?: (config: TerrainConfig) => void;
+    onSaveDefaults?: (settings: DevSettings) => void;
+};
+
 export const createDevPanel = ({
     propsConfig,
     onPropsChange,
     bloomPass,
     terrainConfig,
     onTerrainChange,
+    onSaveDefaults,
 }: DevPanelOptions = {}) => {
     const gui = new GUI({ title: "Dev Panel", width: 300 });
     gui.close(); // Start collapsed
@@ -158,6 +160,16 @@ export const createDevPanel = ({
             .add(settings.terrain!, "gradientEnd", 0, 1, 0.01)
             .name("Gradient End")
             .onFinishChange(() => onTerrainChange(settings.terrain!));
+    }
+
+    // Global Actions
+    if (onSaveDefaults) {
+        const actions = {
+            setDefaults: () => {
+                onSaveDefaults(settings);
+            }
+        };
+        gui.add(actions, "setDefaults").name("Set Default");
     }
 
     return {

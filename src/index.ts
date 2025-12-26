@@ -13,7 +13,7 @@ import { createSky } from "./scene/sky.ts";
 import { createTerrainMeshFromHeightmap } from "./scene/terrain-heightmap.ts";
 import { createWater } from "./scene/water.ts";
 import { WORLD_PALETTE } from "./scene/palette.ts";
-import { createDevPanel, type TerrainConfig } from "./dev/devPanel.ts";
+import { createDevPanel, type TerrainConfig, type DevSettings } from "./dev/devPanel.ts";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#scene");
 
@@ -32,18 +32,6 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color("#050608");
 
 const camera = new THREE.PerspectiveCamera(55, 1, 1, 50000);
-
-const postProcessing = createSelectiveBloomPostProcessing({
-  renderer,
-  scene,
-  camera,
-  antiAlias: "smaa",
-  bloom: {
-    strength: 0.6,
-    radius: 0.4,
-    threshold: 0.0,
-  },
-});
 
 const world = new THREE.Group();
 scene.add(world);
@@ -97,6 +85,7 @@ let propsManager: ReturnType<typeof createPropsManager> | null = null;
 let sky: ReturnType<typeof createSky> | null = null;
 let weather: ReturnType<typeof createWeatherEffects> | null = null;
 let flyControls: ReturnType<typeof createFlyControls> | null = null;
+let postProcessing: ReturnType<typeof createSelectiveBloomPostProcessing>;
 
 const enableBloom = (object: THREE.Object3D) => {
   object.traverse((obj) => {
@@ -108,7 +97,7 @@ const resize = () => {
   const width = window.innerWidth;
   const height = window.innerHeight;
   renderer.setSize(width, height, false);
-  postProcessing.resize(width, height);
+  if (postProcessing) postProcessing.resize(width, height);
   camera.aspect = width / height;
   camera.updateProjectionMatrix();
 };
@@ -139,7 +128,7 @@ const animate = (time: number) => {
     flyControls.update(delta);
   }
 
-  postProcessing.render();
+  if (postProcessing) postProcessing.render();
 
   if (debugState.enabled) {
     stats.update();
@@ -148,15 +137,68 @@ const animate = (time: number) => {
   requestAnimationFrame(animate);
 };
 
+// --- Settings & Persistence ---
+
+const SETTINGS_KEY = "invisible-acropolis-settings";
+
+const defaultSettings: DevSettings = {
+  props: {
+    totalDensity: 1,
+    treeDensity: 1,
+    rockDensity: 1,
+    clusteringFactor: 1,
+  },
+  bloom: {
+    strength: 0.6,
+    radius: 0.4,
+    threshold: 0.0,
+  },
+  terrain: {
+    size: 7000,
+    segments: 120,
+    height: 500,
+    colorLow: "#00008b",
+    colorHigh: "#ffffff",
+    gradientStart: 0.0,
+    gradientEnd: 1.0,
+  }
+};
+
+const loadSettings = (): DevSettings => {
+  try {
+    const stored = localStorage.getItem(SETTINGS_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      // Quick deep merge with defaults (simplified)
+      return {
+        props: { ...defaultSettings.props, ...parsed.props },
+        bloom: { ...defaultSettings.bloom, ...parsed.bloom },
+        terrain: { ...defaultSettings.terrain, ...parsed.terrain },
+      };
+    }
+  } catch (e) {
+    console.warn("Failed to load settings", e);
+  }
+  return defaultSettings;
+};
+
+const saveSettings = (settings: DevSettings) => {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    console.log("Settings saved to localStorage");
+    alert("Settings saved as default!"); // Simple feedback
+  } catch (e) {
+    console.error("Failed to save settings", e);
+  }
+};
+
 // Regeneration function
-const generateWorld = async (config: TerrainConfig) => {
+const generateWorld = async (config: TerrainConfig, propsConfig?: any) => {
   console.log("Generating world...", config);
 
   // 1. Cleanup
   if (terrain) {
     terrain.mesh.removeFromParent();
-    // terrain.mesh.geometry.dispose(); // LOD complex dispose needed?
-    // Using GC for now as complex cleanup is verbose
   }
   if (roads) {
     roads.removeFromParent();
@@ -225,8 +267,7 @@ const generateWorld = async (config: TerrainConfig) => {
     depth: terrain.depth,
     heightAt: terrain.heightAt,
     palette: WORLD_PALETTE,
-    // Preserve config if exists
-    config: propsManager ? propsManager.config : {},
+    config: propsConfig || (propsManager ? propsManager.config : {}),
   });
   enableBloom(propsManager.group);
   world.add(propsManager.group);
@@ -274,18 +315,20 @@ const initialize = async () => {
   resize();
   window.addEventListener("resize", resize);
 
-  console.log("Initializing...");
+  const settings = loadSettings();
+  console.log("Initializing with settings:", settings);
+
+  // Init Post Processing with settings
+  postProcessing = createSelectiveBloomPostProcessing({
+    renderer,
+    scene,
+    camera,
+    antiAlias: "smaa",
+    bloom: settings.bloom || defaultSettings.bloom!,
+  });
 
   // Initial Generation
-  await generateWorld({
-    size: 7000,
-    segments: 120,
-    height: 500,
-    colorLow: "#00008b",
-    colorHigh: "#ffffff",
-    gradientStart: 0.0,
-    gradientEnd: 1.0,
-  });
+  await generateWorld(settings.terrain!, settings.props);
 
   // Camera Spawn & Controls
   // 1. Find a random link to look at
@@ -298,7 +341,7 @@ const initialize = async () => {
 
   // 2. Spawn high above
   // Assuming terrain center is 0,0 and standard height
-  const spawnHeight = 500 + 400;
+  const spawnHeight = (settings.terrain?.height || 500) + 400;
   camera.position.set(0, spawnHeight, 0);
 
   // 3. Look at target
@@ -349,7 +392,6 @@ const initialize = async () => {
   scene.add(sky.mesh, sky.stars);
 
   // Dev Panel
-  // We create it after everything is ready
   const devPanel = createDevPanel({
     propsConfig: propsManager?.config,
     onPropsChange: (config) => {
@@ -360,22 +402,16 @@ const initialize = async () => {
       }
     },
     bloomPass: postProcessing.bloomPass,
-    terrainConfig: {
-      size: 7000,
-      segments: 120,
-      height: 500,
-      colorLow: "#00008b",
-      colorHigh: "#ffffff",
-      gradientStart: 0.0,
-      gradientEnd: 1.0,
-    },
+    terrainConfig: settings.terrain,
     onTerrainChange: (config) => {
       // Async regeneration
       generateWorld(config).then(() => {
         // Should we reset bloom pass to panel? It's same object ref.
-        // Should we update props config in panel? It persists in propsManager.
       });
     },
+    onSaveDefaults: (currentSettings) => {
+      saveSettings(currentSettings);
+    }
   });
 
   requestAnimationFrame(animate);
