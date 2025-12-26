@@ -300,7 +300,10 @@ const initialize = async () => {
   world.add(sky.mesh);
 
   // Effects
-  weather = createWeatherEffects({ scene });
+  weather = createWeatherEffects({
+    scene,
+    fogDensity: 0.00025
+  });
   if (weather) {
     scene.add(weather.group);
   }
