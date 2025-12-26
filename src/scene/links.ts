@@ -18,10 +18,11 @@ export type LinksScene = {
   labels: LinkLabel[];
   pagesCount: number;
   updateVisibility: (camera: THREE.Camera) => void;
+  setSize: (size: number) => void;
 };
 
 export type LinksOptions = {
-  radius?: number; // Kept for backwards compatibility but unused
+  radius?: number; // Unused
   width?: number;
   depth?: number;
   seed?: number;
@@ -31,6 +32,7 @@ export type LinksOptions = {
   maxDistance?: number;
   palette?: string[];
   spacing?: number;
+  size?: number; // Base size scaling factor
 };
 
 const loadFont = async () => {
@@ -46,10 +48,11 @@ const loadFont = async () => {
 };
 
 const createLabelMesh = (font: Font, title: string, color: string) => {
+  // Base geometry size 1.0 allows for easy scaling
   const geometry = new TextGeometry(title, {
     font,
-    size: 0.5,
-    height: 0.08,
+    size: 1.0,
+    height: 0.2, // 20% depth relative to size
     curveSegments: 8,
   });
 
@@ -82,6 +85,7 @@ export const createLinks = async ({
   maxDistance,
   palette = WORLD_PALETTE,
   spacing = 300,
+  size = 5.0, // Default 10x larger than previous 0.5 (effective)
 }: LinksOptions): Promise<LinksScene> => {
   const [font, pages] = await Promise.all([loadFont(), loadPages()]);
   const group = new THREE.Group();
@@ -94,6 +98,7 @@ export const createLinks = async ({
       labels,
       pagesCount: 0,
       updateVisibility: () => { },
+      setSize: () => { },
     };
   }
 
@@ -111,7 +116,6 @@ export const createLinks = async ({
       const z = (rng() - 0.5) * depth * 0.8;
 
       let minDist = Infinity;
-      // Also check distance from center (0,0) to avoid spawn point if desired
       minDist = Math.min(minDist, Math.sqrt(x * x + z * z));
 
       for (const pos of placedPositions) {
@@ -123,12 +127,11 @@ export const createLinks = async ({
         bestX = x;
         bestZ = z;
         bestDist = minDist;
-        if (minDist > spacing * 1.5) break; // Good enough
+        if (minDist > spacing * 1.5) break;
       }
     }
 
     if (bestDist < 0) {
-      // Fallback
       bestX = (rng() - 0.5) * width * 0.8;
       bestZ = (rng() - 0.5) * depth * 0.8;
     }
@@ -136,17 +139,14 @@ export const createLinks = async ({
     placedPositions.push({ x: bestX, z: bestZ });
 
     const y = heightAt ? heightAt(bestX, bestZ) : 0;
-
-    // Links float slightly above terrain
     const finalY = y + elevation + 5 + rng() * 10;
 
     const mesh = createLabelMesh(font, page.title, color);
     mesh.position.set(bestX, finalY, bestZ);
-    mesh.lookAt(0, finalY, 0); // Still look at center? Or look at camera? 
-    // Usually billboards look at camera. TextGeometry doesn't auto-billboard.
-    // For now, let's look at center, or maybe just random rotation?
-    // User didn't specify rotation. Let's make them face the center for now as before.
     mesh.lookAt(0, finalY, 0);
+
+    // Apply initial size
+    mesh.scale.set(size, size, size);
 
     mesh.userData.linkUrl = page.url;
 
@@ -159,7 +159,7 @@ export const createLinks = async ({
   const tempPositionA = new THREE.Vector3();
   const tempPositionB = new THREE.Vector3();
   const clampedMaxVisible = Math.min(4, Math.max(2, Math.round(maxVisible)));
-  const maxVisibleDistance = maxDistance ?? Math.max(width * 0.3, 2000); // Updated default max distance
+  const maxVisibleDistance = maxDistance ?? Math.max(width * 0.3, 2000);
 
   const updateVisibility = (camera: THREE.Camera) => {
     projectionMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
@@ -188,10 +188,17 @@ export const createLinks = async ({
     });
   };
 
+  const setSize = (newSize: number) => {
+    labels.forEach(({ mesh }) => {
+      mesh.scale.set(newSize, newSize, newSize);
+    });
+  };
+
   return {
     group,
     labels,
     pagesCount: pages.length,
     updateVisibility,
+    setSize,
   };
 };

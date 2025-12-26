@@ -13,6 +13,10 @@ export type TerrainConfig = {
     gradientSkew: number;
 };
 
+export type LinksConfig = {
+    size: number;
+};
+
 export type DevSettings = {
     props: PropsConfig;
     bloom?: {
@@ -21,6 +25,7 @@ export type DevSettings = {
         threshold: number;
     };
     terrain?: TerrainConfig;
+    links?: LinksConfig;
 };
 
 export type DevPanelOptions = {
@@ -29,6 +34,8 @@ export type DevPanelOptions = {
     bloomPass?: UnrealBloomPass;
     terrainConfig?: TerrainConfig;
     onTerrainChange?: (config: TerrainConfig) => void;
+    linksConfig?: LinksConfig;
+    onLinksChange?: (config: LinksConfig) => void;
     onSaveDefaults?: (settings: DevSettings) => void;
 };
 
@@ -38,6 +45,8 @@ export const createDevPanel = ({
     bloomPass,
     terrainConfig,
     onTerrainChange,
+    linksConfig,
+    onLinksChange,
     onSaveDefaults,
 }: DevPanelOptions = {}) => {
     const gui = new GUI({ title: "Dev Panel", width: 300 });
@@ -59,6 +68,9 @@ export const createDevPanel = ({
             gradientStart: 0.0,
             gradientEnd: 1.0,
             gradientSkew: 1.0,
+        },
+        links: linksConfig ? { ...linksConfig } : {
+            size: 5.0,
         },
     };
 
@@ -94,6 +106,17 @@ export const createDevPanel = ({
             .add(settings.props, "clusteringFactor", 0.2, 2, 0.1)
             .name("Clustering")
             .onChange(() => onPropsChange(settings.props));
+    }
+
+    // Links folder
+    if (settings.links && onLinksChange) {
+        const linksFolder = gui.addFolder("Links");
+        linksFolder.close();
+
+        linksFolder
+            .add(settings.links, "size", 0.5, 20, 0.5)
+            .name("Text Size")
+            .onChange(() => onLinksChange(settings.links!));
     }
 
     // Bloom folder

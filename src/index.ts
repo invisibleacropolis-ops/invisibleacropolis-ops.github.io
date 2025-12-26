@@ -160,6 +160,9 @@ const defaultSettings: DevSettings = {
     gradientStart: 0.0,
     gradientEnd: 1.0,
     gradientSkew: 1.0,
+  },
+  links: {
+    size: 5.0,
   }
 };
 
@@ -173,6 +176,7 @@ const loadSettings = (): DevSettings => {
         props: { ...defaultSettings.props, ...parsed.props },
         bloom: { ...defaultSettings.bloom, ...parsed.bloom },
         terrain: { ...defaultSettings.terrain, ...parsed.terrain },
+        links: { ...defaultSettings.links, ...parsed.links },
       };
     }
   } catch (e) {
@@ -192,7 +196,7 @@ const saveSettings = (settings: DevSettings) => {
 };
 
 // Regeneration function
-const generateWorld = async (config: TerrainConfig, propsConfig?: any) => {
+const generateWorld = async (config: TerrainConfig, propsConfig?: any, linksConfig?: any) => {
   console.log("Generating world...", config);
 
   // 1. Cleanup
@@ -244,6 +248,7 @@ const generateWorld = async (config: TerrainConfig, propsConfig?: any) => {
       heightAt: terrain.heightAt,
       elevation: 6,
       palette: WORLD_PALETTE,
+      size: linksConfig?.size || 5.0,
     });
     enableBloom(linksScene.group);
     world.add(linksScene.group);
@@ -292,7 +297,7 @@ const initialize = async () => {
   });
 
   // Initial Generation
-  await generateWorld(settings.terrain!, settings.props);
+  await generateWorld(settings.terrain!, settings.props, settings.links);
 
   // Camera Spawn & Controls
   // 1. Find a random link to look at
@@ -369,9 +374,13 @@ const initialize = async () => {
     terrainConfig: settings.terrain,
     onTerrainChange: (config) => {
       // Async regeneration
-      generateWorld(config).then(() => {
+      generateWorld(config, settings.props, settings.links).then(() => {
         // Should we reset bloom pass to panel? It's same object ref.
       });
+    },
+    linksConfig: settings.links,
+    onLinksChange: (config) => {
+      linksScene?.setSize(config.size);
     },
     onSaveDefaults: (currentSettings) => {
       saveSettings(currentSettings);
