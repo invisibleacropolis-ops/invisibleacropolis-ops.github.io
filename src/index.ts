@@ -44,10 +44,18 @@ const camera = new THREE.PerspectiveCamera(
 );
 camera.position.set(0, 300, 800);
 
-const controls = createFlyControls(camera, canvas);
+// Fix: Pass object to createFlyControls
+const controls = createFlyControls({
+  camera,
+  domElement: canvas
+});
 
 // Enable Bloom
-const postProcessing = createSelectiveBloomPostProcessing(renderer, scene, camera);
+const postProcessing = createSelectiveBloomPostProcessing({
+  renderer,
+  scene,
+  camera
+});
 const enableBloom = (object: THREE.Object3D) => {
   object.layers.enable(BLOOM_LAYER);
   object.traverse((child) => {
@@ -68,7 +76,7 @@ let proximityEffect: ReturnType<typeof createProximityEffect> | null = null;
 
 // Effects
 let weather: ReturnType<typeof createWeatherEffects> | null = null;
-const rayBurst = createRayBurst(scene, camera);
+const rayBurst = createRayBurst({ scene });
 
 // Persistent Settings
 const SETTINGS_KEY = "invisible_acropolis_dev_settings";
@@ -144,7 +152,6 @@ const generateWorld = async (config: TerrainConfig, propsConfig?: any, linksConf
   if (linksScene) {
     linksScene.group.removeFromParent();
   }
-  // Remove sky if needed, but sky is usually static-ish or updated separately
 
   // 2. Create Terrain
   terrain = await createTerrainMeshFromHeightmap({
@@ -173,8 +180,6 @@ const generateWorld = async (config: TerrainConfig, propsConfig?: any, linksConf
     config: propsConfig,
   });
   propsManager.group.visible = true;
-  // Should we bloom props? Maybe selective. for now yes.
-  // propsManager doesn't expose enableBloom helper easily, but we can traverse.
   enableBloom(propsManager.group);
   world.add(propsManager.group);
 
@@ -222,6 +227,7 @@ const world = new THREE.Group();
 scene.add(world);
 
 const animate = () => {
+  // console.log("Animate frame");
   const time = performance.now() * 0.001;
   const delta = Math.min(0.05, 1 / 60); // Cap delta
 
@@ -229,28 +235,49 @@ const animate = () => {
 
   if (controls) controls.update(delta);
   if (weather) weather.update(time, delta);
-  if (rayBurst) rayBurst.update(time);
-  if (sky) sky.update(time); // Rotate sky?
+  if (rayBurst) rayBurst.update(time, delta);
+  if (sky) sky.update(time);
 
   if (linksScene) linksScene.updateVisibility(camera);
   if (proximityEffect) proximityEffect.update(camera);
 
   if (propsManager) {
-    // propsManager.update(time); // If animated
+    // propsManager.update(time);
   }
 
-  postProcessing.composer.render();
+  // Render with post-processing (Bloom, etc.)
+  postProcessing.render();
+
+  if (Math.random() < 0.01) console.log("DEBUG: Rendering frame", camera.position);
 
   stats.end();
   requestAnimationFrame(animate);
 };
 
+// Resize Handler
+window.addEventListener("resize", () => {
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+
+  camera.aspect = width / height;
+  camera.updateProjectionMatrix();
+
+  renderer.setSize(width, height);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+
+  // Fix: use resize()
+  postProcessing.resize(width, height);
+});
+
 // Initialize
 const initialize = async () => {
+  console.log("Initialize started");
   const settings = loadSettings();
 
   // Initial Generation
+  console.log("Generating world...");
   await generateWorld(settings.terrain!, settings.props, settings.links);
+  console.log("World generated");
 
   // Camera Spawn & Controls
   // 1. Find a random link to look at
@@ -267,16 +294,25 @@ const initialize = async () => {
   // Create Sky
   sky = createSky({
     radius: 10000,
-    palette: WORLD_PALETTE,
+    topColor: WORLD_PALETTE[0],
+    bottomColor: WORLD_PALETTE[1],
   });
   world.add(sky.mesh);
 
   // Effects
-  weather = createWeatherEffects(scene, camera);
+  weather = createWeatherEffects({ scene });
+  if (weather) {
+    scene.add(weather.group);
+  }
 
   // Ray Interaction (Click)
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
+
+  // Attach RayBurst
+  if (rayBurst) {
+    rayBurst.start(camera);
+  }
 
   window.addEventListener("click", () => {
     // If FPS controls are locked, click handles shooting? 
@@ -301,9 +337,6 @@ const initialize = async () => {
       // If controls are FPS but not locked, we click to lock.
     }
   });
-
-  // Controls Event Listeners
-  // (Handled inside createFlyControls usually, or here for locking)
 
   // Dev Panel
   createDevPanel({
@@ -340,4 +373,4 @@ const initialize = async () => {
   requestAnimationFrame(animate);
 };
 
-void initialize();
+void initialize().catch(e => console.error("Initialize failed:", e));

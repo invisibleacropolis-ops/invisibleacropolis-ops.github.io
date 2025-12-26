@@ -55,6 +55,7 @@ const loadHeightmap = async (url: string): Promise<HeightmapData> => {
         };
 
         img.src = url;
+        console.log("Loading heightmap from:", url);
     });
 };
 
