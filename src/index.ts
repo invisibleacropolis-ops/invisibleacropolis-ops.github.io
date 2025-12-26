@@ -162,7 +162,7 @@ const defaultSettings: DevSettings = {
     gradientSkew: 1.0,
   },
   links: {
-    size: 5.0,
+    size: 150.0,
   }
 };
 
@@ -248,7 +248,7 @@ const generateWorld = async (config: TerrainConfig, propsConfig?: any, linksConf
       heightAt: terrain.heightAt,
       elevation: 6,
       palette: WORLD_PALETTE,
-      size: linksConfig?.size || 5.0,
+      size: linksConfig?.size || 150.0,
     });
     enableBloom(linksScene.group);
     world.add(linksScene.group);

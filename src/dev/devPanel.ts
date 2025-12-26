@@ -70,7 +70,7 @@ export const createDevPanel = ({
             gradientSkew: 1.0,
         },
         links: linksConfig ? { ...linksConfig } : {
-            size: 5.0,
+            size: 150.0,
         },
     };
 
@@ -114,7 +114,7 @@ export const createDevPanel = ({
         linksFolder.close();
 
         linksFolder
-            .add(settings.links, "size", 0.5, 20, 0.5)
+            .add(settings.links, "size", 10, 1000, 10)
             .name("Text Size")
             .onChange(() => onLinksChange(settings.links!));
     }
