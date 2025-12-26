@@ -13,7 +13,7 @@ import { createSky } from "./scene/sky.ts";
 import { createTerrainMeshFromHeightmap } from "./scene/terrain-heightmap.ts";
 import { createWater } from "./scene/water.ts";
 import { WORLD_PALETTE } from "./scene/palette.ts";
-import { createDevPanel } from "./dev/devPanel.ts";
+import { createDevPanel, type TerrainConfig } from "./dev/devPanel.ts";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#scene");
 
@@ -88,22 +88,20 @@ const nightAmbient = new THREE.Color("#1f2b50");
 const daySun = new THREE.Color("#ffffff");
 const duskSun = new THREE.Color("#ffb978");
 
-// Terrain-dependent objects
+// World Objects
 let terrain: Awaited<ReturnType<typeof createTerrainMeshFromHeightmap>> | null = null;
+let roads: THREE.Group | null = null;
+let water: ReturnType<typeof createWater> | null = null;
+let propsManager: ReturnType<typeof createPropsManager> | null = null;
+
 let sky: ReturnType<typeof createSky> | null = null;
 let weather: ReturnType<typeof createWeatherEffects> | null = null;
 let flyControls: ReturnType<typeof createFlyControls> | null = null;
 
-const setDebugEnabled = (enabled: boolean) => {
-  debugState.enabled = enabled;
-  if (enabled) {
-    stats.showPanel(0);
-    stats.dom.style.cssText =
-      "position:fixed;top:0;left:0;z-index:9999;opacity:0.9;pointer-events:none;";
-    document.body.appendChild(stats.dom);
-  } else if (stats.dom.parentElement) {
-    stats.dom.parentElement.removeChild(stats.dom);
-  }
+const enableBloom = (object: THREE.Object3D) => {
+  object.traverse((obj) => {
+    obj.layers.enable(BLOOM_LAYER);
+  });
 };
 
 const resize = () => {
@@ -150,32 +148,137 @@ const animate = (time: number) => {
   requestAnimationFrame(animate);
 };
 
-// Start bloom on object (recursive)
-const enableBloom = (object: THREE.Object3D) => {
-  object.traverse((obj) => {
-    obj.layers.enable(BLOOM_LAYER);
+// Regeneration function
+const generateWorld = async (config: TerrainConfig) => {
+  console.log("Generating world...", config);
+
+  // 1. Cleanup
+  if (terrain) {
+    terrain.mesh.removeFromParent();
+    // terrain.mesh.geometry.dispose(); // LOD complex dispose needed?
+    // Using GC for now as complex cleanup is verbose
+  }
+  if (roads) {
+    roads.removeFromParent();
+  }
+  if (water) {
+    water.mesh.removeFromParent();
+    water.rivers.removeFromParent();
+  }
+  if (propsManager) {
+    propsManager.group.removeFromParent();
+  }
+  if (linksScene) {
+    linksScene.group.removeFromParent();
+  }
+
+  // 2. Create Terrain
+  terrain = await createTerrainMeshFromHeightmap({
+    heightmapUrl: "/heightmap.jpg",
+    width: config.size,
+    depth: config.size,
+    segments: config.segments,
+    height: 500, // Fixed height for now
+    palette: WORLD_PALETTE,
   });
+  enableBloom(terrain.mesh);
+  world.add(terrain.mesh);
+
+  // 3. Create Dependent Objects
+  roads = createRoads({
+    seed: WORLD_SEED,
+    width: terrain.width,
+    depth: terrain.depth,
+    count: 4,
+    elevation: 0.15,
+    palette: WORLD_PALETTE,
+    heightAt: terrain.heightAt,
+  });
+  enableBloom(roads);
+  world.add(roads);
+
+  water = createWater({
+    seed: WORLD_SEED,
+    width: terrain.width,
+    depth: terrain.depth,
+    amplitude: 0.18,
+    speed: 0.7,
+    tint: WORLD_PALETTE[0],
+    elevation: 0.08,
+    riverCount: 3,
+    riverWidth: 0.2,
+    palette: WORLD_PALETTE,
+    heightAt: terrain.heightAt,
+  });
+  enableBloom(water.mesh);
+  enableBloom(water.rivers);
+  world.add(water.mesh);
+  world.add(water.rivers);
+
+  propsManager = createPropsManager({
+    seed: WORLD_SEED,
+    width: terrain.width,
+    depth: terrain.depth,
+    heightAt: terrain.heightAt,
+    palette: WORLD_PALETTE,
+    // Preserve config if exists
+    config: propsManager ? propsManager.config : {},
+  });
+  enableBloom(propsManager.group);
+  world.add(propsManager.group);
+
+  try {
+    linksScene = await createLinks({
+      width: terrain.width,
+      depth: terrain.depth,
+      seed: WORLD_SEED,
+      heightAt: terrain.heightAt,
+      elevation: 6,
+      palette: WORLD_PALETTE,
+    });
+    enableBloom(linksScene.group);
+    world.add(linksScene.group);
+
+    if (linksScene.pagesCount > 0) {
+      proximityEffect.addTargets(linksScene.labels.map((label) => label.mesh));
+      proximityEffect.onEnter((mesh) => { rayBurst.start(mesh); });
+      proximityEffect.onExit(() => { rayBurst.stop(); });
+    }
+  } catch (e) {
+    console.warn("Failed to load links", e);
+  }
+
+  // Update weather area size
+  if (weather) {
+    weather.group.removeFromParent();
+  }
+  weather = createWeatherEffects({
+    scene,
+    seed: WORLD_SEED,
+    areaWidth: terrain.width * 1.4,
+    areaDepth: terrain.depth * 1.4,
+    fogColor: "#8aa3c7",
+    fogDensity: 0.00005,
+    rainEnabled: false,
+  });
+  scene.add(weather.group);
+
+  console.log("World generated!");
 };
 
 const initialize = async () => {
   resize();
   window.addEventListener("resize", resize);
 
-  console.log("Loading terrain from heightmap...");
+  console.log("Initializing...");
 
-  terrain = await createTerrainMeshFromHeightmap({
-    heightmapUrl: "/heightmap.jpg",
-    width: 7000,
-    depth: 7000,
+  // Initial Generation
+  await generateWorld({
+    size: 7000,
     segments: 120,
-    height: 500,
-    palette: WORLD_PALETTE,
   });
-  enableBloom(terrain.mesh); // Enable bloom on terrain
-  world.add(terrain.mesh);
-  console.log("Terrain loaded!");
 
-  // Cinematic Spawn Logic
+  // Camera Spawn & Controls
   // 1. Find a random link to look at
   let targetLinkParams = { x: 0, z: 0 };
   if (linksScene && linksScene.labels.length > 0) {
@@ -184,11 +287,12 @@ const initialize = async () => {
     targetLinkParams.z = randomLabel.mesh.position.z;
   }
 
-  // 2. Spawn high above terrain center (or slightly offset)
-  const spawnHeight = 500 + 400; // Max terrain height + 400
+  // 2. Spawn high above
+  // Assuming terrain center is 0,0 and standard height
+  const spawnHeight = 500 + 400;
   camera.position.set(0, spawnHeight, 0);
 
-  // 3. Look at the target link
+  // 3. Look at target
   camera.lookAt(targetLinkParams.x, 100, targetLinkParams.z);
 
   flyControls = createFlyControls({
@@ -203,75 +307,24 @@ const initialize = async () => {
   const uiContainer = document.querySelector(".ui");
   if (uiContainer) {
     uiContainer.innerHTML = `
-        <div style="
-            position: absolute;
-            bottom: 40px;
-            width: 100%;
-            text-align: center;
-            font-family: 'Inter', sans-serif;
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 14px;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-            pointer-events: none;
-        ">
-            Click to take control &middot; Press ESC to return
-        </div>
-      `;
+            <div style="
+                position: absolute;
+                bottom: 40px;
+                width: 100%;
+                text-align: center;
+                font-family: 'Inter', sans-serif;
+                color: rgba(255, 255, 255, 0.6);
+                font-size: 14px;
+                letter-spacing: 0.05em;
+                text-transform: uppercase;
+                pointer-events: none;
+            ">
+                Click to take control &middot; Press ESC to return
+            </div>
+        `;
   }
 
-  const roads = createRoads({
-    seed: WORLD_SEED,
-    width: terrain.width,
-    depth: terrain.depth,
-    count: 4,
-    elevation: 0.15,
-    palette: WORLD_PALETTE,
-    heightAt: terrain.heightAt,
-  });
-  // Note: Roads might not want bloom if they are lines, or they might. Let's enable for now.
-  enableBloom(roads);
-  world.add(roads);
-
-  const water = createWater({
-    seed: WORLD_SEED,
-    width: terrain.width,
-    depth: terrain.depth,
-    amplitude: 0.18,
-    speed: 0.7,
-    tint: WORLD_PALETTE[0],
-    elevation: 0.08,
-    riverCount: 3,
-    riverWidth: 0.2,
-    palette: WORLD_PALETTE,
-    heightAt: terrain.heightAt,
-  });
-  enableBloom(water.mesh); // Bloom on water mesh (waves)
-  enableBloom(water.rivers);
-  world.add(water.mesh);
-  world.add(water.rivers);
-
-  const propsManager = createPropsManager({
-    seed: WORLD_SEED,
-    width: terrain.width,
-    depth: terrain.depth,
-    heightAt: terrain.heightAt,
-    palette: WORLD_PALETTE,
-  });
-  enableBloom(propsManager.group); // Bloom on trees/rocks
-  world.add(propsManager.group);
-
-  // Create dev panel
-  const devPanel = createDevPanel({
-    propsConfig: propsManager.config,
-    onPropsChange: (config) => {
-      propsManager.setConfig(config);
-      const newGroup = propsManager.regenerate(world);
-      enableBloom(newGroup); // Re-enable bloom on regenerated props
-    },
-    bloomPass: postProcessing.bloomPass,
-  });
-
+  // Sky
   sky = createSky({
     radius: 15000,
     seed: WORLD_SEED,
@@ -284,50 +337,32 @@ const initialize = async () => {
     starCount: 360,
     dayDuration: 180,
   });
-  // Sky doesn't get enableBloom(), so it won't bloom! 
   scene.add(sky.mesh, sky.stars);
 
-  weather = createWeatherEffects({
-    scene,
-    seed: WORLD_SEED,
-    areaWidth: terrain.width * 1.4,
-    areaDepth: terrain.depth * 1.4,
-    fogColor: "#8aa3c7",
-    fogDensity: 0.00005,
-    rainEnabled: false,
+  // Dev Panel
+  // We create it after everything is ready
+  const devPanel = createDevPanel({
+    propsConfig: propsManager?.config,
+    onPropsChange: (config) => {
+      if (propsManager) {
+        propsManager.setConfig(config);
+        const newGroup = propsManager.regenerate(world);
+        enableBloom(newGroup);
+      }
+    },
+    bloomPass: postProcessing.bloomPass,
+    terrainConfig: {
+      size: 7000,
+      segments: 120,
+    },
+    onTerrainChange: (config) => {
+      // Async regeneration
+      generateWorld(config).then(() => {
+        // Should we reset bloom pass to panel? It's same object ref.
+        // Should we update props config in panel? It persists in propsManager.
+      });
+    },
   });
-  scene.add(weather.group);
-
-  try {
-    linksScene = await createLinks({
-      width: terrain.width,
-      depth: terrain.depth,
-      seed: WORLD_SEED,
-      heightAt: terrain.heightAt,
-      elevation: 6,
-      palette: WORLD_PALETTE,
-    });
-    enableBloom(linksScene.group); // Bloom on links? Maybe. Let's say yes for uniformity.
-    world.add(linksScene.group);
-
-    // Re-initialize controls/camera targeting now that links are loaded
-    if (linksScene.pagesCount > 0) {
-      // Redo the spawn targeting now that we have real links
-      const randomLabel = linksScene.labels[Math.floor(Math.random() * linksScene.labels.length)];
-      // Keep camera position but look at new target
-      camera.lookAt(randomLabel.mesh.position.x, 100, randomLabel.mesh.position.z);
-
-      proximityEffect.addTargets(linksScene.labels.map((label) => label.mesh));
-      proximityEffect.onEnter((mesh) => {
-        rayBurst.start(mesh);
-      });
-      proximityEffect.onExit(() => {
-        rayBurst.stop();
-      });
-    }
-  } catch (error) {
-    console.warn("Failed to load pages.json", error);
-  }
 
   requestAnimationFrame(animate);
 };

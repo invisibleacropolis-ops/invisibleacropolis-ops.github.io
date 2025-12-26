@@ -2,10 +2,17 @@ import GUI from "lil-gui";
 import type { PropsConfig } from "../scene/props.ts";
 import type { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 
+export type TerrainConfig = {
+    size: number;
+    segments: number;
+};
+
 export type DevPanelOptions = {
     propsConfig?: PropsConfig;
     onPropsChange?: (config: PropsConfig) => void;
     bloomPass?: UnrealBloomPass;
+    terrainConfig?: TerrainConfig;
+    onTerrainChange?: (config: TerrainConfig) => void;
 };
 
 export type DevSettings = {
@@ -15,12 +22,15 @@ export type DevSettings = {
         radius: number;
         threshold: number;
     };
+    terrain?: TerrainConfig;
 };
 
 export const createDevPanel = ({
     propsConfig,
     onPropsChange,
     bloomPass,
+    terrainConfig,
+    onTerrainChange,
 }: DevPanelOptions = {}) => {
     const gui = new GUI({ title: "Dev Panel", width: 300 });
     gui.close(); // Start collapsed
@@ -31,6 +41,10 @@ export const createDevPanel = ({
             treeDensity: 1,
             rockDensity: 1,
             clusteringFactor: 1,
+        },
+        terrain: terrainConfig ? { ...terrainConfig } : {
+            size: 7000,
+            segments: 120,
         },
     };
 
@@ -93,6 +107,22 @@ export const createDevPanel = ({
             .onChange((value: number) => {
                 bloomPass.threshold = value;
             });
+    }
+
+    // Terrain folder
+    if (terrainConfig && onTerrainChange) {
+        const terrainFolder = gui.addFolder("Terrain");
+        terrainFolder.close();
+
+        terrainFolder
+            .add(settings.terrain!, "size", 7000, 21000, 100)
+            .name("Total Size")
+            .onFinishChange(() => onTerrainChange(settings.terrain!));
+
+        terrainFolder
+            .add(settings.terrain!, "segments", 120, 240, 1)
+            .name("Polygon Count")
+            .onFinishChange(() => onTerrainChange(settings.terrain!));
     }
 
     return {
