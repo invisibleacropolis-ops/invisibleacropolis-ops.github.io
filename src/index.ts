@@ -7,11 +7,11 @@ import { createWeatherEffects } from "./effects/weather.ts";
 import { createFlyControls } from "./controls/fps.ts";
 import { createProximityEffect } from "./effects/proximityEffect.ts";
 import { createLinks } from "./scene/links.ts";
-import { createRoads } from "./scene/roads.ts";
+
 import { createPropsManager } from "./scene/props.ts";
 import { createSky } from "./scene/sky.ts";
 import { createTerrainMeshFromHeightmap } from "./scene/terrain-heightmap.ts";
-import { createWater } from "./scene/water.ts";
+
 import { WORLD_PALETTE } from "./scene/palette.ts";
 import { createDevPanel, type TerrainConfig, type DevSettings } from "./dev/devPanel.ts";
 
@@ -78,8 +78,6 @@ const duskSun = new THREE.Color("#ffb978");
 
 // World Objects
 let terrain: Awaited<ReturnType<typeof createTerrainMeshFromHeightmap>> | null = null;
-let roads: THREE.Object3D | null = null;
-let water: ReturnType<typeof createWater> | null = null;
 let propsManager: ReturnType<typeof createPropsManager> | null = null;
 
 let sky: ReturnType<typeof createSky> | null = null;
@@ -201,13 +199,6 @@ const generateWorld = async (config: TerrainConfig, propsConfig?: any) => {
   if (terrain) {
     terrain.mesh.removeFromParent();
   }
-  if (roads) {
-    roads.removeFromParent();
-  }
-  if (water) {
-    water.mesh.removeFromParent();
-    water.rivers.removeFromParent();
-  }
   if (propsManager) {
     propsManager.group.removeFromParent();
   }
@@ -232,36 +223,7 @@ const generateWorld = async (config: TerrainConfig, propsConfig?: any) => {
   enableBloom(terrain.mesh);
   world.add(terrain.mesh);
 
-  // 3. Create Dependent Objects
-  roads = createRoads({
-    seed: WORLD_SEED,
-    width: terrain.width,
-    depth: terrain.depth,
-    count: 4,
-    elevation: 0.15,
-    palette: WORLD_PALETTE,
-    heightAt: terrain.heightAt,
-  });
-  enableBloom(roads);
-  world.add(roads);
-
-  water = createWater({
-    seed: WORLD_SEED,
-    width: terrain.width,
-    depth: terrain.depth,
-    amplitude: 0.18,
-    speed: 0.7,
-    tint: WORLD_PALETTE[0],
-    elevation: 0.08,
-    riverCount: 3,
-    riverWidth: 0.2,
-    palette: WORLD_PALETTE,
-    heightAt: terrain.heightAt,
-  });
-  enableBloom(water.mesh);
-  enableBloom(water.rivers);
-  world.add(water.mesh);
-  world.add(water.rivers);
+  // 3. Create Dependent Objects (Just props now)
 
   propsManager = createPropsManager({
     seed: WORLD_SEED,
