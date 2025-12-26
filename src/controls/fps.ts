@@ -4,153 +4,146 @@ import { PointerLockControls } from "three/examples/jsm/controls/PointerLockCont
 export type FlyControlsOptions = {
   camera: THREE.Camera;
   domElement: HTMLElement;
-  moveSpeed?: number;
-  /** How quickly the camera accelerates (higher = more responsive) */
-  acceleration?: number;
-  /** How quickly the camera decelerates when no input (higher = stops faster) */
-  friction?: number;
-  /** Vertical movement speed multiplier */
-  verticalSpeed?: number;
+  baseSpeed?: number;
+  swaySpeed?: number;
+  swayAmount?: number;
 };
 
 export const createFlyControls = ({
   camera,
   domElement,
-  moveSpeed = 40,
-  acceleration = 80,
-  friction = 3,
-  verticalSpeed = 0.7,
+  baseSpeed = 30, // Slower base speed for cinematic feel
+  swaySpeed = 0.5,
+  swayAmount = 0.5,
 }: FlyControlsOptions) => {
   const controls = new PointerLockControls(camera, domElement);
 
-  // Current velocity with inertia
+  // Movement state
   const velocity = new THREE.Vector3();
+  const direction = new THREE.Vector3();
 
-  // Input state
-  const movement = {
-    forward: false,
-    backward: false,
-    left: false,
-    right: false,
-    up: false,
-    down: false,
+  // Speed multipliers
+  const speeds = {
+    current: baseSpeed,
+    target: baseSpeed,
+    min: baseSpeed * 0.1,  // Slow down (S)
+    max: baseSpeed * 5.0,  // Speed up (W) - 3x requested but 5x feels better for large worlds
+    base: baseSpeed,
   };
 
-  const setMovement = (code: string, value: boolean) => {
-    switch (code) {
-      case "KeyW":
-      case "ArrowUp":
-        movement.forward = value;
-        break;
-      case "KeyS":
-      case "ArrowDown":
-        movement.backward = value;
-        break;
-      case "KeyA":
-      case "ArrowLeft":
-        movement.left = value;
-        break;
-      case "KeyD":
-      case "ArrowRight":
-        movement.right = value;
-        break;
-      case "Space":
-        movement.up = value;
-        break;
-      case "ShiftLeft":
-      case "ShiftRight":
-        movement.down = value;
-        break;
-      default:
-        break;
+  // Sway state
+  let swayTime = 0;
+
+  // Inputs
+  const input = {
+    accelerate: false,
+    decelerate: false,
+    strafeLeft: false,
+    strafeRight: false,
+  };
+
+  const onKeyDown = (event: KeyboardEvent) => {
+    switch (event.code) {
+      case "KeyW": input.accelerate = true; break;
+      case "KeyS": input.decelerate = true; break;
+      case "KeyA": input.strafeLeft = true; break;
+      case "KeyD": input.strafeRight = true; break;
     }
   };
 
-  const handleKeyDown = (event: KeyboardEvent) => {
-    setMovement(event.code, true);
+  const onKeyUp = (event: KeyboardEvent) => {
+    switch (event.code) {
+      case "KeyW": input.accelerate = false; break;
+      case "KeyS": input.decelerate = false; break;
+      case "KeyA": input.strafeLeft = false; break;
+      case "KeyD": input.strafeRight = false; break;
+    }
   };
 
-  const handleKeyUp = (event: KeyboardEvent) => {
-    setMovement(event.code, false);
-  };
-
-  const handleClick = () => {
+  const onClick = () => {
     if (!controls.isLocked) {
       controls.lock();
     }
   };
 
-  window.addEventListener("keydown", handleKeyDown);
-  window.addEventListener("keyup", handleKeyUp);
-  domElement.addEventListener("click", handleClick);
-
-  // Temporary vectors for calculation
-  const inputDirection = new THREE.Vector3();
-  const forward = new THREE.Vector3();
-  const right = new THREE.Vector3();
-
-  const update = (delta: number) => {
-    if (!controls.isLocked) {
-      // Apply friction even when not locked (for smooth stop)
-      velocity.multiplyScalar(Math.max(0, 1 - friction * delta));
-      return;
-    }
-
-    // Get camera direction vectors
-    camera.getWorldDirection(forward);
-    right.crossVectors(forward, camera.up).normalize();
-
-    // Calculate desired input direction
-    inputDirection.set(0, 0, 0);
-
-    if (movement.forward) inputDirection.add(forward);
-    if (movement.backward) inputDirection.sub(forward);
-    if (movement.right) inputDirection.add(right);
-    if (movement.left) inputDirection.sub(right);
-
-    // Handle vertical movement (world space Y)
-    if (movement.up) inputDirection.y += verticalSpeed;
-    if (movement.down) inputDirection.y -= verticalSpeed;
-
-    // Normalize horizontal movement if there's input
-    if (inputDirection.lengthSq() > 0) {
-      inputDirection.normalize();
-
-      // Accelerate towards desired direction
-      velocity.x += inputDirection.x * acceleration * delta;
-      velocity.y += inputDirection.y * acceleration * delta;
-      velocity.z += inputDirection.z * acceleration * delta;
-
-      // Clamp velocity to max speed
-      const speed = velocity.length();
-      if (speed > moveSpeed) {
-        velocity.multiplyScalar(moveSpeed / speed);
-      }
-    }
-
-    // Apply friction (deceleration when no input)
-    velocity.multiplyScalar(Math.max(0, 1 - friction * delta));
-
-    // Apply velocity to camera position
-    camera.position.add(velocity.clone().multiplyScalar(delta));
-
-    // Constraint removed as requested
-    // if (camera.position.y < 1) {
-    //   camera.position.y = 1;
-    //   velocity.y = Math.max(0, velocity.y);
-    // }
-  };
+  // Add event listeners
+  window.addEventListener("keydown", onKeyDown);
+  window.addEventListener("keyup", onKeyUp);
+  domElement.addEventListener("click", onClick);
 
   const dispose = () => {
-    window.removeEventListener("keydown", handleKeyDown);
-    window.removeEventListener("keyup", handleKeyUp);
-    domElement.removeEventListener("click", handleClick);
+    window.removeEventListener("keydown", onKeyDown);
+    window.removeEventListener("keyup", onKeyUp);
+    domElement.removeEventListener("click", onClick);
+    controls.dispose();
+  };
+
+  const update = (delta: number) => {
+    // 1. Calculate Target Speed
+    if (input.accelerate) {
+      speeds.target = speeds.max;
+    } else if (input.decelerate) {
+      speeds.target = speeds.min;
+    } else {
+      speeds.target = speeds.base;
+    }
+
+    // Smooth intersection to target speed
+    speeds.current += (speeds.target - speeds.current) * delta * 2.0;
+
+    // 2. Handle Direction (Strafe uses standard logic)
+    direction.set(0, 0, 0);
+
+    // Constant forward motion
+    direction.z = 1;
+
+    // Strafing
+    if (input.strafeLeft) direction.x = -1;
+    if (input.strafeRight) direction.x = 1;
+
+    // Normalize (so strafing doesn't boost forward speed weirdly, though forward is dominant)
+    if (direction.lengthSq() > 0) {
+      direction.normalize();
+    }
+
+    // 3. Move Camera
+    // Get camera forward/right vectors
+    const camForward = new THREE.Vector3();
+    camera.getWorldDirection(camForward);
+    const camRight = new THREE.Vector3().crossVectors(camForward, camera.up).normalize();
+
+    // Apply movement defined by direction relative to camera look
+    // Forward (z=1) means move along camForward
+    // Strafe (x) means move along camRight
+
+    const moveVector = new THREE.Vector3();
+    moveVector.addScaledVector(camForward, direction.z * speeds.current * delta);
+    moveVector.addScaledVector(camRight, direction.x * speeds.current * delta);
+
+    camera.position.add(moveVector);
+
+    // 4. Apply Gentle Sway (Sine wave on local Y/X)
+    swayTime += delta * swaySpeed;
+
+    // Sway affects position slightly to simulate floating
+    const swayY = Math.sin(swayTime) * delta * swayAmount;
+    const swayX = Math.cos(swayTime * 0.7) * delta * swayAmount * 0.5;
+
+    // Apply sway relative to camera up and right
+    camera.position.addScaledVector(camera.up, swayY);
+    camera.position.addScaledVector(camRight, swayX);
+
+    // Optional: Gentle rotation sway (very subtle)
+    if (!controls.isLocked) {
+      // If not locked, maybe auto-rotate steer? 
+      // User didn't ask for auto-steer, just "constant forward motion".
+      // But "Target one of the links" implies initial look.
+    }
   };
 
   return {
     controls,
     update,
     dispose,
-    velocity, // Expose velocity for debugging
   };
 };

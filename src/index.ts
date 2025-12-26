@@ -175,15 +175,50 @@ const initialize = async () => {
   world.add(terrain.mesh);
   console.log("Terrain loaded!");
 
+  // Cinematic Spawn Logic
+  // 1. Find a random link to look at
+  let targetLinkParams = { x: 0, z: 0 };
+  if (linksScene && linksScene.labels.length > 0) {
+    const randomLabel = linksScene.labels[Math.floor(Math.random() * linksScene.labels.length)];
+    targetLinkParams.x = randomLabel.mesh.position.x;
+    targetLinkParams.z = randomLabel.mesh.position.z;
+  }
+
+  // 2. Spawn high above terrain center (or slightly offset)
+  const spawnHeight = 500 + 400; // Max terrain height + 400
+  camera.position.set(0, spawnHeight, 0);
+
+  // 3. Look at the target link
+  camera.lookAt(targetLinkParams.x, 100, targetLinkParams.z);
+
   flyControls = createFlyControls({
     camera,
     domElement: renderer.domElement,
-    moveSpeed: 300,
-    acceleration: 500,
-    friction: 2.5,
+    baseSpeed: 50,
+    swaySpeed: 0.5,
+    swayAmount: 0.8,
   });
 
-  camera.position.set(0, 350, 1500);
+  // UI Hint
+  const uiContainer = document.querySelector(".ui");
+  if (uiContainer) {
+    uiContainer.innerHTML = `
+        <div style="
+            position: absolute;
+            bottom: 40px;
+            width: 100%;
+            text-align: center;
+            font-family: 'Inter', sans-serif;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            pointer-events: none;
+        ">
+            Click to take control &middot; Press ESC to return
+        </div>
+      `;
+  }
 
   const roads = createRoads({
     seed: WORLD_SEED,
@@ -275,7 +310,13 @@ const initialize = async () => {
     enableBloom(linksScene.group); // Bloom on links? Maybe. Let's say yes for uniformity.
     world.add(linksScene.group);
 
+    // Re-initialize controls/camera targeting now that links are loaded
     if (linksScene.pagesCount > 0) {
+      // Redo the spawn targeting now that we have real links
+      const randomLabel = linksScene.labels[Math.floor(Math.random() * linksScene.labels.length)];
+      // Keep camera position but look at new target
+      camera.lookAt(randomLabel.mesh.position.x, 100, randomLabel.mesh.position.z);
+
       proximityEffect.addTargets(linksScene.labels.map((label) => label.mesh));
       proximityEffect.onEnter((mesh) => {
         rayBurst.start(mesh);
