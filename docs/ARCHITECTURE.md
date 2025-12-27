@@ -1,60 +1,42 @@
 # Architecture
 
-## Runtime entry point
+## Entry Point
 
-`index.html` mounts the full-screen canvas and minimal UI overlay, then loads the module entry
-point at `/src/index.ts`. This module is responsible for creating the renderer, scene graph,
-post-processing pipeline, and bootstrapping async content such as link labels.
+The application entry point is **`src/index.ts`**. This module orchestrates the entire scene lifecycle:
+1.  **Initialization**: Sets up the Three.js `WebGLRenderer`, `Scene`, `Camera`, and `PostProcessing` pipeline.
+2.  **Asset Loading**: Loads global configuration and settings from `localStorage`.
+3.  **World Generation**: Calls generators for Terrain, Props, Links, and Sky.
+4.  **Animation Loop**: Runs the render loop, updating controls, physics/effects, and the composited render pass.
 
-## Module overview
+## Module Structure
 
-### `/src/index.ts`
-* Creates the Three.js renderer, scene, and camera.
-* Builds the world graph (terrain, valleys, roads, water, props, sky, weather) using a shared
-  deterministic seed.
-* Configures post-processing (bloom + anti-aliasing) and runtime controls (FPS movement, debug
-  stats).
-* Loads link labels via `createLinks()` and wires up pointer interaction effects.
+### `/src/scene` (World Content)
+-   **`terrain-heightmap.ts`**: Generates a terrain mesh from a heightmap image, applying a height-based vertex color gradient.
+-   **`props.ts`**: Manages the `PropsManager`, which procedurally places trees and rocks on the terrain using parameterized density and clustering.
+-   **`links.ts`**: Creates 3D text meshes for navigation links, distributed in geometric patterns (Ring, Square, Random).
+-   **`sky.ts`**: Renders the atmospheric sky dome and star field shader.
 
-### `/src/data/pages.ts`
-* Fetches `/pages.json` from the `public/` directory.
-* Validates the payload as an array of page entries.
-* Exposes the `PageEntry` type and `loadPages()` helper for scene modules.
+### `/src/effects` (Visuals)
+-   **`postprocessing.ts`**: Configures the `EffectComposer` with a selective UnrealBloomPass and SMAA/FXAA.
+-   **`weather.ts`**: Manages scene Fog and Rain particle effects.
+-   **`proximityEffect.ts`**: Changes object colors based on distance to the camera (used for Links).
+-   **`rayBurst.ts`**: A camera-attached particle effect.
 
-### `/src/scene/*`
-* **`terrain.ts`**: Generates the heightfield mesh and provides `heightAt()` for world placement.
-* **`valleys.ts`**: Adds carved valley bands layered over the terrain.
-* **`roads.ts`**: Builds spline roads using the same seed so they stay aligned with terrain.
-* **`water.ts`**: Creates animated water and river splines.
-* **`props.ts`**: Drops ambient props (rocks, foliage, etc.) tied to the world seed.
-* **`sky.ts`**: Generates the shader-driven sky dome and star field.
-* **`links.ts`**: Builds ring-distributed label meshes from `pages.json`.
-* **`palette.ts`**: Shared color palette for terrain and props.
+### `/src/controls`
+-   **`fps.ts`**: Implements "Fly" style FPS controls with pointer lock for navigation.
 
-### `/src/interaction/*` and `/src/effects/*`
-* **`interaction/raycast.ts`**: Pointer raycasting for hover + click detection.
-* **`effects/hoverGlow.ts`**: Time-based emissive glow tween on hover.
-* **`effects/rayBurst.ts`**: Burst of rays on hover for feedback.
-* **`effects/postprocessing.ts`**: Bloom + anti-aliasing composer setup.
-* **`effects/weather.ts`**: Fog + optional rain streaks.
+### `/src/dev`
+-   **`devPanel.ts`**: Implements the `lil-gui` overlay for runtime configuration.
 
-### `/src/controls/*`
-* **`controls/fps.ts`**: WASD + pointer-lock FPS navigation with terrain-aware height.
+## Data Flow
 
-## Data flow
-
-1. **Startup**: `index.html` loads `/src/index.ts`.
-2. **World build**: `index.ts` constructs the renderer, scene, camera, and world meshes using
-   `WORLD_SEED` and palette values.
-3. **Async content**: `createLinks()` loads `pages.json` through `loadPages()` and fetches the
-   font JSON. It returns label meshes organized in a group.
-4. **Interaction wiring**: `createRaycast()` attaches pointer listeners to the renderer canvas
-   and fires hover/click callbacks for link labels.
-5. **FX timing**: `createHoverGlow()` and `createRayBurst()` are ticked each frame in the main
-   animation loop (`animate`).
-6. **Render loop**: `animate()` updates water, sky, weather, controls, link visibility, and
-   post-processing before rendering the frame.
-
-This flow keeps all scene state centralized in `index.ts`, while scene-specific logic lives in
-modules under `src/scene`, and user interaction/FX are isolated in `src/interaction` and
-`src/effects`.
+1.  **Settings Load**: On startup, `index.ts` loads `DevSettings` (Terrain config, Props config, Bloom settings) from `localStorage` or defaults.
+2.  **Generation**: `generateWorld()` is called with these settings.
+    -   It creates the **Terrain** mesh.
+    -   It passes the terrain's `heightAt(x,z)` function to the **Props** and **Links** generators so objects sit correctly on the ground.
+3.  **Render Loop**:
+    -   `controls.update()` moves the camera.
+    -   `weather.update()` animates rain/fog.
+    -   `postProcessing.render()` draws the scene + bloom to the canvas.
+4.  **Runtime Updates**:
+    -   Changing a setting in the **Dev Panel** triggers a callback in `index.ts`, which calls `generateWorld()` again to rebuild the affected parts of the scene asynchronously.
