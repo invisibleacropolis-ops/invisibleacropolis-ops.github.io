@@ -10,9 +10,14 @@
         font-family: "Inter", system-ui, sans-serif;
       }
 
+      * {
+        box-sizing: border-box;
+      }
+
       body {
         margin: 0;
         background: #050608;
+        color: #f5f5f7;
       }
 
       canvas#scene {
@@ -26,46 +31,247 @@
       .ui {
         position: fixed;
         inset: 0;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
         pointer-events: none;
-        color: #f5f5f7;
       }
 
-      .ui header,
-      .ui footer {
-        padding: 24px;
-      }
-
-      .ui header h1 {
-        margin: 0 0 6px;
-        font-size: 20px;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-      }
-
-      .ui header p {
-        margin: 0;
-        max-width: 420px;
-        line-height: 1.5;
-        color: #c8c9cc;
-      }
-
-      .ui footer {
+      .hero-overlay {
+        position: absolute;
+        inset: 0;
         display: flex;
-        justify-content: space-between;
-        font-size: 12px;
+        align-items: center;
+        justify-content: center;
+        padding: 3.5rem;
+        pointer-events: auto;
+        transition: opacity 420ms ease, visibility 420ms ease;
+        background: radial-gradient(circle at 50% 25%, rgba(10, 24, 52, 0.2), rgba(4, 6, 9, 0.72));
+      }
+
+      .hero-overlay.is-interacted .hero-affordance {
+        opacity: 0;
+        transform: translateY(10px);
+        visibility: hidden;
+      }
+
+      .hero-overlay.is-hidden {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+
+      .hero-content {
+        width: min(1120px, 100%);
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+        gap: 2rem;
+        align-items: end;
+      }
+
+      .hero-intro {
+        padding: clamp(1.5rem, 3vw, 2.8rem);
+        border-radius: 18px;
+        backdrop-filter: blur(6px);
+        background: rgba(12, 16, 24, 0.62);
+        border: 1px solid rgba(255, 255, 255, 0.09);
+      }
+
+      .hero-eyebrow {
+        margin: 0;
         text-transform: uppercase;
-        letter-spacing: 0.12em;
-        color: #8f9095;
+        letter-spacing: 0.15em;
+        color: #86a9ff;
+        font-size: 0.8rem;
+      }
+
+      .hero-intro h1 {
+        margin: 0.7rem 0 1rem;
+        font-size: clamp(2rem, 4.5vw, 4rem);
+        line-height: 1.05;
+        letter-spacing: -0.02em;
+      }
+
+      .hero-intro p {
+        margin: 0;
+        max-width: 56ch;
+        line-height: 1.6;
+        color: #d5d9e4;
+      }
+
+      .hero-actions {
+        margin-top: 1.75rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.85rem;
+      }
+
+      .hero-button {
+        border: 1px solid transparent;
+        border-radius: 999px;
+        padding: 0.78rem 1.15rem;
+        font-size: 0.9rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        cursor: pointer;
+        transition: transform 150ms ease, filter 150ms ease, border-color 150ms ease;
+      }
+
+      .hero-button:focus-visible {
+        outline: 2px solid rgba(255, 255, 255, 0.8);
+        outline-offset: 2px;
+      }
+
+      .hero-button:hover {
+        transform: translateY(-1px);
+        filter: brightness(1.1);
+      }
+
+      .hero-button.primary {
+        color: #02050f;
+        background: linear-gradient(120deg, #6fa3ff, #9cc8ff);
+      }
+
+      .hero-button.secondary {
+        color: #e8ebf7;
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.24);
+      }
+
+      .hero-navigation {
+        margin: 0;
+        padding: clamp(1.3rem, 3vw, 2rem);
+        list-style: none;
+        border-radius: 18px;
+        backdrop-filter: blur(4px);
+        background: rgba(8, 11, 18, 0.72);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        counter-reset: hero-step;
+      }
+
+      .hero-navigation li {
+        counter-increment: hero-step;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 0.85rem;
+        align-items: start;
+      }
+
+      .hero-navigation li + li {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .hero-navigation li::before {
+        content: counter(hero-step);
+        width: 1.6rem;
+        height: 1.6rem;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #0f1c35;
+        background: #b9d6ff;
+      }
+
+      .hero-navigation h2 {
+        margin: 0;
+        font-size: 0.95rem;
+      }
+
+      .hero-navigation p {
+        margin: 0.3rem 0 0;
+        color: #c4c9d8;
+        font-size: 0.88rem;
+        line-height: 1.45;
+      }
+
+      .hero-affordance {
+        position: absolute;
+        left: 50%;
+        bottom: 1.5rem;
+        transform: translateX(-50%);
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        font-size: 0.73rem;
+        color: #d4dcf2;
+        opacity: 0.85;
+        transition: opacity 320ms ease, transform 320ms ease, visibility 320ms ease;
+      }
+
+      @media (max-width: 900px) {
+        .hero-overlay {
+          padding: 1rem;
+          align-items: flex-start;
+          overflow-y: auto;
+        }
+
+        .hero-content {
+          margin-top: 1rem;
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .hero-intro,
+        .hero-navigation {
+          width: 100%;
+        }
+
+        .hero-intro h1 {
+          font-size: clamp(1.8rem, 8vw, 2.7rem);
+        }
+
+        .hero-affordance {
+          bottom: 0.7rem;
+          font-size: 0.66rem;
+          text-align: center;
+          width: calc(100% - 1rem);
+        }
       }
     </style>
   </head>
   <body>
     <canvas id="scene" aria-label="Three.js scene"></canvas>
-    <div class="ui" aria-hidden="true">
-      <!-- UI cleared for cinematic view -->
+    <div class="ui">
+      <section class="hero-overlay" data-hero-overlay>
+        <div class="hero-content">
+          <div class="hero-intro">
+            <p class="hero-eyebrow">Invisible Acropolis System</p>
+            <h1>Navigate the living map of research, media, and engineered worlds.</h1>
+            <p>
+              This platform links terrain, knowledge nodes, and story threads into a single navigable model.
+              Enter for immersive flight mode or explore the world at your own pace from this guided layer.
+            </p>
+            <div class="hero-actions">
+              <button class="hero-button primary" data-overlay-action="enter" type="button">Enter Platform</button>
+              <button class="hero-button secondary" data-overlay-action="explore" type="button">Explore World</button>
+            </div>
+          </div>
+          <ol class="hero-navigation" aria-label="How to navigate">
+            <li>
+              <div>
+                <h2>Acquire orientation</h2>
+                <p>Pan and scan from the overlay to identify clusters and luminous waypoints before committing to motion.</p>
+              </div>
+            </li>
+            <li>
+              <div>
+                <h2>Engage controls</h2>
+                <p>Select <strong>Enter Platform</strong> to lock pointer controls, then use W/S for speed and A/D for lateral drift.</p>
+              </div>
+            </li>
+            <li>
+              <div>
+                <h2>Open destination links</h2>
+                <p>Center a highlighted node and click while locked to open linked destinations directly in context.</p>
+              </div>
+            </li>
+          </ol>
+        </div>
+        <p class="hero-affordance" data-overlay-affordance>
+          Scroll, tap, or move to begin · overlay fades on first interaction
+        </p>
+      </section>
     </div>
     <script type="module" src="/src/index.ts"></script>
   </body>

@@ -14,11 +14,17 @@ import { createTerrainMeshFromHeightmap } from "./scene/terrain-heightmap.ts";
 
 import { WORLD_PALETTE } from "./scene/palette.ts";
 import { createDevPanel, type TerrainConfig, type DevSettings } from "./dev/devPanel.ts";
+import { createHeroOverlay } from "./ui/heroOverlay.ts";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#scene");
+const uiRoot = document.querySelector<HTMLElement>(".ui");
 
 if (!canvas) {
   throw new Error("Canvas not found");
+}
+
+if (!uiRoot) {
+  throw new Error("UI root not found");
 }
 
 const renderer = new THREE.WebGLRenderer({
@@ -65,6 +71,28 @@ const enableBloom = (object: THREE.Object3D) => {
 
 const stats = new Stats();
 document.body.appendChild(stats.dom);
+
+const heroOverlay = createHeroOverlay({
+  root: uiRoot,
+  onAction: (action) => {
+    if (action === "enter") {
+      controls.controls.lock();
+      return;
+    }
+
+    if (action === "explore") {
+      heroOverlay.hide();
+    }
+  },
+});
+
+controls.controls.addEventListener("lock", () => {
+  heroOverlay.setLocked(true);
+});
+
+controls.controls.addEventListener("unlock", () => {
+  heroOverlay.setLocked(false);
+});
 
 // World Objects
 let terrain: Awaited<ReturnType<typeof createTerrainMeshFromHeightmap>> | null = null;
@@ -317,7 +345,7 @@ const initialize = async () => {
   window.addEventListener("click", () => {
     // If FPS controls are locked, click handles shooting? 
     // Or if not locked.
-    if (document.pointerLockElement === document.body) {
+    if (document.pointerLockElement === canvas) {
       // We are in FPS mode. 
       // Check center of screen
       raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
@@ -368,6 +396,11 @@ const initialize = async () => {
     onSaveDefaults: (currentSettings) => {
       saveSettings(currentSettings);
     }
+  });
+
+  window.addEventListener("beforeunload", () => {
+    heroOverlay.dispose();
+    controls.dispose();
   });
 
   requestAnimationFrame(animate);
