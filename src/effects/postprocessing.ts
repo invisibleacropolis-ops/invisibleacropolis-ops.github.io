@@ -17,12 +17,96 @@ type BloomOptions = {
 
 type AntiAliasMode = "smaa" | "fxaa" | "none";
 
+export type QualityTier = "low" | "medium" | "high" | "ultra";
+
+export type QualityBudgetTargets = {
+  timeToInteractiveMs: number;
+  frameTimeMs: number;
+  memoryMb: number;
+};
+
+export type QualityPreset = {
+  tier: QualityTier;
+  budget: QualityBudgetTargets;
+  pixelRatioCap: number;
+  renderScale: number;
+  bloomStrength: number;
+  bloomRadius: number;
+  bloomThreshold: number;
+  antiAlias: AntiAliasMode;
+  rainEnabled: boolean;
+};
+
+export const QUALITY_PRESETS: Record<QualityTier, QualityPreset> = {
+  low: {
+    tier: "low",
+    budget: {
+      timeToInteractiveMs: 2600,
+      frameTimeMs: 25,
+      memoryMb: 700,
+    },
+    pixelRatioCap: 1,
+    renderScale: 0.72,
+    bloomStrength: 0.25,
+    bloomRadius: 0.2,
+    bloomThreshold: 0.2,
+    antiAlias: "none",
+    rainEnabled: false,
+  },
+  medium: {
+    tier: "medium",
+    budget: {
+      timeToInteractiveMs: 2200,
+      frameTimeMs: 20,
+      memoryMb: 1000,
+    },
+    pixelRatioCap: 1.25,
+    renderScale: 0.86,
+    bloomStrength: 0.45,
+    bloomRadius: 0.32,
+    bloomThreshold: 0.05,
+    antiAlias: "fxaa",
+    rainEnabled: false,
+  },
+  high: {
+    tier: "high",
+    budget: {
+      timeToInteractiveMs: 1800,
+      frameTimeMs: 16.7,
+      memoryMb: 1400,
+    },
+    pixelRatioCap: 1.5,
+    renderScale: 1,
+    bloomStrength: 0.6,
+    bloomRadius: 0.4,
+    bloomThreshold: 0,
+    antiAlias: "smaa",
+    rainEnabled: true,
+  },
+  ultra: {
+    tier: "ultra",
+    budget: {
+      timeToInteractiveMs: 1600,
+      frameTimeMs: 14,
+      memoryMb: 2200,
+    },
+    pixelRatioCap: 2,
+    renderScale: 1,
+    bloomStrength: 0.8,
+    bloomRadius: 0.5,
+    bloomThreshold: 0,
+    antiAlias: "smaa",
+    rainEnabled: true,
+  },
+};
+
 type PostProcessingOptions = {
   renderer: THREE.WebGLRenderer;
   scene: THREE.Scene;
   camera: THREE.Camera;
   bloom?: BloomOptions;
   antiAlias?: AntiAliasMode;
+  qualityTier?: QualityTier;
 };
 
 // Shader to composite bloom layer onto base scene
@@ -67,6 +151,7 @@ export const createSelectiveBloomPostProcessing = ({
   camera,
   bloom = { strength: 0.8, radius: 0.3, threshold: 0.0 },
   antiAlias = "smaa",
+  qualityTier = "high",
 }: PostProcessingOptions) => {
   const size = new THREE.Vector2();
   renderer.getSize(size);
@@ -141,38 +226,65 @@ export const createSelectiveBloomPostProcessing = ({
   finalComposer.addPass(compositePass);
 
   // Anti-aliasing
-  let smaaPass: SMAAPass | null = null;
-  let fxaaPass: ShaderPass | null = null;
+  const smaaPass = new SMAAPass(size.x * pixelRatio, size.y * pixelRatio);
+  const fxaaPass = new ShaderPass(FXAAShader);
+  setFxaaResolution(fxaaPass, size.x, size.y, pixelRatio);
+  finalComposer.addPass(smaaPass);
+  finalComposer.addPass(fxaaPass);
 
-  if (antiAlias === "smaa") {
-    smaaPass = new SMAAPass(size.x * pixelRatio, size.y * pixelRatio);
-    finalComposer.addPass(smaaPass);
-  } else if (antiAlias === "fxaa") {
-    fxaaPass = new ShaderPass(FXAAShader);
-    setFxaaResolution(fxaaPass, size.x, size.y, pixelRatio);
-    finalComposer.addPass(fxaaPass);
-  }
+  let viewportWidth = size.x;
+  let viewportHeight = size.y;
+  let currentRenderScale = QUALITY_PRESETS[qualityTier].renderScale;
+  let bloomEnabled = true;
+
+  const setAntiAliasMode = (mode: AntiAliasMode) => {
+    smaaPass.enabled = mode === "smaa";
+    fxaaPass.enabled = mode === "fxaa";
+  };
+
+  const updateComposerResolution = (width: number, height: number) => {
+    const nextPixelRatio = renderer.getPixelRatio();
+    const scaledWidth = Math.max(1, Math.floor(width * currentRenderScale));
+    const scaledHeight = Math.max(1, Math.floor(height * currentRenderScale));
+    bloomComposer.setSize(scaledWidth, scaledHeight);
+    finalComposer.setSize(scaledWidth, scaledHeight);
+    bloomPass.setSize(scaledWidth, scaledHeight);
+    smaaPass.setSize(scaledWidth * nextPixelRatio, scaledHeight * nextPixelRatio);
+    setFxaaResolution(fxaaPass, scaledWidth, scaledHeight, nextPixelRatio);
+  };
 
   const resize = (width: number, height: number) => {
-    const nextPixelRatio = renderer.getPixelRatio();
-    bloomComposer.setSize(width, height);
-    finalComposer.setSize(width, height);
-    bloomPass.setSize(width, height);
-
-    if (smaaPass) {
-      smaaPass.setSize(width * nextPixelRatio, height * nextPixelRatio);
-    }
-
-    if (fxaaPass) {
-      setFxaaResolution(fxaaPass, width, height, nextPixelRatio);
-    }
+    viewportWidth = width;
+    viewportHeight = height;
+    updateComposerResolution(width, height);
   };
+
+  const setQualityTier = (tier: QualityTier) => {
+    const preset = QUALITY_PRESETS[tier];
+    currentRenderScale = preset.renderScale;
+    bloomPass.strength = preset.bloomStrength;
+    bloomPass.radius = preset.bloomRadius;
+    bloomPass.threshold = preset.bloomThreshold;
+    setAntiAliasMode(preset.antiAlias);
+    updateComposerResolution(viewportWidth, viewportHeight);
+  };
+
+  const setBloomEnabled = (enabled: boolean) => {
+    bloomEnabled = enabled;
+  };
+
+  setQualityTier(qualityTier);
+  if (antiAlias !== QUALITY_PRESETS[qualityTier].antiAlias) {
+    setAntiAliasMode(antiAlias);
+  }
 
   const render = () => {
     // First pass: render only bloom objects with bloom effect
-    darkenNonBloom();
-    bloomComposer.render();
-    restoreMaterials();
+    if (bloomEnabled) {
+      darkenNonBloom();
+      bloomComposer.render();
+      restoreMaterials();
+    }
 
     // Second pass: render full scene and composite with bloom
     finalComposer.render();
@@ -183,6 +295,9 @@ export const createSelectiveBloomPostProcessing = ({
     finalComposer,
     bloomPass,
     bloomLayer: BLOOM_LAYER,
+    setQualityTier,
+    setBloomEnabled,
+    setAntiAliasMode,
     render,
     resize,
   };

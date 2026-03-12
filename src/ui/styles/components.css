@@ -400,6 +400,34 @@ canvas#scene {
   color: #cad6f3;
 }
 
+
+.experience-controls__quality-label {
+  display: block;
+  margin: 0.35rem 0 0;
+  font-size: 0.74rem;
+  color: #cad6f3;
+}
+
+.experience-controls__quality {
+  margin-top: 0.32rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.experience-controls__quality-select {
+  width: 100%;
+  padding-right: 1.8rem;
+  appearance: none;
+}
+
+.experience-controls__quality-hint {
+  font-size: 0.67rem;
+  color: #9eb5df;
+  white-space: nowrap;
+}
+
 .experience-controls__modes {
   margin: 0.5rem 0;
   display: grid;

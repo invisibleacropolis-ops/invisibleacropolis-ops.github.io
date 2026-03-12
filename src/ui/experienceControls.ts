@@ -1,7 +1,9 @@
+import type { QualityTier } from "../effects/postprocessing.ts";
 import type { ExperienceMode, ExperienceState } from "./experienceState.ts";
 
 export type ExperienceControlsController = {
   setState: (state: ExperienceState) => void;
+  setQualityTier: (qualityTier: QualityTier, isAuto: boolean) => void;
   dispose: () => void;
 };
 
@@ -9,10 +11,12 @@ export const createExperienceControls = ({
   root,
   onModeChange,
   onOpenOnboarding,
+  onQualityChange,
 }: {
   root: HTMLElement;
   onModeChange: (mode: ExperienceMode) => void;
   onOpenOnboarding: () => void;
+  onQualityChange: (tier: QualityTier) => void;
 }): ExperienceControlsController => {
   const wrap = document.createElement("div");
   wrap.className = "experience-controls ui-panel";
@@ -38,6 +42,42 @@ export const createExperienceControls = ({
     row.append(button);
   });
 
+  const qualityLabel = document.createElement("label");
+  qualityLabel.className = "experience-controls__quality-label";
+  qualityLabel.textContent = "Rendering quality";
+
+  const qualityRow = document.createElement("div");
+  qualityRow.className = "experience-controls__quality";
+
+  const qualitySelect = document.createElement("select");
+  qualitySelect.className = "experience-controls__quality-select ui-button";
+  qualitySelect.setAttribute("aria-label", "Rendering quality");
+
+  const options: Array<{ value: QualityTier; label: string }> = [
+    { value: "low", label: "Low" },
+    { value: "medium", label: "Medium" },
+    { value: "high", label: "High" },
+    { value: "ultra", label: "Ultra" },
+  ];
+
+  options.forEach((optionConfig) => {
+    const option = document.createElement("option");
+    option.value = optionConfig.value;
+    option.textContent = optionConfig.label;
+    qualitySelect.append(option);
+  });
+
+  const qualityHint = document.createElement("span");
+  qualityHint.className = "experience-controls__quality-hint";
+
+  const handleQualityChange = () => {
+    onQualityChange(qualitySelect.value as QualityTier);
+  };
+
+  qualitySelect.addEventListener("change", handleQualityChange);
+
+  qualityRow.append(qualitySelect, qualityHint);
+
   const status = document.createElement("p");
   status.className = "experience-controls__status";
 
@@ -47,7 +87,7 @@ export const createExperienceControls = ({
   onboarding.textContent = "Controls & onboarding";
   onboarding.addEventListener("click", onOpenOnboarding);
 
-  wrap.append(heading, row, status, onboarding);
+  wrap.append(heading, row, qualityLabel, qualityRow, status, onboarding);
   root.append(wrap);
 
   return {
@@ -65,7 +105,12 @@ export const createExperienceControls = ({
         : "Pointer lock disabled in this mode.";
       status.textContent = lockStatus;
     },
+    setQualityTier: (qualityTier, isAuto) => {
+      qualitySelect.value = qualityTier;
+      qualityHint.textContent = isAuto ? "Auto-selected for this device" : "Manual override";
+    },
     dispose: () => {
+      qualitySelect.removeEventListener("change", handleQualityChange);
       onboarding.removeEventListener("click", onOpenOnboarding);
       buttons.forEach((button) => button.remove());
       wrap.remove();

@@ -40,3 +40,19 @@ The application entry point is **`src/index.ts`**. This module orchestrates the 
     -   `postProcessing.render()` draws the scene + bloom to the canvas.
 4.  **Runtime Updates**:
     -   Changing a setting in the **Dev Panel** triggers a callback in `index.ts`, which calls `generateWorld()` again to rebuild the affected parts of the scene asynchronously.
+
+## Rendering Quality Management
+
+Quality policy is centralized across:
+- **`src/effects/postprocessing.ts`** for declarative `QUALITY_PRESETS` and post-process knobs.
+- **`src/index.ts`** for hardware-based default selection, user override handling, and runtime degradation/recovery.
+- **`src/ui/experienceControls.ts`** for the user-facing quality selector.
+
+### Control Loop Responsibilities
+
+1. **Default tier selection** (startup): derives a quality tier from hardware and network hints.
+2. **Manual override** (UI): users can force `Low/Medium/High/Ultra`; this persists in local storage.
+3. **Dynamic guardrail** (runtime): in auto mode only, sustained low FPS progressively disables expensive effects before lowering tier.
+4. **Observability emission**: render metrics are published as structured `CustomEvent` payloads for diagnostics.
+
+This separation keeps quality policy deterministic, visible, and easy for external engineering teams to audit or tune.
