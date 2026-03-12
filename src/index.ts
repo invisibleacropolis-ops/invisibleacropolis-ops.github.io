@@ -16,6 +16,9 @@ import { WORLD_PALETTE } from "./scene/palette.ts";
 import { createDevPanel, type TerrainConfig, type DevSettings } from "./dev/devPanel.ts";
 import { createHeroOverlay } from "./ui/heroOverlay.ts";
 import { createNavigationHub } from "./ui/navigationHub.ts";
+import { createExperienceStateMachine, loadExperienceState, type ExperienceMode } from "./ui/experienceState.ts";
+import { createExperienceControls } from "./ui/experienceControls.ts";
+import { createOnboardingModal } from "./ui/onboardingModal.ts";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#scene");
 const uiRoot = document.querySelector<HTMLElement>(".ui");
@@ -56,6 +59,7 @@ const controls = createFlyControls({
   camera,
   domElement: canvas
 });
+const experienceState = createExperienceStateMachine(loadExperienceState());
 
 // Enable Bloom
 const postProcessing = createSelectiveBloomPostProcessing({
@@ -77,6 +81,11 @@ const heroOverlay = createHeroOverlay({
   root: uiRoot,
   onAction: (action) => {
     if (action === "enter") {
+      experienceState.dispatch({ type: "set-mode", mode: "explorer" });
+      if (!experienceState.getState().pointerLockConsent) {
+        onboardingModal.open();
+        return;
+      }
       controls.controls.lock();
       return;
     }
@@ -91,6 +100,53 @@ const heroOverlay = createHeroOverlay({
 const navigationHub = createNavigationHub({
   root: uiRoot,
 });
+const experienceControls = createExperienceControls({
+  root: uiRoot,
+  onModeChange: (mode: ExperienceMode) => {
+    experienceState.dispatch({ type: "set-mode", mode });
+    if (mode === "explorer" && !experienceState.getState().pointerLockConsent) {
+      onboardingModal.open();
+    }
+  },
+  onOpenOnboarding: () => onboardingModal.open(),
+});
+
+const onboardingModal = createOnboardingModal({
+  root: uiRoot,
+  onConsent: () => {
+    experienceState.dispatch({ type: "set-pointer-lock-consent", consent: true });
+    experienceState.dispatch({ type: "set-onboarding-seen", seen: true });
+    if (experienceState.getState().mode === "explorer") {
+      controls.controls.lock();
+    }
+  },
+  onSkip: (neverShowAgain) => {
+    experienceState.dispatch({ type: "set-onboarding-seen", seen: true });
+    experienceState.dispatch({ type: "set-never-show-onboarding", neverShow: neverShowAgain });
+    if (experienceState.getState().mode === "explorer" && !experienceState.getState().pointerLockConsent) {
+      experienceState.dispatch({ type: "set-mode", mode: "guided" });
+    }
+  },
+  onNeverShow: (neverShowAgain) => {
+    experienceState.dispatch({ type: "set-never-show-onboarding", neverShow: neverShowAgain });
+  },
+});
+
+experienceState.subscribe((state) => {
+  controls.setMode(state.mode);
+  controls.setPointerLockAllowed(state.pointerLockConsent);
+  onboardingModal.setState(state);
+  experienceControls.setState(state);
+
+  if (state.mode === "guided") {
+    heroOverlay.show();
+  }
+
+  if (state.mode === "explorer" && !state.pointerLockConsent && !state.neverShowOnboarding) {
+    onboardingModal.open();
+  }
+});
+
 controls.controls.addEventListener("lock", () => {
   heroOverlay.setLocked(true);
 });
@@ -306,6 +362,11 @@ window.addEventListener("resize", () => {
 const initialize = async () => {
   console.log("Initialize started");
   const settings = loadSettings();
+  const currentExperienceState = experienceState.getState();
+
+  if (!currentExperienceState.onboardingSeen && !currentExperienceState.neverShowOnboarding) {
+    onboardingModal.open();
+  }
 
   // Initial Generation
   console.log("Generating world...");
@@ -406,6 +467,8 @@ const initialize = async () => {
   window.addEventListener("beforeunload", () => {
     heroOverlay.dispose();
     navigationHub.dispose();
+    experienceControls.dispose();
+    onboardingModal.dispose();
     controls.dispose();
   });
 

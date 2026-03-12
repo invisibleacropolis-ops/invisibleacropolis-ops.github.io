@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
+import type { ExperienceMode } from "../ui/experienceState.ts";
 
 export type FlyControlsOptions = {
   camera: THREE.Camera;
@@ -12,34 +13,39 @@ export type FlyControlsOptions = {
 export const createFlyControls = ({
   camera,
   domElement,
-  baseSpeed = 30, // Slower base speed for cinematic feel
+  baseSpeed = 30,
   swaySpeed = 0.5,
   swayAmount = 0.5,
 }: FlyControlsOptions) => {
   const controls = new PointerLockControls(camera, domElement);
 
-  // Movement state
-  const velocity = new THREE.Vector3();
   const direction = new THREE.Vector3();
+  const camForward = new THREE.Vector3();
+  const camRight = new THREE.Vector3();
+  const moveVector = new THREE.Vector3();
+  const lookTarget = new THREE.Vector3();
 
-  // Speed multipliers
   const speeds = {
     current: baseSpeed,
     target: baseSpeed,
-    min: baseSpeed * 0.1,  // Slow down (S)
-    max: baseSpeed * 5.0,  // Speed up (W) - 3x requested but 5x feels better for large worlds
+    min: baseSpeed * 0.1,
+    max: baseSpeed * 5.0,
     base: baseSpeed,
+    accessibility: baseSpeed * 0.45,
   };
 
-  // Sway state
   let swayTime = 0;
+  let mode: ExperienceMode = "guided";
+  let pointerLockAllowed = false;
+  let guidedAngle = 0;
 
-  // Inputs
   const input = {
     accelerate: false,
     decelerate: false,
     strafeLeft: false,
     strafeRight: false,
+    turnLeft: false,
+    turnRight: false,
   };
 
   const onKeyDown = (event: KeyboardEvent) => {
@@ -48,6 +54,8 @@ export const createFlyControls = ({
       case "KeyS": input.decelerate = true; break;
       case "KeyA": input.strafeLeft = true; break;
       case "KeyD": input.strafeRight = true; break;
+      case "ArrowLeft": input.turnLeft = true; break;
+      case "ArrowRight": input.turnRight = true; break;
     }
   };
 
@@ -57,93 +65,103 @@ export const createFlyControls = ({
       case "KeyS": input.decelerate = false; break;
       case "KeyA": input.strafeLeft = false; break;
       case "KeyD": input.strafeRight = false; break;
+      case "ArrowLeft": input.turnLeft = false; break;
+      case "ArrowRight": input.turnRight = false; break;
     }
   };
 
   const onClick = () => {
-    if (!controls.isLocked) {
+    if (mode === "explorer" && pointerLockAllowed && !controls.isLocked) {
       controls.lock();
     }
   };
 
-  // Add event listeners
   window.addEventListener("keydown", onKeyDown);
   window.addEventListener("keyup", onKeyUp);
   domElement.addEventListener("click", onClick);
 
-  const dispose = () => {
-    window.removeEventListener("keydown", onKeyDown);
-    window.removeEventListener("keyup", onKeyUp);
-    domElement.removeEventListener("click", onClick);
-    controls.dispose();
-  };
-
   const update = (delta: number) => {
-    // 1. Calculate Target Speed
-    if (input.accelerate) {
-      speeds.target = speeds.max;
-    } else if (input.decelerate) {
-      speeds.target = speeds.min;
-    } else {
-      speeds.target = speeds.base;
+    if (mode === "guided") {
+      if (controls.isLocked) {
+        controls.unlock();
+      }
+
+      guidedAngle += delta * 0.12;
+      const radius = 1400;
+      const y = 260 + Math.sin(guidedAngle * 0.4) * 35;
+      camera.position.set(Math.cos(guidedAngle) * radius, y, Math.sin(guidedAngle) * radius);
+      lookTarget.set(0, 180, 0);
+      camera.lookAt(lookTarget);
+      return;
     }
 
-    // Smooth intersection to target speed
+    if (mode === "accessibility") {
+      if (controls.isLocked) controls.unlock();
+      speeds.target = speeds.accessibility;
+    } else {
+      if (input.accelerate) {
+        speeds.target = speeds.max;
+      } else if (input.decelerate) {
+        speeds.target = speeds.min;
+      } else {
+        speeds.target = speeds.base;
+      }
+    }
+
     speeds.current += (speeds.target - speeds.current) * delta * 2.0;
 
-    // 2. Handle Direction (Strafe uses standard logic)
     direction.set(0, 0, 0);
-
-    // Constant forward motion
     direction.z = 1;
-
-    // Strafing
     if (input.strafeLeft) direction.x = -1;
     if (input.strafeRight) direction.x = 1;
+    if (direction.lengthSq() > 0) direction.normalize();
 
-    // Normalize (so strafing doesn't boost forward speed weirdly, though forward is dominant)
-    if (direction.lengthSq() > 0) {
-      direction.normalize();
-    }
-
-    // 3. Move Camera
-    // Get camera forward/right vectors
-    const camForward = new THREE.Vector3();
     camera.getWorldDirection(camForward);
-    const camRight = new THREE.Vector3().crossVectors(camForward, camera.up).normalize();
+    camRight.crossVectors(camForward, camera.up).normalize();
 
-    // Apply movement defined by direction relative to camera look
-    // Forward (z=1) means move along camForward
-    // Strafe (x) means move along camRight
-
-    const moveVector = new THREE.Vector3();
+    moveVector.set(0, 0, 0);
     moveVector.addScaledVector(camForward, direction.z * speeds.current * delta);
     moveVector.addScaledVector(camRight, direction.x * speeds.current * delta);
-
     camera.position.add(moveVector);
 
-    // 4. Apply Gentle Sway (Sine wave on local Y/X)
-    swayTime += delta * swaySpeed;
+    if (mode === "accessibility") {
+      const yawDelta = (input.turnLeft ? 1 : 0) - (input.turnRight ? 1 : 0);
+      if (yawDelta !== 0) {
+        const yawAxis = new THREE.Vector3(0, 1, 0);
+        camForward.applyAxisAngle(yawAxis, yawDelta * delta * 0.9);
+        lookTarget.copy(camera.position).add(camForward);
+        camera.lookAt(lookTarget);
+      }
+      return;
+    }
 
-    // Sway affects position slightly to simulate floating
+    swayTime += delta * swaySpeed;
     const swayY = Math.sin(swayTime) * delta * swayAmount;
     const swayX = Math.cos(swayTime * 0.7) * delta * swayAmount * 0.5;
-
-    // Apply sway relative to camera up and right
     camera.position.addScaledVector(camera.up, swayY);
     camera.position.addScaledVector(camRight, swayX);
+  };
 
-    // Optional: Gentle rotation sway (very subtle)
-    if (!controls.isLocked) {
-      // If not locked, maybe auto-rotate steer? 
-      // User didn't ask for auto-steer, just "constant forward motion".
-      // But "Target one of the links" implies initial look.
+  const setMode = (nextMode: ExperienceMode) => {
+    mode = nextMode;
+    if (mode !== "explorer" && controls.isLocked) {
+      controls.unlock();
     }
   };
 
   return {
     controls,
     update,
-    dispose,
+    setMode,
+    setPointerLockAllowed: (allowed: boolean) => {
+      pointerLockAllowed = allowed;
+      if (!allowed && controls.isLocked) controls.unlock();
+    },
+    dispose: () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+      domElement.removeEventListener("click", onClick);
+      controls.dispose();
+    },
   };
 };

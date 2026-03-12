@@ -315,6 +315,105 @@
       .nav-hub__error,
       .nav-hub__empty { font-size: 0.82rem; color: #c8d2e9; }
 
+
+      .experience-controls {
+        position: absolute;
+        top: 1rem;
+        left: 1rem;
+        z-index: 20;
+        pointer-events: auto;
+        width: min(360px, calc(100vw - 2rem));
+        padding: 0.75rem;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(8, 14, 26, 0.82);
+      }
+
+      .experience-controls__label,
+      .experience-controls__status {
+        margin: 0;
+        font-size: 0.76rem;
+        color: #cad6f3;
+      }
+
+      .experience-controls__modes {
+        margin: 0.5rem 0;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.35rem;
+      }
+
+      .experience-controls__mode,
+      .experience-controls__onboarding {
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        background: rgba(255, 255, 255, 0.05);
+        color: #edf3ff;
+        padding: 0.42rem 0.55rem;
+        font-size: 0.74rem;
+        cursor: pointer;
+      }
+
+      .experience-controls__mode.is-active {
+        background: rgba(124, 177, 255, 0.26);
+        border-color: rgba(156, 201, 255, 0.85);
+      }
+
+      .experience-controls__onboarding {
+        margin-top: 0.45rem;
+        width: 100%;
+      }
+
+      .onboarding-modal {
+        position: absolute;
+        inset: 0;
+        z-index: 35;
+        pointer-events: auto;
+        display: grid;
+        place-items: center;
+        background: rgba(0, 0, 0, 0.6);
+        padding: 1rem;
+      }
+
+      .onboarding-modal[hidden] {
+        display: none;
+      }
+
+      .onboarding-modal__panel {
+        width: min(620px, 100%);
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(10, 16, 30, 0.95);
+        padding: 1rem;
+        display: grid;
+        gap: 0.7rem;
+      }
+
+      .onboarding-modal__title { margin: 0; font-size: 1.1rem; }
+      .onboarding-modal__instructions { margin: 0; font-size: 0.88rem; color: #ced8ef; line-height: 1.5; }
+      .onboarding-modal__cta,
+      .onboarding-modal__secondary {
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.24);
+        background: rgba(255, 255, 255, 0.08);
+        color: #f2f6ff;
+        padding: 0.55rem 0.75rem;
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .onboarding-modal__cta {
+        background: rgba(111, 163, 255, 0.28);
+      }
+
+      .onboarding-modal__never {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.84rem;
+        color: #c9d5f0;
+      }
+
       @media (max-width: 900px) {
         .hero-overlay {
           padding: 1rem;
