@@ -23,7 +23,7 @@ export const createOnboardingModal = ({
   backdrop.hidden = true;
 
   const panel = document.createElement("div");
-  panel.className = "onboarding-modal__panel";
+  panel.className = "onboarding-modal__panel ui-card ui-panel";
   panel.setAttribute("role", "dialog");
   panel.setAttribute("aria-modal", "true");
   panel.setAttribute("aria-labelledby", "onboarding-modal-title");
@@ -40,12 +40,12 @@ export const createOnboardingModal = ({
 
   const consent = document.createElement("button");
   consent.type = "button";
-  consent.className = "onboarding-modal__cta";
+  consent.className = "onboarding-modal__cta ui-button";
   consent.textContent = "I consent to pointer lock (Explorer mode)";
 
   const skip = document.createElement("button");
   skip.type = "button";
-  skip.className = "onboarding-modal__secondary";
+  skip.className = "onboarding-modal__secondary ui-button";
   skip.textContent = "Skip for now";
 
   const neverLabel = document.createElement("label");
@@ -57,7 +57,7 @@ export const createOnboardingModal = ({
 
   const close = document.createElement("button");
   close.type = "button";
-  close.className = "onboarding-modal__secondary";
+  close.className = "onboarding-modal__secondary ui-button";
   close.textContent = "Close";
 
   panel.append(title, instructions, consent, skip, neverLabel, close);

@@ -38,7 +38,7 @@ const createGroupSection = (group: NavGroup, pages: PageEntry[]): HTMLElement =>
   section.append(heading);
 
   if (pages.length === 0) {
-    section.append(createElement("p", "nav-hub__empty", "No destinations currently published in this section."));
+    section.append(createElement("p", "nav-hub__empty ui-toast", "No destinations currently published in this section."));
     return section;
   }
 
@@ -55,7 +55,7 @@ const createGroupSection = (group: NavGroup, pages: PageEntry[]): HTMLElement =>
 
     const titleWrap = createElement("span", "nav-hub__title-wrap");
     const title = createElement("span", "nav-hub__item-title", page.title);
-    const badge = createElement("span", "nav-hub__badge", page.statusBadge);
+    const badge = createElement("span", "nav-hub__badge ui-badge", page.statusBadge);
     badge.setAttribute("aria-label", `Status: ${page.statusBadge}`);
 
     const meta = createElement("span", "nav-hub__meta", buildPageMeta(page));
@@ -72,7 +72,7 @@ const createGroupSection = (group: NavGroup, pages: PageEntry[]): HTMLElement =>
 };
 
 export const createNavigationHub = ({ root }: { root: HTMLElement }): NavigationHubController => {
-  const trigger = createElement("button", "nav-hub__trigger", "Destinations");
+  const trigger = createElement("button", "nav-hub__trigger ui-button", "Destinations");
   trigger.type = "button";
   trigger.setAttribute("aria-haspopup", "dialog");
   trigger.setAttribute("aria-expanded", "false");
@@ -80,7 +80,7 @@ export const createNavigationHub = ({ root }: { root: HTMLElement }): Navigation
   const backdrop = createElement("div", "nav-hub__backdrop");
   backdrop.hidden = true;
 
-  const panel = createElement("section", "nav-hub");
+  const panel = createElement("section", "nav-hub ui-card ui-panel");
   panel.setAttribute("role", "dialog");
   panel.setAttribute("aria-modal", "true");
   panel.setAttribute("aria-labelledby", "nav-hub-title");
@@ -89,11 +89,11 @@ export const createNavigationHub = ({ root }: { root: HTMLElement }): Navigation
   const header = createElement("div", "nav-hub__header");
   const title = createElement("h2", "nav-hub__title", "Navigation Hub");
   title.id = "nav-hub-title";
-  const closeButton = createElement("button", "nav-hub__close", "Close");
+  const closeButton = createElement("button", "nav-hub__close ui-button", "Close");
   closeButton.type = "button";
 
   const content = createElement("div", "nav-hub__content");
-  content.append(createElement("p", "nav-hub__loading", "Loading destination index…"));
+  content.append(createElement("p", "nav-hub__loading ui-toast", "Loading destination index…"));
 
   header.append(title, closeButton);
   panel.append(header, content);
@@ -185,10 +185,10 @@ export const createNavigationHub = ({ root }: { root: HTMLElement }): Navigation
     content.innerHTML = "";
     const message = createElement(
       "p",
-      "nav-hub__error",
+      "nav-hub__error ui-toast",
       "Destination index unavailable. You can still use in-world 3D links while we retry loading pages.json."
     );
-    const retryButton = createElement("button", "nav-hub__retry", "Retry");
+    const retryButton = createElement("button", "nav-hub__retry ui-button", "Retry");
     retryButton.type = "button";
     retryButton.addEventListener("click", () => {
       void hydrate();
@@ -198,7 +198,7 @@ export const createNavigationHub = ({ root }: { root: HTMLElement }): Navigation
 
   const hydrate = async () => {
     content.innerHTML = "";
-    content.append(createElement("p", "nav-hub__loading", "Loading destination index…"));
+    content.append(createElement("p", "nav-hub__loading ui-toast", "Loading destination index…"));
 
     try {
       const pages = await loadPages();
