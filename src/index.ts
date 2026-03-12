@@ -1,7 +1,12 @@
 import * as THREE from "three";
 import Stats from "three/examples/jsm/libs/stats.module.js";
 
-import { createSelectiveBloomPostProcessing, BLOOM_LAYER } from "./effects/postprocessing.ts";
+import {
+  createSelectiveBloomPostProcessing,
+  BLOOM_LAYER,
+  QUALITY_PRESETS,
+  type QualityTier,
+} from "./effects/postprocessing.ts";
 
 import { createWeatherEffects } from "./effects/weather.ts";
 import { createFlyControls } from "./controls/fps.ts";
@@ -31,6 +36,109 @@ if (!uiRoot) {
   throw new Error("UI root not found");
 }
 
+type QualitySettings = {
+  tier: QualityTier;
+  source: "auto" | "manual";
+};
+
+type RenderMetrics = {
+  fps: number;
+  frameTimeMs: number;
+  drawCalls: number;
+  triangles: number;
+  points: number;
+  lines: number;
+  objectCount: number;
+  visibleLinks: number;
+  qualityTier: QualityTier;
+  qualitySource: "auto" | "manual";
+  qualityLevel: number;
+  bloomEnabled: boolean;
+  rainEnabled: boolean;
+};
+
+const QUALITY_SETTINGS_KEY = "invisible_acropolis_quality_settings";
+const QUALITY_TIERS: QualityTier[] = ["low", "medium", "high", "ultra"];
+const tierToLevel = (tier: QualityTier) => QUALITY_TIERS.indexOf(tier);
+const levelToTier = (level: number): QualityTier => QUALITY_TIERS[Math.max(0, Math.min(QUALITY_TIERS.length - 1, level))] ?? "high";
+
+const chooseQualityTierFromHardware = (): QualityTier => {
+  const nav = navigator as Navigator & {
+    deviceMemory?: number;
+    hardwareConcurrency?: number;
+    connection?: { effectiveType?: string; saveData?: boolean };
+  };
+  const cores = nav.hardwareConcurrency ?? 4;
+  const memory = nav.deviceMemory ?? 4;
+  const saveData = Boolean(nav.connection?.saveData);
+  const effectiveType = nav.connection?.effectiveType ?? "4g";
+
+  if (saveData || effectiveType === "2g" || memory <= 2 || cores <= 4) {
+    return "low";
+  }
+  if (effectiveType === "3g" || memory <= 4 || cores <= 6) {
+    return "medium";
+  }
+  if (memory >= 8 && cores >= 12) {
+    return "ultra";
+  }
+  return "high";
+};
+
+const loadQualitySettings = (): QualitySettings => {
+  try {
+    const saved = localStorage.getItem(QUALITY_SETTINGS_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved) as Partial<QualitySettings>;
+      if (parsed.tier && QUALITY_TIERS.includes(parsed.tier)) {
+        return {
+          tier: parsed.tier,
+          source: parsed.source === "manual" ? "manual" : "auto",
+        };
+      }
+    }
+  } catch (error) {
+    console.warn("Failed to load quality settings", error);
+  }
+
+  return {
+    tier: chooseQualityTierFromHardware(),
+    source: "auto",
+  };
+};
+
+const saveQualitySettings = (qualitySettings: QualitySettings) => {
+  try {
+    localStorage.setItem(QUALITY_SETTINGS_KEY, JSON.stringify(qualitySettings));
+  } catch (error) {
+    console.warn("Failed to save quality settings", error);
+  }
+};
+
+const emitDebugMetrics = (() => {
+  let lastEmit = 0;
+  return (metrics: RenderMetrics) => {
+    const now = performance.now();
+    if (now - lastEmit < 1000) {
+      return;
+    }
+    lastEmit = now;
+
+    window.dispatchEvent(new CustomEvent("render-metrics", { detail: metrics }));
+    if ((window as Window & { __RENDER_DEBUG__?: boolean }).__RENDER_DEBUG__) {
+      console.debug("[render-metrics]", metrics);
+    }
+  };
+})();
+
+const qualitySettings = loadQualitySettings();
+let activeQualityTier: QualityTier = qualitySettings.tier;
+let qualitySource: "auto" | "manual" = qualitySettings.source;
+let targetQualityLevel = tierToLevel(activeQualityTier);
+let dynamicQualityLevel = targetQualityLevel;
+let bloomEnabled = true;
+let rainEnabled = QUALITY_PRESETS[activeQualityTier].rainEnabled;
+
 const renderer = new THREE.WebGLRenderer({
   canvas,
   antialias: false,
@@ -38,7 +146,7 @@ const renderer = new THREE.WebGLRenderer({
   powerPreference: "high-performance",
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, QUALITY_PRESETS[activeQualityTier].pixelRatioCap));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.2;
 
@@ -65,8 +173,32 @@ const experienceState = createExperienceStateMachine(loadExperienceState());
 const postProcessing = createSelectiveBloomPostProcessing({
   renderer,
   scene,
-  camera
+  camera,
+  qualityTier: activeQualityTier,
 });
+
+const applyQualityTier = (tier: QualityTier, source: "auto" | "manual", updateTarget = true) => {
+  activeQualityTier = tier;
+  qualitySource = source;
+  dynamicQualityLevel = tierToLevel(tier);
+  if (updateTarget) {
+    targetQualityLevel = dynamicQualityLevel;
+  }
+
+  const preset = QUALITY_PRESETS[tier];
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, preset.pixelRatioCap));
+  postProcessing.setQualityTier(tier);
+  bloomEnabled = true;
+  postProcessing.setBloomEnabled(true);
+  rainEnabled = preset.rainEnabled;
+  if (weather) {
+    weather.group.visible = rainEnabled;
+  }
+
+  saveQualitySettings({ tier, source });
+  experienceControls.setQualityTier(tier, source === "auto");
+};
+
 const enableBloom = (object: THREE.Object3D) => {
   object.layers.enable(BLOOM_LAYER);
   object.traverse((child) => {
@@ -109,7 +241,10 @@ const experienceControls = createExperienceControls({
     }
   },
   onOpenOnboarding: () => onboardingModal.open(),
+  onQualityChange: (tier) => applyQualityTier(tier, "manual"),
 });
+
+experienceControls.setQualityTier(activeQualityTier, qualitySource === "auto");
 
 const onboardingModal = createOnboardingModal({
   root: uiRoot,
@@ -315,31 +450,97 @@ const WORLD_SEED = 12345;
 const world = new THREE.Group();
 scene.add(world);
 
+let smoothedFrameTimeMs = 16.7;
+let lowFpsBudgetBreachCount = 0;
+let highFpsRecoveryCount = 0;
+let frameCounter = 0;
+let lastFrameAt = performance.now();
+
 const animate = () => {
-  // console.log("Animate frame");
-  const time = performance.now() * 0.001;
-  const delta = Math.min(0.05, 1 / 60); // Cap delta
+  const now = performance.now();
+  const frameDeltaSeconds = Math.min(0.05, (now - lastFrameAt) / 1000);
+  lastFrameAt = now;
+  const time = now * 0.001;
 
   stats.begin();
 
-  if (controls) controls.update(delta);
-  if (weather) weather.update(time, delta);
+  if (controls) controls.update(frameDeltaSeconds);
+  if (weather && rainEnabled) weather.update(time, frameDeltaSeconds);
 
   if (sky) sky.update(time);
 
   if (linksScene) linksScene.updateVisibility(camera);
   if (proximityEffect) proximityEffect.update(camera);
 
-  if (propsManager) {
-    // propsManager.update(time);
-  }
-
-  // Render with post-processing (Bloom, etc.)
   postProcessing.render();
 
-  if (Math.random() < 0.01) console.log("DEBUG: Rendering frame", camera.position);
-
   stats.end();
+
+  const frameTimeMs = Math.max(0.1, frameDeltaSeconds * 1000);
+  smoothedFrameTimeMs = smoothedFrameTimeMs * 0.9 + frameTimeMs * 0.1;
+  const fps = 1000 / smoothedFrameTimeMs;
+  const activeBudget = QUALITY_PRESETS[levelToTier(dynamicQualityLevel)].budget;
+
+  if (fps < (1000 / activeBudget.frameTimeMs) * 0.8) {
+    lowFpsBudgetBreachCount += 1;
+    highFpsRecoveryCount = 0;
+  } else if (fps > (1000 / activeBudget.frameTimeMs) * 1.1) {
+    highFpsRecoveryCount += 1;
+    lowFpsBudgetBreachCount = Math.max(0, lowFpsBudgetBreachCount - 1);
+  }
+
+  if (lowFpsBudgetBreachCount > 120 && qualitySource === "auto") {
+    if (rainEnabled) {
+      rainEnabled = false;
+      if (weather) {
+        weather.group.visible = false;
+      }
+    } else if (bloomEnabled) {
+      bloomEnabled = false;
+      postProcessing.setBloomEnabled(false);
+    } else if (dynamicQualityLevel > 0) {
+      dynamicQualityLevel -= 1;
+      const nextTier = levelToTier(dynamicQualityLevel);
+      applyQualityTier(nextTier, "auto", false);
+    }
+    lowFpsBudgetBreachCount = 0;
+  }
+
+  if (highFpsRecoveryCount > 240 && qualitySource === "auto") {
+    if (dynamicQualityLevel < targetQualityLevel) {
+      dynamicQualityLevel += 1;
+      applyQualityTier(levelToTier(dynamicQualityLevel), "auto", false);
+    }
+    if (!bloomEnabled) {
+      bloomEnabled = true;
+      postProcessing.setBloomEnabled(true);
+    }
+    if (!rainEnabled && QUALITY_PRESETS[activeQualityTier].rainEnabled) {
+      rainEnabled = true;
+      if (weather) {
+        weather.group.visible = true;
+      }
+    }
+    highFpsRecoveryCount = 0;
+  }
+
+  frameCounter += 1;
+  emitDebugMetrics({
+    fps,
+    frameTimeMs: smoothedFrameTimeMs,
+    drawCalls: renderer.info.render.calls,
+    triangles: renderer.info.render.triangles,
+    points: renderer.info.render.points,
+    lines: renderer.info.render.lines,
+    objectCount: world.children.length + scene.children.length,
+    visibleLinks: linksScene ? linksScene.labels.filter((label) => label.mesh.visible).length : 0,
+    qualityTier: activeQualityTier,
+    qualitySource,
+    qualityLevel: dynamicQualityLevel,
+    bloomEnabled,
+    rainEnabled,
+  });
+
   requestAnimationFrame(animate);
 };
 
@@ -352,7 +553,7 @@ window.addEventListener("resize", () => {
   camera.updateProjectionMatrix();
 
   renderer.setSize(width, height);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, QUALITY_PRESETS[activeQualityTier].pixelRatioCap));
 
   // Fix: use resize()
   postProcessing.resize(width, height);
@@ -367,6 +568,8 @@ const initialize = async () => {
   if (!currentExperienceState.onboardingSeen && !currentExperienceState.neverShowOnboarding) {
     onboardingModal.open();
   }
+
+  applyQualityTier(activeQualityTier, qualitySource);
 
   // Initial Generation
   console.log("Generating world...");
@@ -399,6 +602,7 @@ const initialize = async () => {
     fogDensity: 0.00025
   });
   if (weather) {
+    weather.group.visible = rainEnabled;
     scene.add(weather.group);
   }
 
