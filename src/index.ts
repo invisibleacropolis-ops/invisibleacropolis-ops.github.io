@@ -15,6 +15,7 @@ import { createTerrainMeshFromHeightmap } from "./scene/terrain-heightmap.ts";
 import { WORLD_PALETTE } from "./scene/palette.ts";
 import { createDevPanel, type TerrainConfig, type DevSettings } from "./dev/devPanel.ts";
 import { createHeroOverlay } from "./ui/heroOverlay.ts";
+import { createNavigationHub } from "./ui/navigationHub.ts";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#scene");
 const uiRoot = document.querySelector<HTMLElement>(".ui");
@@ -86,6 +87,10 @@ const heroOverlay = createHeroOverlay({
   },
 });
 
+
+const navigationHub = createNavigationHub({
+  root: uiRoot,
+});
 controls.controls.addEventListener("lock", () => {
   heroOverlay.setLocked(true);
 });
@@ -400,6 +405,7 @@ const initialize = async () => {
 
   window.addEventListener("beforeunload", () => {
     heroOverlay.dispose();
+    navigationHub.dispose();
     controls.dispose();
   });
 

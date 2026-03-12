@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { FontLoader, Font } from "three/examples/jsm/loaders/FontLoader.js";
 import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry.js";
 
-import { loadPages, type PageEntry } from "../data/pages.ts";
+import { loadPages, sortPagesByPriority, type PageEntry } from "../data/pages.ts";
 import { WORLD_PALETTE } from "./palette.ts";
 import { createRng } from "./random.ts";
 
@@ -133,12 +133,17 @@ export const createLinks = async ({
   placementShape = "ring",
   placementRadius = 2000,
 }: LinksOptions): Promise<LinksScene> => {
-  const [font, pages] = await Promise.all([loadFont(), loadPages()]);
+  const font = await loadFont();
+  const pages = await loadPages().catch((error) => {
+    console.error("3D links failed to load pages.json", error);
+    return [] as PageEntry[];
+  });
+  const prioritizedPages = sortPagesByPriority(pages);
   const group = new THREE.Group();
   const labels: LinkLabel[] = [];
   const rng = createRng(seed ^ 0x9f3d);
 
-  if (pages.length === 0) {
+  if (prioritizedPages.length === 0) {
     return {
       group,
       labels,
@@ -150,9 +155,9 @@ export const createLinks = async ({
 
   const color = palette[4] ?? "#cdd9ff";
 
-  pages.forEach((page, index) => {
+  prioritizedPages.forEach((page, index) => {
 
-    const pos = getPlacementPosition(index, pages.length, placementShape, placementRadius, rng);
+    const pos = getPlacementPosition(index, prioritizedPages.length, placementShape, placementRadius, rng);
 
     // Get Terrain Height
     const y = heightAt ? heightAt(pos.x, pos.z) : 0;
@@ -168,6 +173,7 @@ export const createLinks = async ({
     mesh.scale.set(size, size, size);
 
     mesh.userData.linkUrl = page.url;
+    mesh.userData.priority = page.priority;
     mesh.userData.elevation = elevation;
     // Store exact terrain height for resize calculations
     mesh.userData.terrainY = y;
@@ -195,7 +201,7 @@ export const createLinks = async ({
   return {
     group,
     labels,
-    pagesCount: pages.length,
+    pagesCount: prioritizedPages.length,
     updateVisibility,
     setSize,
   };
