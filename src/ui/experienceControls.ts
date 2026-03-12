@@ -15,7 +15,7 @@ export const createExperienceControls = ({
   onOpenOnboarding: () => void;
 }): ExperienceControlsController => {
   const wrap = document.createElement("div");
-  wrap.className = "experience-controls";
+  wrap.className = "experience-controls ui-panel";
 
   const heading = document.createElement("p");
   heading.className = "experience-controls__label";
@@ -30,7 +30,7 @@ export const createExperienceControls = ({
   modes.forEach((mode) => {
     const button = document.createElement("button");
     button.type = "button";
-    button.className = "experience-controls__mode";
+    button.className = "experience-controls__mode ui-button";
     button.dataset.mode = mode;
     button.textContent = mode[0].toUpperCase() + mode.slice(1);
     button.addEventListener("click", () => onModeChange(mode));
@@ -43,7 +43,7 @@ export const createExperienceControls = ({
 
   const onboarding = document.createElement("button");
   onboarding.type = "button";
-  onboarding.className = "experience-controls__onboarding";
+  onboarding.className = "experience-controls__onboarding ui-button";
   onboarding.textContent = "Controls & onboarding";
   onboarding.addEventListener("click", onOpenOnboarding);
 
