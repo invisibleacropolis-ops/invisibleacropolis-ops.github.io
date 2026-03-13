@@ -466,7 +466,7 @@ const animate = () => {
   if (weather && rainEnabled) weather.update(time, frameDeltaSeconds);
 
   if (sky) sky.update(time);
-  if (asciiCloudField) asciiCloudField.update(time, frameDeltaSeconds);
+  if (asciiCloudField) asciiCloudField.update(time, frameDeltaSeconds, camera);
 
   atmosphereGroup.children.forEach((child, index) => {
     if (child instanceof THREE.Mesh && child.geometry instanceof THREE.SphereGeometry) {
@@ -606,17 +606,19 @@ const initialize = async () => {
 
   asciiCloudField = await createAsciiCloudField({
     seed: WORLD_SEED + 77,
-    layerCount: 5,
-    clustersPerLayer: 8,
-    glyphsPerCluster: 18,
-    wispGlyphsPerCluster: 6,
+    layerCount: 4,
+    sigilsPerLayer: 4,
+    glyphsPerSigil: 35,
     terrainWidth: settings.terrain!.size,
     terrainDepth: settings.terrain!.size,
     baseAltitude: 350,
     verticalSpacing: 120,
-    glyphSizeMin: 12,
-    glyphSizeMax: 36,
-    extrudeDepth: 3,
+    sigilScaleMin: 80,
+    sigilScaleMax: 180,
+    glyphSizeMin: 10,
+    glyphSizeMax: 32,
+    extrudeDepth: 2.5,
+    cullDistance: 5000,
   });
   enableBloom(asciiCloudField.group);
   world.add(asciiCloudField.group);
