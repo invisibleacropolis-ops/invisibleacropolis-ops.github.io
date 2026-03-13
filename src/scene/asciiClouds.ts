@@ -10,9 +10,38 @@ import { FontLoader } from "three/examples/jsm/loaders/FontLoader.js";
    Frustum + distance culling keep performance tight.
    ═══════════════════════════════════════════════════════════════ */
 
+/** Runtime-tunable parameters (mutate these directly; update loop reads every frame) */
+export type AsciiCloudRuntimeParams = {
+  // ── Size & Scale ──
+  sigilScaleMul: number;      // multiplier on sigil formation size
+  glyphScaleMul: number;      // multiplier on individual glyph size
+  altitudeOffset: number;     // added to each sigil's base altitude
+  layerSpreadMul: number;     // multiplier on vertical spacing between layers
+  // ── Motion ──
+  driftSpeedMul: number;      // multiplier on lateral drift velocity
+  windStrengthMul: number;    // multiplier on wind force
+  waveSpeedMul: number;       // multiplier on vertical oscillation speed
+  waveAmplitudeMul: number;   // multiplier on vertical oscillation range
+  tumbleSpeedMul: number;     // multiplier on glyph rotation speed
+  bobAmplitude: number;       // vertical bob amplitude (world units)
+  // ── Formation ──
+  formSpeedMul: number;       // multiplier on form/dissolve rate (higher = faster)
+  stableDurationMul: number;  // multiplier on how long sigils hold formation
+  dormantDurationMul: number; // multiplier on dormant gap between cycles
+  scatterRadiusMul: number;   // multiplier on scatter distance for converge/spiral
+  staggerStrength: number;    // 0–2: how much centre-first stagger affects formation
+  // ── Appearance ──
+  opacityMul: number;         // overall opacity multiplier
+  breathDepth: number;        // 0–1: how strong the breathing animation is
+  mutationRateMul: number;    // multiplier on character mutation frequency
+  cullDistance: number;        // max render distance from camera
+};
+
 export type AsciiCloudField = {
   group: THREE.Group;
   update: (t: number, dt: number, camera: THREE.Camera) => void;
+  /** Live-tunable params — mutate freely, read every frame */
+  params: AsciiCloudRuntimeParams;
 };
 
 /* ── Sigil template slot ─────────────────────────────────────── */
@@ -479,70 +508,6 @@ export const createAsciiCloudField = async (
     g.mesh.rotation.z += (random() - 0.5) * 0.4;
   };
 
-  /* ── Formation T: how formed is this sigil (0 = scattered, 1 = formed) ── */
-
-  const getFormationT = (s: Sigil): number => {
-    switch (s.phase) {
-      case 0: return Math.min(1, s.phaseTimer / s.formDuration);
-      case 1: return 1;
-      case 2: return Math.max(0, 1 - s.phaseTimer / s.dissolveDuration);
-      default: return 0;
-    }
-  };
-
-  /* ── Compute glyph position based on formation method ──────── */
-
-  const computeGlyphPos = (g: AsciiGlyph, method: FormationMethod, formT: number): [number, number] => {
-    // Stagger: centre glyphs complete formation first
-    const staggeredT = Math.max(0, Math.min(1, (formT * 1.4 - g.stagger * 0.5) / (1.4 - g.stagger * 0.5)));
-
-    switch (method) {
-      case "converge": {
-        const e = easeOutCubic(staggeredT);
-        return [
-          g.homeX + g.scatterX * (1 - e),
-          g.homeY + g.scatterY * (1 - e),
-        ];
-      }
-      case "cascade": {
-        // Glyphs snap to home position, animation is in opacity/scale only
-        return [g.homeX, g.homeY];
-      }
-      case "spiral": {
-        const e = easeOutCubic(staggeredT);
-        const angle = (1 - e) * Math.PI * 2.5;
-        const drift = 1 - e;
-        const cos = Math.cos(angle), sin = Math.sin(angle);
-        return [
-          g.homeX + (g.scatterX * cos - g.scatterY * sin) * drift,
-          g.homeY + (g.scatterX * sin + g.scatterY * cos) * drift,
-        ];
-      }
-    }
-  };
-
-  /* ── Compute glyph opacity multiplier based on formation method ── */
-
-  const computeMethodOpacity = (g: AsciiGlyph, method: FormationMethod, formT: number): number => {
-    const staggeredT = Math.max(0, Math.min(1, (formT * 1.4 - g.stagger * 0.5) / (1.4 - g.stagger * 0.5)));
-    switch (method) {
-      case "converge": return smoothstep(0, 0.4, staggeredT);
-      case "cascade": return staggeredT > 0.02 ? smoothstep(0, 0.3, staggeredT) : 0;
-      case "spiral": return smoothstep(0, 0.5, staggeredT);
-    }
-  };
-
-  /* ── Compute glyph scale multiplier based on formation method ── */
-
-  const computeMethodScale = (g: AsciiGlyph, method: FormationMethod, formT: number): number => {
-    const staggeredT = Math.max(0, Math.min(1, (formT * 1.4 - g.stagger * 0.5) / (1.4 - g.stagger * 0.5)));
-    switch (method) {
-      case "converge": return 0.3 + easeOutCubic(staggeredT) * 0.7;
-      case "cascade": return staggeredT > 0.02 ? easeOutBack(Math.min(1, staggeredT)) : 0;
-      case "spiral": return 0.2 + easeOutCubic(staggeredT) * 0.8;
-    }
-  };
-
   /* ── Wrap coordinate for terrain recycling ──────────────────── */
 
   const wrap = (v: number, half: number) => {
@@ -551,11 +516,38 @@ export const createAsciiCloudField = async (
     return v;
   };
 
+  /* ── Runtime params (live-tunable every frame) ──────────────── */
+
+  const params: AsciiCloudRuntimeParams = {
+    sigilScaleMul: 1,
+    glyphScaleMul: 1,
+    altitudeOffset: 0,
+    layerSpreadMul: 1,
+    driftSpeedMul: 1,
+    windStrengthMul: 1,
+    waveSpeedMul: 1,
+    waveAmplitudeMul: 1,
+    tumbleSpeedMul: 1,
+    bobAmplitude: 6,
+    formSpeedMul: 1,
+    stableDurationMul: 1,
+    dormantDurationMul: 1,
+    scatterRadiusMul: 1,
+    staggerStrength: 1,
+    opacityMul: 1,
+    breathDepth: 0.55,
+    mutationRateMul: 1,
+    cullDistance,
+  };
+
   /* ═══ Update Loop ═══════════════════════════════════════════ */
 
   return {
     group: rootGroup,
+    params,
     update: (t: number, dt: number, camera: THREE.Camera) => {
+      const p = params; // alias for brevity
+
       // ── Wind ──
       if (t >= wind.nextShiftAt) {
         wind.targetDirection += (random() - 0.5) * Math.PI * 0.7;
@@ -564,8 +556,8 @@ export const createAsciiCloudField = async (
       }
       wind.direction += (wind.targetDirection - wind.direction) * dt * 0.12;
       wind.strength += (wind.targetStrength - wind.strength) * dt * 0.15;
-      const windDX = Math.cos(wind.direction) * wind.strength;
-      const windDZ = Math.sin(wind.direction) * wind.strength;
+      const windDX = Math.cos(wind.direction) * wind.strength * p.windStrengthMul;
+      const windDZ = Math.sin(wind.direction) * wind.strength * p.windStrengthMul;
 
       // ── Build frustum once per frame ──
       _mat4.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
@@ -573,13 +565,15 @@ export const createAsciiCloudField = async (
       const camPos = camera.position;
 
       // ── Global breath ──
-      const breath = 0.72 + Math.sin(t * 0.38) * 0.14 + Math.sin(t * 0.17) * 0.14;
+      const breathRange = p.breathDepth * 0.28;
+      const breath = (1 - p.breathDepth * 0.28) + Math.sin(t * 0.38) * breathRange * 0.5 + Math.sin(t * 0.17) * breathRange * 0.5;
 
       // ── Update each sigil ──
       for (const sigil of sigils) {
-        // Drift
-        sigil.driftAccumX += (sigil.driftVX + windDX * sigil.windInfluence) * dt;
-        sigil.driftAccumZ += (sigil.driftVZ + windDZ * sigil.windInfluence) * dt;
+        // Drift (scaled by runtime param)
+        const driftMul = p.driftSpeedMul;
+        sigil.driftAccumX += (sigil.driftVX * driftMul + windDX * sigil.windInfluence) * dt;
+        sigil.driftAccumZ += (sigil.driftVZ * driftMul + windDZ * sigil.windInfluence) * dt;
 
         // Wrap at terrain edges
         let curX = sigil.worldX + sigil.driftAccumX;
@@ -593,30 +587,37 @@ export const createAsciiCloudField = async (
           curZ = sigil.worldZ + sigil.driftAccumZ;
         }
 
-        // Gentle vertical bob
-        const bobY = Math.sin(t * 0.25 + sigil.id * 1.7) * 6;
-        sigil.group.position.set(curX, sigil.altitude + bobY, curZ);
+        // Vertical position: base altitude + runtime offset + layer spread + bob
+        const layerAltitude = sigil.altitude + p.altitudeOffset + (sigil.layerIndex * verticalSpacing * (p.layerSpreadMul - 1));
+        const bobY = Math.sin(t * 0.25 + sigil.id * 1.7) * p.bobAmplitude;
+        sigil.group.position.set(curX, layerAltitude + bobY, curZ);
 
         // ── Frustum + distance culling ──
-        _vec3.set(curX, sigil.altitude + bobY, curZ);
+        _vec3.set(curX, layerAltitude + bobY, curZ);
         const dist = _vec3.distanceTo(camPos);
-        _sphere.set(_vec3, sigil.cullRadius);
-        sigil.inFrustum = dist < cullDistance && _frustum.intersectsSphere(_sphere);
+        const effectiveCullRadius = sigil.cullRadius * p.sigilScaleMul;
+        _sphere.set(_vec3, effectiveCullRadius);
+        sigil.inFrustum = dist < p.cullDistance && _frustum.intersectsSphere(_sphere);
         sigil.group.visible = sigil.inFrustum;
         if (!sigil.inFrustum) continue;
 
-        // ── Phase lifecycle ──
+        // ── Phase lifecycle (form speed affects form/dissolve, other multipliers for stable/dormant) ──
+        const effectiveFormDur = sigil.formDuration / p.formSpeedMul;
+        const effectiveDissolveDur = sigil.dissolveDuration / p.formSpeedMul;
+        const effectiveStableDur = sigil.stableDuration * p.stableDurationMul;
+        const effectiveDormantDur = sigil.dormantDuration * p.dormantDurationMul;
+
         sigil.phaseTimer += dt;
-        const totalCycle = sigil.formDuration + sigil.stableDuration + sigil.dissolveDuration + sigil.dormantDuration;
+        const totalCycle = effectiveFormDur + effectiveStableDur + effectiveDissolveDur + effectiveDormantDur;
         if (sigil.phaseTimer >= totalCycle) {
           sigil.phaseTimer = 0;
           sigil.phase = 0;
           reformSigil(sigil);
-        } else if (sigil.phaseTimer < sigil.formDuration) {
+        } else if (sigil.phaseTimer < effectiveFormDur) {
           sigil.phase = 0;
-        } else if (sigil.phaseTimer < sigil.formDuration + sigil.stableDuration) {
+        } else if (sigil.phaseTimer < effectiveFormDur + effectiveStableDur) {
           sigil.phase = 1;
-        } else if (sigil.phaseTimer < sigil.formDuration + sigil.stableDuration + sigil.dissolveDuration) {
+        } else if (sigil.phaseTimer < effectiveFormDur + effectiveStableDur + effectiveDissolveDur) {
           sigil.phase = 2;
         } else {
           sigil.phase = 3;
@@ -628,28 +629,73 @@ export const createAsciiCloudField = async (
           continue;
         }
 
-        const formT = getFormationT(sigil);
+        // Compute formationT using effective durations
+        let formT: number;
+        if (sigil.phase === 0) {
+          formT = Math.min(1, sigil.phaseTimer / effectiveFormDur);
+        } else if (sigil.phase === 1) {
+          formT = 1;
+        } else {
+          const dissolveElapsed = sigil.phaseTimer - effectiveFormDur - effectiveStableDur;
+          formT = Math.max(0, 1 - dissolveElapsed / effectiveDissolveDur);
+        }
+
         const method = sigil.formationMethod;
         const glyphs = sigilGlyphs[sigil.id]!;
+        const scaleMul = p.sigilScaleMul;
+        const scatterMul = p.scatterRadiusMul;
+        const staggerStr = p.staggerStrength;
 
         // ── Update glyphs within this sigil ──
         for (const g of glyphs) {
-          // Position from formation method
-          const [px, py] = computeGlyphPos(g, method, formT);
-          // Small per-glyph wave
-          const wave = Math.sin(t * g.waveSpeed + g.wavePhase) * g.waveAmp;
+          // Position from formation method (with runtime scatter/stagger scaling)
+          const staggeredT = Math.max(0, Math.min(1,
+            (formT * 1.4 - g.stagger * 0.5 * staggerStr) / (1.4 - g.stagger * 0.5 * staggerStr),
+          ));
+
+          let px: number, py: number;
+          switch (method) {
+            case "converge": {
+              const e = easeOutCubic(staggeredT);
+              px = g.homeX * scaleMul + g.scatterX * scatterMul * (1 - e);
+              py = g.homeY * scaleMul + g.scatterY * scatterMul * (1 - e);
+              break;
+            }
+            case "cascade": {
+              px = g.homeX * scaleMul;
+              py = g.homeY * scaleMul;
+              break;
+            }
+            case "spiral": {
+              const e = easeOutCubic(staggeredT);
+              const angle = (1 - e) * Math.PI * 2.5;
+              const drift = 1 - e;
+              const cos = Math.cos(angle), sin = Math.sin(angle);
+              px = g.homeX * scaleMul + (g.scatterX * cos - g.scatterY * sin) * scatterMul * drift;
+              py = g.homeY * scaleMul + (g.scatterX * sin + g.scatterY * cos) * scatterMul * drift;
+              break;
+            }
+          }
+
+          // Per-glyph wave
+          const wave = Math.sin(t * g.waveSpeed * p.waveSpeedMul + g.wavePhase) * g.waveAmp * p.waveAmplitudeMul;
           g.mesh.position.set(px, py + wave, 0);
 
           // Gentle tumble
-          g.mesh.rotation.z = g.baseRotZ + g.tumbleSpeed * t;
+          g.mesh.rotation.z = g.baseRotZ + g.tumbleSpeed * p.tumbleSpeedMul * t;
 
-          // ── Opacity ──
-          const methodOp = computeMethodOpacity(g, method, formT);
+          // ── Opacity (formation method + life + breath, scaled by runtime param) ──
+          let methodOp: number;
+          switch (method) {
+            case "converge": methodOp = smoothstep(0, 0.4, staggeredT); break;
+            case "cascade": methodOp = staggeredT > 0.02 ? smoothstep(0, 0.3, staggeredT) : 0; break;
+            case "spiral": methodOp = smoothstep(0, 0.5, staggeredT); break;
+          }
           const lifeT = (t - g.lifeStart) / g.lifeDuration;
           const lifeWave = 0.55 + Math.sin(lifeT * Math.PI * 2) * 0.45;
           let opacity = methodOp * lifeWave * breath;
           opacity *= 1.0 - g.layerIndex * 0.06;
-          opacity = Math.min(opacity * 0.65, 0.72);
+          opacity = Math.min(opacity * 0.65 * p.opacityMul, 0.85);
 
           const mat = g.mesh.material;
           if (mat instanceof THREE.MeshBasicMaterial) {
@@ -657,13 +703,20 @@ export const createAsciiCloudField = async (
           }
 
           // ── Scale ──
-          const methodSc = computeMethodScale(g, method, formT);
-          const scaleWave = 0.9 + Math.sin(t * g.waveSpeed * 0.4 + g.wavePhase) * 0.1;
-          g.mesh.scale.setScalar(g.baseScale * methodSc * scaleWave);
+          let methodSc: number;
+          switch (method) {
+            case "converge": methodSc = 0.3 + easeOutCubic(staggeredT) * 0.7; break;
+            case "cascade": methodSc = staggeredT > 0.02 ? easeOutBack(Math.min(1, staggeredT)) : 0; break;
+            case "spiral": methodSc = 0.2 + easeOutCubic(staggeredT) * 0.8; break;
+          }
+          const scaleWave = 0.9 + Math.sin(t * g.waveSpeed * p.waveSpeedMul * 0.4 + g.wavePhase) * 0.1;
+          g.mesh.scale.setScalar(g.baseScale * p.glyphScaleMul * methodSc * scaleWave);
 
-          // ── Mutation (only during stable phase) ──
+          // ── Mutation (only during stable phase, rate scaled by param) ──
           if (sigil.phase === 1 && t >= g.nextMutationAt) {
             mutateGlyph(g, t);
+            // Scale next mutation time by mutation rate
+            g.nextMutationAt = t + g.mutationCadence * (0.6 + random() * 0.8) / Math.max(0.1, p.mutationRateMul);
           }
         }
       }

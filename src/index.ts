@@ -19,7 +19,7 @@ import { createSky } from "./scene/sky.ts";
 import { createTerrainMeshFromHeightmap } from "./scene/terrain-heightmap.ts";
 
 import { WORLD_PALETTE } from "./scene/palette.ts";
-import { createDevPanel, type TerrainConfig, type DevSettings } from "./dev/devPanel.ts";
+import { createDevPanel, type TerrainConfig, type DevSettings, type AsciiCloudStructure } from "./dev/devPanel.ts";
 import { createNavigationHub } from "./ui/navigationHub.ts";
 import { createExperienceStateMachine, loadExperienceState, type ExperienceMode } from "./ui/experienceState.ts";
 import { createExperienceControls } from "./ui/experienceControls.ts";
@@ -604,24 +604,37 @@ const initialize = async () => {
   });
   world.add(sky.mesh);
 
-  asciiCloudField = await createAsciiCloudField({
-    seed: WORLD_SEED + 77,
+  const cloudStructure: AsciiCloudStructure = {
     layerCount: 4,
     sigilsPerLayer: 4,
     glyphsPerSigil: 35,
-    terrainWidth: settings.terrain!.size,
-    terrainDepth: settings.terrain!.size,
-    baseAltitude: 350,
-    verticalSpacing: 120,
-    sigilScaleMin: 80,
-    sigilScaleMax: 180,
-    glyphSizeMin: 10,
-    glyphSizeMax: 32,
-    extrudeDepth: 2.5,
-    cullDistance: 5000,
-  });
-  enableBloom(asciiCloudField.group);
-  world.add(asciiCloudField.group);
+  };
+
+  const buildCloudField = async (structure: AsciiCloudStructure) => {
+    if (asciiCloudField) {
+      asciiCloudField.group.removeFromParent();
+    }
+    asciiCloudField = await createAsciiCloudField({
+      seed: WORLD_SEED + 77,
+      layerCount: structure.layerCount,
+      sigilsPerLayer: structure.sigilsPerLayer,
+      glyphsPerSigil: structure.glyphsPerSigil,
+      terrainWidth: settings.terrain!.size,
+      terrainDepth: settings.terrain!.size,
+      baseAltitude: 350,
+      verticalSpacing: 120,
+      sigilScaleMin: 80,
+      sigilScaleMax: 180,
+      glyphSizeMin: 10,
+      glyphSizeMax: 32,
+      extrudeDepth: 2.5,
+      cullDistance: 5000,
+    });
+    enableBloom(asciiCloudField.group);
+    world.add(asciiCloudField.group);
+  };
+
+  await buildCloudField(cloudStructure);
 
   // Effects
   weather = createWeatherEffects({
@@ -708,7 +721,12 @@ const initialize = async () => {
     },
     onSaveDefaults: (currentSettings) => {
       saveSettings(currentSettings);
-    }
+    },
+    cloudParams: asciiCloudField?.params,
+    cloudStructure,
+    onCloudRebuild: (structure) => {
+      buildCloudField(structure);
+    },
   });
 
   const sceneReadyMs = performance.now();

@@ -1,6 +1,7 @@
 import GUI from "lil-gui";
 import type { PropsConfig } from "../scene/props.ts";
 import type { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
+import type { AsciiCloudRuntimeParams } from "../scene/asciiClouds.ts";
 
 export type TerrainConfig = {
     size: number;
@@ -17,6 +18,12 @@ export type LinksConfig = {
     size: number;
     placementRadius: number;
     placementShape: "ring" | "square" | "random";
+};
+
+export type AsciiCloudStructure = {
+    layerCount: number;
+    sigilsPerLayer: number;
+    glyphsPerSigil: number;
 };
 
 export type DevSettings = {
@@ -40,6 +47,12 @@ export type DevPanelOptions = {
     onLinkSizeChange?: (size: number) => void;
     onLinkLayoutChange?: (config: LinksConfig) => void;
     onSaveDefaults?: (settings: DevSettings) => void;
+    /** Live-tunable cloud params (mutated directly by sliders) */
+    cloudParams?: AsciiCloudRuntimeParams;
+    /** Structural cloud settings that require a rebuild */
+    cloudStructure?: AsciiCloudStructure;
+    /** Called when structural cloud params change (requires rebuild) */
+    onCloudRebuild?: (structure: AsciiCloudStructure) => void;
 };
 
 export const createDevPanel = ({
@@ -52,6 +65,9 @@ export const createDevPanel = ({
     onLinkSizeChange,
     onLinkLayoutChange,
     onSaveDefaults,
+    cloudParams,
+    cloudStructure,
+    onCloudRebuild,
 }: DevPanelOptions = {}) => {
     const gui = new GUI({ title: "Dev Panel", width: 300 });
     gui.close(); // Start collapsed
@@ -226,6 +242,125 @@ export const createDevPanel = ({
             .name("Gradient Skew (Bi-directional)")
             .onChange(() => { /* onChange handled in setter */ });
 
+    }
+
+    // ASCII Clouds folder
+    if (cloudParams) {
+        const cloudFolder = gui.addFolder("ASCII Clouds");
+        cloudFolder.close();
+
+        // ── Size & Scale ──
+        const sizeFolder = cloudFolder.addFolder("Size & Scale");
+        sizeFolder.close();
+
+        sizeFolder
+            .add(cloudParams, "sigilScaleMul", 0.1, 5, 0.05)
+            .name("Sigil Scale");
+
+        sizeFolder
+            .add(cloudParams, "glyphScaleMul", 0.1, 5, 0.05)
+            .name("Glyph Scale");
+
+        sizeFolder
+            .add(cloudParams, "altitudeOffset", -500, 800, 5)
+            .name("Altitude Offset");
+
+        sizeFolder
+            .add(cloudParams, "layerSpreadMul", 0, 4, 0.05)
+            .name("Layer Spread");
+
+        // ── Motion ──
+        const motionFolder = cloudFolder.addFolder("Motion");
+        motionFolder.close();
+
+        motionFolder
+            .add(cloudParams, "driftSpeedMul", 0, 10, 0.1)
+            .name("Drift Speed");
+
+        motionFolder
+            .add(cloudParams, "windStrengthMul", 0, 10, 0.1)
+            .name("Wind Strength");
+
+        motionFolder
+            .add(cloudParams, "waveSpeedMul", 0, 5, 0.05)
+            .name("Wave Speed");
+
+        motionFolder
+            .add(cloudParams, "waveAmplitudeMul", 0, 10, 0.1)
+            .name("Wave Amplitude");
+
+        motionFolder
+            .add(cloudParams, "tumbleSpeedMul", 0, 5, 0.05)
+            .name("Tumble Speed");
+
+        motionFolder
+            .add(cloudParams, "bobAmplitude", 0, 50, 0.5)
+            .name("Vertical Bob");
+
+        // ── Formation ──
+        const formFolder = cloudFolder.addFolder("Formation");
+        formFolder.close();
+
+        formFolder
+            .add(cloudParams, "formSpeedMul", 0.1, 8, 0.05)
+            .name("Form/Dissolve Speed");
+
+        formFolder
+            .add(cloudParams, "stableDurationMul", 0.05, 5, 0.05)
+            .name("Stable Duration");
+
+        formFolder
+            .add(cloudParams, "dormantDurationMul", 0, 5, 0.05)
+            .name("Dormant Duration");
+
+        formFolder
+            .add(cloudParams, "scatterRadiusMul", 0.1, 10, 0.1)
+            .name("Scatter Radius");
+
+        formFolder
+            .add(cloudParams, "staggerStrength", 0, 3, 0.05)
+            .name("Stagger Strength");
+
+        // ── Appearance ──
+        const appearFolder = cloudFolder.addFolder("Appearance");
+        appearFolder.close();
+
+        appearFolder
+            .add(cloudParams, "opacityMul", 0, 2, 0.01)
+            .name("Opacity");
+
+        appearFolder
+            .add(cloudParams, "breathDepth", 0, 1, 0.01)
+            .name("Breath Depth");
+
+        appearFolder
+            .add(cloudParams, "mutationRateMul", 0, 8, 0.1)
+            .name("Mutation Rate");
+
+        appearFolder
+            .add(cloudParams, "cullDistance", 500, 15000, 100)
+            .name("Cull Distance");
+
+        // ── Structure (requires rebuild) ──
+        if (cloudStructure && onCloudRebuild) {
+            const structFolder = cloudFolder.addFolder("Structure (rebuild)");
+            structFolder.close();
+
+            structFolder
+                .add(cloudStructure, "layerCount", 1, 8, 1)
+                .name("Layers")
+                .onFinishChange(() => onCloudRebuild(cloudStructure));
+
+            structFolder
+                .add(cloudStructure, "sigilsPerLayer", 1, 12, 1)
+                .name("Sigils / Layer")
+                .onFinishChange(() => onCloudRebuild(cloudStructure));
+
+            structFolder
+                .add(cloudStructure, "glyphsPerSigil", 5, 80, 1)
+                .name("Glyphs / Sigil")
+                .onFinishChange(() => onCloudRebuild(cloudStructure));
+        }
     }
 
     // Global Actions
