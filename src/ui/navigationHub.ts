@@ -29,7 +29,11 @@ const groupPages = (pages: PageEntry[]): Map<NavGroup, PageEntry[]> => {
 const buildPageMeta = (page: PageEntry): string =>
   `${page.category} · ${page.audience} · Priority ${page.priority}`;
 
-const createGroupSection = (group: NavGroup, pages: PageEntry[]): HTMLElement => {
+const createGroupSection = (
+  group: NavGroup,
+  pages: PageEntry[],
+  onLinkClick?: (page: PageEntry) => void
+): HTMLElement => {
   const section = createElement("section", "nav-hub__section");
   section.setAttribute("aria-labelledby", `nav-hub-group-${group}`);
 
@@ -49,6 +53,7 @@ const createGroupSection = (group: NavGroup, pages: PageEntry[]): HTMLElement =>
     const link = createElement("a", "nav-hub__link") as HTMLAnchorElement;
     link.href = page.url;
     link.setAttribute("data-priority", String(page.priority));
+    link.addEventListener("click", () => onLinkClick?.(page));
 
     const icon = createElement("span", "nav-hub__icon", page.iconToken);
     icon.setAttribute("aria-hidden", "true");
@@ -71,7 +76,13 @@ const createGroupSection = (group: NavGroup, pages: PageEntry[]): HTMLElement =>
   return section;
 };
 
-export const createNavigationHub = ({ root }: { root: HTMLElement }): NavigationHubController => {
+export const createNavigationHub = ({
+  root,
+  onLinkClick,
+}: {
+  root: HTMLElement;
+  onLinkClick?: (page: PageEntry) => void;
+}): NavigationHubController => {
   const trigger = createElement("button", "nav-hub__trigger ui-button", "Destinations");
   trigger.type = "button";
   trigger.setAttribute("aria-haspopup", "dialog");
@@ -206,7 +217,7 @@ export const createNavigationHub = ({ root }: { root: HTMLElement }): Navigation
       content.innerHTML = "";
       NAV_GROUPS.forEach((group) => {
         const items = grouped.get(group) ?? [];
-        content.append(createGroupSection(group, items));
+        content.append(createGroupSection(group, items, onLinkClick));
       });
     } catch (error) {
       console.error("Navigation hub failed to load pages", error);

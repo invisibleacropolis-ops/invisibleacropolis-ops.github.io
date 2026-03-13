@@ -3,6 +3,7 @@ export type HeroOverlayAction = "enter" | "explore";
 export type HeroOverlayOptions = {
   root: HTMLElement;
   onAction?: (action: HeroOverlayAction) => void;
+  onImpression?: (action: HeroOverlayAction) => void;
 };
 
 export type HeroOverlayController = {
@@ -13,7 +14,7 @@ export type HeroOverlayController = {
   dispose: () => void;
 };
 
-export const createHeroOverlay = ({ root, onAction }: HeroOverlayOptions): HeroOverlayController => {
+export const createHeroOverlay = ({ root, onAction, onImpression }: HeroOverlayOptions): HeroOverlayController => {
   const overlay = root.querySelector<HTMLElement>("[data-hero-overlay]");
   const affordance = root.querySelector<HTMLElement>("[data-overlay-affordance]");
   const actionButtons = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-overlay-action]"));
@@ -23,6 +24,16 @@ export const createHeroOverlay = ({ root, onAction }: HeroOverlayOptions): HeroO
   }
 
   let hasInteracted = false;
+  const impressedActions = new Set<HeroOverlayAction>();
+
+  const emitImpressions = () => {
+    actionButtons.forEach((button) => {
+      const action = button.dataset.overlayAction as HeroOverlayAction | undefined;
+      if (!action || impressedActions.has(action)) return;
+      impressedActions.add(action);
+      onImpression?.(action);
+    });
+  };
 
   const markInteracted = () => {
     if (hasInteracted) return;
@@ -33,6 +44,7 @@ export const createHeroOverlay = ({ root, onAction }: HeroOverlayOptions): HeroO
 
   const show = () => {
     overlay.classList.remove("is-hidden");
+    emitImpressions();
   };
 
   const hide = () => {

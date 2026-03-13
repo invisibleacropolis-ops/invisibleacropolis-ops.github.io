@@ -7,6 +7,8 @@ export type ExperienceControlsController = {
   dispose: () => void;
 };
 
+export type ModeChangeSource = "experience-controls";
+
 export const createExperienceControls = ({
   root,
   onModeChange,
@@ -14,7 +16,7 @@ export const createExperienceControls = ({
   onQualityChange,
 }: {
   root: HTMLElement;
-  onModeChange: (mode: ExperienceMode) => void;
+  onModeChange: (mode: ExperienceMode, source: ModeChangeSource) => void;
   onOpenOnboarding: () => void;
   onQualityChange: (tier: QualityTier) => void;
 }): ExperienceControlsController => {
@@ -37,7 +39,7 @@ export const createExperienceControls = ({
     button.className = "experience-controls__mode ui-button";
     button.dataset.mode = mode;
     button.textContent = mode[0].toUpperCase() + mode.slice(1);
-    button.addEventListener("click", () => onModeChange(mode));
+    button.addEventListener("click", () => onModeChange(mode, "experience-controls"));
     buttons.set(mode, button);
     row.append(button);
   });
