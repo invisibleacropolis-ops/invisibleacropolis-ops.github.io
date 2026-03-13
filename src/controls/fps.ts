@@ -35,9 +35,8 @@ export const createFlyControls = ({
   };
 
   let swayTime = 0;
-  let mode: ExperienceMode = "guided";
-  let pointerLockAllowed = false;
-  let guidedAngle = 0;
+  let mode: ExperienceMode = "explorer";
+  let pointerLockAllowed = true;
 
   const input = {
     accelerate: false,
@@ -81,20 +80,6 @@ export const createFlyControls = ({
   domElement.addEventListener("click", onClick);
 
   const update = (delta: number) => {
-    if (mode === "guided") {
-      if (controls.isLocked) {
-        controls.unlock();
-      }
-
-      guidedAngle += delta * 0.12;
-      const radius = 1400;
-      const y = 260 + Math.sin(guidedAngle * 0.4) * 35;
-      camera.position.set(Math.cos(guidedAngle) * radius, y, Math.sin(guidedAngle) * radius);
-      lookTarget.set(0, 180, 0);
-      camera.lookAt(lookTarget);
-      return;
-    }
-
     if (mode === "accessibility") {
       if (controls.isLocked) controls.unlock();
       speeds.target = speeds.accessibility;
@@ -136,8 +121,9 @@ export const createFlyControls = ({
     }
 
     swayTime += delta * swaySpeed;
-    const swayY = Math.sin(swayTime) * delta * swayAmount;
-    const swayX = Math.cos(swayTime * 0.7) * delta * swayAmount * 0.5;
+    const velocityFactor = THREE.MathUtils.clamp(speeds.current / speeds.base, 0.5, 2.5);
+    const swayY = Math.sin(swayTime * 1.25) * delta * swayAmount * velocityFactor;
+    const swayX = Math.cos(swayTime * 0.7) * delta * swayAmount * 0.5 * velocityFactor;
     camera.position.addScaledVector(camera.up, swayY);
     camera.position.addScaledVector(camRight, swayX);
   };

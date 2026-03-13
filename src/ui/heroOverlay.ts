@@ -19,8 +19,14 @@ export const createHeroOverlay = ({ root, onAction, onImpression }: HeroOverlayO
   const affordance = root.querySelector<HTMLElement>("[data-overlay-affordance]");
   const actionButtons = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-overlay-action]"));
 
-  if (!overlay || !affordance) {
-    throw new Error("Hero overlay markup is incomplete");
+  if (!overlay || !affordance || actionButtons.length === 0) {
+    return {
+      show: () => {},
+      hide: () => {},
+      markInteracted: () => {},
+      setLocked: () => {},
+      dispose: () => {},
+    };
   }
 
   let hasInteracted = false;

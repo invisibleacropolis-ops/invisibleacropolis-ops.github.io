@@ -27,7 +27,7 @@ export const createExperienceControls = ({
   heading.className = "experience-controls__label";
   heading.textContent = "Interaction mode";
 
-  const modes: ExperienceMode[] = ["guided", "explorer", "accessibility"];
+  const modes: ExperienceMode[] = ["explorer", "accessibility"];
   const buttons = new Map<ExperienceMode, HTMLButtonElement>();
 
   const row = document.createElement("div");
@@ -83,13 +83,7 @@ export const createExperienceControls = ({
   const status = document.createElement("p");
   status.className = "experience-controls__status";
 
-  const onboarding = document.createElement("button");
-  onboarding.type = "button";
-  onboarding.className = "experience-controls__onboarding ui-button";
-  onboarding.textContent = "Controls & onboarding";
-  onboarding.addEventListener("click", onOpenOnboarding);
-
-  wrap.append(heading, row, qualityLabel, qualityRow, status, onboarding);
+  wrap.append(heading, row, qualityLabel, qualityRow, status);
   root.append(wrap);
 
   return {
@@ -101,10 +95,8 @@ export const createExperienceControls = ({
       });
 
       const lockStatus = state.mode === "explorer"
-        ? state.pointerLockConsent
-          ? "Pointer lock enabled. Click Enter Platform to lock camera."
-          : "Explorer mode requires consent for pointer lock."
-        : "Pointer lock disabled in this mode.";
+        ? "Pointer lock active. Click in canvas to lock camera."
+        : "Pointer lock disabled in accessibility mode.";
       status.textContent = lockStatus;
     },
     setQualityTier: (qualityTier, isAuto) => {
@@ -113,7 +105,6 @@ export const createExperienceControls = ({
     },
     dispose: () => {
       qualitySelect.removeEventListener("change", handleQualityChange);
-      onboarding.removeEventListener("click", onOpenOnboarding);
       buttons.forEach((button) => button.remove());
       wrap.remove();
     },
