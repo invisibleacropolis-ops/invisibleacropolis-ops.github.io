@@ -606,11 +606,15 @@ const initialize = async () => {
 
   asciiCloudField = await createAsciiCloudField({
     seed: WORLD_SEED + 77,
-    layerCount: 4,
-    glyphsPerLayer: 84,
+    layerCount: 5,
+    clustersPerLayer: 8,
+    glyphsPerCluster: 18,
+    wispGlyphsPerCluster: 6,
     baseRadius: 1200,
-    glyphSize: 22,
-    verticalSpacing: 115,
+    glyphSizeMin: 12,
+    glyphSizeMax: 36,
+    extrudeDepth: 3,
+    verticalSpacing: 130,
   });
   enableBloom(asciiCloudField.group);
   world.add(asciiCloudField.group);
