@@ -24,6 +24,13 @@ import { createNavigationHub } from "./ui/navigationHub.ts";
 import { createExperienceStateMachine, loadExperienceState, type ExperienceMode } from "./ui/experienceState.ts";
 import { createExperienceControls } from "./ui/experienceControls.ts";
 import { createOnboardingModal } from "./ui/onboardingModal.ts";
+import {
+  createAnalyticsClient,
+  createConsoleAnalyticsProvider,
+  createDataLayerAnalyticsProvider,
+  createWindowEventAnalyticsProvider,
+} from "./telemetry/analytics.ts";
+import { createSessionDepthTracker } from "./ui/sessionDepthTracker.ts";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#scene");
 const uiRoot = document.querySelector<HTMLElement>(".ui");
@@ -34,6 +41,15 @@ if (!canvas) {
 
 if (!uiRoot) {
   throw new Error("UI root not found");
+}
+
+const appStartMs = performance.now();
+const analytics = createAnalyticsClient([
+  createWindowEventAnalyticsProvider(),
+  createDataLayerAnalyticsProvider(),
+]);
+if ((window as Window & { __RENDER_DEBUG__?: boolean }).__RENDER_DEBUG__) {
+  analytics.addProvider(createConsoleAnalyticsProvider());
 }
 
 type QualitySettings = {
@@ -211,9 +227,26 @@ document.body.appendChild(stats.dom);
 
 const heroOverlay = createHeroOverlay({
   root: uiRoot,
+  onImpression: (action) => {
+    analytics.track("cta_impression", {
+      ctaId: action,
+      placement: "hero-overlay",
+    });
+  },
   onAction: (action) => {
+    analytics.track("cta_click", {
+      ctaId: action,
+      placement: "hero-overlay",
+    });
+
     if (action === "enter") {
+      const previousMode = experienceState.getState().mode;
       experienceState.dispatch({ type: "set-mode", mode: "explorer" });
+      analytics.track("mode_selected", {
+        mode: "explorer",
+        previousMode,
+        source: "hero-overlay",
+      });
       if (!experienceState.getState().pointerLockConsent) {
         onboardingModal.open();
         return;
@@ -231,11 +264,25 @@ const heroOverlay = createHeroOverlay({
 
 const navigationHub = createNavigationHub({
   root: uiRoot,
+  onLinkClick: (page) => {
+    analytics.track("link_interaction", {
+      url: page.url,
+      origin: "navigation-hub",
+      status: "success",
+    });
+    sessionDepth.recordPageVisit(page.url);
+  },
 });
 const experienceControls = createExperienceControls({
   root: uiRoot,
-  onModeChange: (mode: ExperienceMode) => {
+  onModeChange: (mode: ExperienceMode, source) => {
+    const previousMode = experienceState.getState().mode;
     experienceState.dispatch({ type: "set-mode", mode });
+    analytics.track("mode_selected", {
+      mode,
+      previousMode,
+      source,
+    });
     if (mode === "explorer" && !experienceState.getState().pointerLockConsent) {
       onboardingModal.open();
     }
@@ -245,6 +292,8 @@ const experienceControls = createExperienceControls({
 });
 
 experienceControls.setQualityTier(activeQualityTier, qualitySource === "auto");
+const uiReadyMs = performance.now();
+const sessionDepth = createSessionDepthTracker(analytics);
 
 const onboardingModal = createOnboardingModal({
   root: uiRoot,
@@ -626,7 +675,23 @@ const initialize = async () => {
         if (intersects.length > 0) {
           const mesh = intersects[0].object as THREE.Mesh;
           if (mesh.userData.linkUrl) {
-            window.open(mesh.userData.linkUrl, "_self");
+            const targetUrl = String(mesh.userData.linkUrl);
+            try {
+              analytics.track("link_interaction", {
+                url: targetUrl,
+                origin: "world-link",
+                status: "success",
+              });
+              sessionDepth.recordPageVisit(targetUrl);
+              window.open(targetUrl, "_self");
+            } catch (error) {
+              analytics.track("link_interaction", {
+                url: targetUrl,
+                origin: "world-link",
+                status: "failure",
+                reason: error instanceof Error ? error.message : "window-open-failed",
+              });
+            }
           }
         }
       }
@@ -668,7 +733,18 @@ const initialize = async () => {
     }
   });
 
+  const sceneReadyMs = performance.now();
+  analytics.track("first_meaningful_paint", {
+    appStartMs,
+    uiReadyMs,
+    sceneReadyMs,
+    meaningfulPaintMs: sceneReadyMs - appStartMs,
+    qualityTier: activeQualityTier,
+    qualitySource,
+  });
+
   window.addEventListener("beforeunload", () => {
+    sessionDepth.dispose();
     heroOverlay.dispose();
     navigationHub.dispose();
     experienceControls.dispose();
