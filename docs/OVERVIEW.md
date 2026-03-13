@@ -31,3 +31,8 @@ Invisible Acropolis is a 3D procedural web experience built with **Three.js** an
     ```bash
     npm run build
     ```
+
+## Implementation specs
+
+- Product spec index for external engineers: [`docs/INDEX_PRODUCT_SPEC.md`](./INDEX_PRODUCT_SPEC.md)
+- IA/data contract details: [`docs/INDEX_DATA.md`](./INDEX_DATA.md)
