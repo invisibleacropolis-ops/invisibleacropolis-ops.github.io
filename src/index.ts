@@ -610,11 +610,13 @@ const initialize = async () => {
     clustersPerLayer: 8,
     glyphsPerCluster: 18,
     wispGlyphsPerCluster: 6,
-    baseRadius: 1200,
+    terrainWidth: settings.terrain!.size,
+    terrainDepth: settings.terrain!.size,
+    baseAltitude: 350,
+    verticalSpacing: 120,
     glyphSizeMin: 12,
     glyphSizeMax: 36,
     extrudeDepth: 3,
-    verticalSpacing: 130,
   });
   enableBloom(asciiCloudField.group);
   world.add(asciiCloudField.group);
