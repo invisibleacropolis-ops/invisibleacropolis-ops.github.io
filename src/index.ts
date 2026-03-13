@@ -14,6 +14,7 @@ import { createProximityEffect } from "./effects/proximityEffect.ts";
 import { createLinks } from "./scene/links.ts";
 
 import { createPropsManager } from "./scene/props.ts";
+import { createAsciiCloudField } from "./scene/asciiClouds.ts";
 import { createSky } from "./scene/sky.ts";
 import { createTerrainMeshFromHeightmap } from "./scene/terrain-heightmap.ts";
 
@@ -265,6 +266,7 @@ let terrain: Awaited<ReturnType<typeof createTerrainMeshFromHeightmap>> | null =
 let propsManager: ReturnType<typeof createPropsManager> | null = null;
 
 let sky: ReturnType<typeof createSky> | null = null;
+let asciiCloudField: Awaited<ReturnType<typeof createAsciiCloudField>> | null = null;
 let linksScene: Awaited<ReturnType<typeof createLinks>> | null = null;
 let proximityEffect: ReturnType<typeof createProximityEffect> | null = null;
 
@@ -464,6 +466,7 @@ const animate = () => {
   if (weather && rainEnabled) weather.update(time, frameDeltaSeconds);
 
   if (sky) sky.update(time);
+  if (asciiCloudField) asciiCloudField.update(time, frameDeltaSeconds);
 
   atmosphereGroup.children.forEach((child, index) => {
     if (child instanceof THREE.Mesh && child.geometry instanceof THREE.SphereGeometry) {
@@ -600,6 +603,17 @@ const initialize = async () => {
     bottomColor: WORLD_PALETTE[1],
   });
   world.add(sky.mesh);
+
+  asciiCloudField = await createAsciiCloudField({
+    seed: WORLD_SEED + 77,
+    layerCount: 4,
+    glyphsPerLayer: 84,
+    baseRadius: 1200,
+    glyphSize: 22,
+    verticalSpacing: 115,
+  });
+  enableBloom(asciiCloudField.group);
+  world.add(asciiCloudField.group);
 
   // Effects
   weather = createWeatherEffects({
