@@ -19,11 +19,9 @@ import { createTerrainMeshFromHeightmap } from "./scene/terrain-heightmap.ts";
 
 import { WORLD_PALETTE } from "./scene/palette.ts";
 import { createDevPanel, type TerrainConfig, type DevSettings } from "./dev/devPanel.ts";
-import { createHeroOverlay } from "./ui/heroOverlay.ts";
 import { createNavigationHub } from "./ui/navigationHub.ts";
 import { createExperienceStateMachine, loadExperienceState, type ExperienceMode } from "./ui/experienceState.ts";
 import { createExperienceControls } from "./ui/experienceControls.ts";
-import { createOnboardingModal } from "./ui/onboardingModal.ts";
 import {
   createAnalyticsClient,
   createConsoleAnalyticsProvider,
@@ -225,43 +223,6 @@ const enableBloom = (object: THREE.Object3D) => {
 const stats = new Stats();
 document.body.appendChild(stats.dom);
 
-const heroOverlay = createHeroOverlay({
-  root: uiRoot,
-  onImpression: (action) => {
-    analytics.track("cta_impression", {
-      ctaId: action,
-      placement: "hero-overlay",
-    });
-  },
-  onAction: (action) => {
-    analytics.track("cta_click", {
-      ctaId: action,
-      placement: "hero-overlay",
-    });
-
-    if (action === "enter") {
-      const previousMode = experienceState.getState().mode;
-      experienceState.dispatch({ type: "set-mode", mode: "explorer" });
-      analytics.track("mode_selected", {
-        mode: "explorer",
-        previousMode,
-        source: "hero-overlay",
-      });
-      if (!experienceState.getState().pointerLockConsent) {
-        onboardingModal.open();
-        return;
-      }
-      controls.controls.lock();
-      return;
-    }
-
-    if (action === "explore") {
-      heroOverlay.hide();
-    }
-  },
-});
-
-
 const navigationHub = createNavigationHub({
   root: uiRoot,
   onLinkClick: (page) => {
@@ -283,11 +244,8 @@ const experienceControls = createExperienceControls({
       previousMode,
       source,
     });
-    if (mode === "explorer" && !experienceState.getState().pointerLockConsent) {
-      onboardingModal.open();
-    }
   },
-  onOpenOnboarding: () => onboardingModal.open(),
+  onOpenOnboarding: () => {},
   onQualityChange: (tier) => applyQualityTier(tier, "manual"),
 });
 
@@ -295,48 +253,11 @@ experienceControls.setQualityTier(activeQualityTier, qualitySource === "auto");
 const uiReadyMs = performance.now();
 const sessionDepth = createSessionDepthTracker(analytics);
 
-const onboardingModal = createOnboardingModal({
-  root: uiRoot,
-  onConsent: () => {
-    experienceState.dispatch({ type: "set-pointer-lock-consent", consent: true });
-    experienceState.dispatch({ type: "set-onboarding-seen", seen: true });
-    if (experienceState.getState().mode === "explorer") {
-      controls.controls.lock();
-    }
-  },
-  onSkip: (neverShowAgain) => {
-    experienceState.dispatch({ type: "set-onboarding-seen", seen: true });
-    experienceState.dispatch({ type: "set-never-show-onboarding", neverShow: neverShowAgain });
-    if (experienceState.getState().mode === "explorer" && !experienceState.getState().pointerLockConsent) {
-      experienceState.dispatch({ type: "set-mode", mode: "guided" });
-    }
-  },
-  onNeverShow: (neverShowAgain) => {
-    experienceState.dispatch({ type: "set-never-show-onboarding", neverShow: neverShowAgain });
-  },
-});
-
 experienceState.subscribe((state) => {
   controls.setMode(state.mode);
   controls.setPointerLockAllowed(state.pointerLockConsent);
-  onboardingModal.setState(state);
   experienceControls.setState(state);
 
-  if (state.mode === "guided") {
-    heroOverlay.show();
-  }
-
-  if (state.mode === "explorer" && !state.pointerLockConsent && !state.neverShowOnboarding) {
-    onboardingModal.open();
-  }
-});
-
-controls.controls.addEventListener("lock", () => {
-  heroOverlay.setLocked(true);
-});
-
-controls.controls.addEventListener("unlock", () => {
-  heroOverlay.setLocked(false);
 });
 
 // World Objects
@@ -499,6 +420,32 @@ const WORLD_SEED = 12345;
 const world = new THREE.Group();
 scene.add(world);
 
+const atmosphereGroup = new THREE.Group();
+world.add(atmosphereGroup);
+
+const createAtmosphericAccents = () => {
+  const ringGeo = new THREE.TorusGeometry(1450, 10, 16, 220);
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0x3a7dff, transparent: true, opacity: 0.35 });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.rotation.x = Math.PI * 0.5;
+  ring.position.y = 200;
+  enableBloom(ring);
+  atmosphereGroup.add(ring);
+
+  const beaconGeo = new THREE.SphereGeometry(10, 16, 16);
+  const beaconMat = new THREE.MeshBasicMaterial({ color: 0xb4ccff });
+  for (let i = 0; i < 18; i += 1) {
+    const beacon = new THREE.Mesh(beaconGeo, beaconMat.clone());
+    const a = (i / 18) * Math.PI * 2;
+    const r = 1200 + (i % 3) * 90;
+    beacon.position.set(Math.cos(a) * r, 160 + (i % 4) * 20, Math.sin(a) * r);
+    beacon.userData.phase = i * 0.37;
+    enableBloom(beacon);
+    atmosphereGroup.add(beacon);
+  }
+};
+createAtmosphericAccents();
+
 let smoothedFrameTimeMs = 16.7;
 let lowFpsBudgetBreachCount = 0;
 let highFpsRecoveryCount = 0;
@@ -517,6 +464,18 @@ const animate = () => {
   if (weather && rainEnabled) weather.update(time, frameDeltaSeconds);
 
   if (sky) sky.update(time);
+
+  atmosphereGroup.children.forEach((child, index) => {
+    if (child instanceof THREE.Mesh && child.geometry instanceof THREE.SphereGeometry) {
+      const phase = Number(child.userData.phase ?? 0);
+      child.position.y += Math.sin(time * 1.6 + phase) * 0.12;
+      const scale = 1 + Math.sin(time * 2.2 + phase) * 0.08;
+      child.scale.setScalar(scale);
+    }
+    if (index === 0) {
+      child.rotation.z += frameDeltaSeconds * 0.04;
+    }
+  });
 
   if (linksScene) linksScene.updateVisibility(camera);
   if (proximityEffect) proximityEffect.update(camera);
@@ -614,9 +573,6 @@ const initialize = async () => {
   const settings = loadSettings();
   const currentExperienceState = experienceState.getState();
 
-  if (!currentExperienceState.onboardingSeen && !currentExperienceState.neverShowOnboarding) {
-    onboardingModal.open();
-  }
 
   applyQualityTier(activeQualityTier, qualitySource);
 
@@ -745,10 +701,8 @@ const initialize = async () => {
 
   window.addEventListener("beforeunload", () => {
     sessionDepth.dispose();
-    heroOverlay.dispose();
     navigationHub.dispose();
     experienceControls.dispose();
-    onboardingModal.dispose();
     controls.dispose();
   });
 

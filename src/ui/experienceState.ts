@@ -1,4 +1,4 @@
-export type ExperienceMode = "guided" | "explorer" | "accessibility";
+export type ExperienceMode = "explorer" | "accessibility";
 
 export type ExperienceState = {
   mode: ExperienceMode;
@@ -16,14 +16,14 @@ type ExperienceAction =
 export const EXPERIENCE_STORAGE_KEY = "invisible_acropolis_experience_state";
 
 const initialState: ExperienceState = {
-  mode: "guided",
-  pointerLockConsent: false,
-  onboardingSeen: false,
-  neverShowOnboarding: false,
+  mode: "explorer",
+  pointerLockConsent: true,
+  onboardingSeen: true,
+  neverShowOnboarding: true,
 };
 
 const sanitizeMode = (value: unknown): ExperienceMode => {
-  if (value === "guided" || value === "explorer" || value === "accessibility") {
+  if (value === "explorer" || value === "accessibility") {
     return value;
   }
   return initialState.mode;
@@ -36,9 +36,9 @@ export const loadExperienceState = (): ExperienceState => {
     const parsed = JSON.parse(raw) as Partial<ExperienceState>;
     return {
       mode: sanitizeMode(parsed.mode),
-      pointerLockConsent: Boolean(parsed.pointerLockConsent),
-      onboardingSeen: Boolean(parsed.onboardingSeen),
-      neverShowOnboarding: Boolean(parsed.neverShowOnboarding),
+      pointerLockConsent: parsed.pointerLockConsent ?? true,
+      onboardingSeen: true,
+      neverShowOnboarding: true,
     };
   } catch (error) {
     console.warn("Failed to load experience state", error);

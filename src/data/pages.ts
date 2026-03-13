@@ -60,8 +60,19 @@ const parseEntry = (value: unknown): PageEntry => {
 export const sortPagesByPriority = (pages: PageEntry[]): PageEntry[] =>
   [...pages].sort((a, b) => a.priority - b.priority || a.title.localeCompare(b.title));
 
+export const resolveAppUrl = (url: string): string => {
+  if (/^https?:\/\//.test(url)) {
+    return url;
+  }
+
+  const normalized = url.startsWith("/") ? url.slice(1) : url;
+  const base = (import.meta.env.BASE_URL ?? "/").replace(/^\/+|\/+$/g, "");
+  const prefix = base ? `/${base}/` : "/";
+  return `${prefix}${normalized}`;
+};
+
 export const loadPages = async (): Promise<PageEntry[]> => {
-  const response = await fetch("/pages.json", { headers: { Accept: "application/json" } });
+  const response = await fetch(resolveAppUrl("/pages.json"), { headers: { Accept: "application/json" } });
 
   if (!response.ok) {
     throw new Error(`pages.json request failed: ${response.status}`);
@@ -73,6 +84,9 @@ export const loadPages = async (): Promise<PageEntry[]> => {
     throw new Error("pages.json payload must be an array.");
   }
 
-  const pages = data.map(parseEntry);
+  const pages = data.map(parseEntry).map((page) => ({
+    ...page,
+    url: resolveAppUrl(page.url),
+  }));
   return sortPagesByPriority(pages);
 };
