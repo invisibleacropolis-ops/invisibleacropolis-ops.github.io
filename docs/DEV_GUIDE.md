@@ -2,6 +2,16 @@
 
 The application includes a `lil-gui` panel for real-time tweaking of procedural parameters. Press `H` (default lil-gui behavior) or look for the "Dev Panel" in the top-right to expand it.
 
+
+## External implementation references
+
+Before changing navigation, interaction modes, or UI contracts, review:
+
+- Product specification: [`docs/INDEX_PRODUCT_SPEC.md`](./INDEX_PRODUCT_SPEC.md)
+- IA/data schema: [`docs/INDEX_DATA.md`](./INDEX_DATA.md)
+- Runtime architecture: [`docs/ARCHITECTURE.md`](./ARCHITECTURE.md)
+- Interaction behavior: [`docs/INTERACTIONS.md`](./INTERACTIONS.md)
+
 ## Sections
 
 ### Props
