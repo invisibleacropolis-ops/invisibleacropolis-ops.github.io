@@ -2,6 +2,89 @@
 
 This page is the entry point for the `docs/invisible-support/` documentation set. It maps each Home panel in `public/InvisibleSupport/index.html` to the feature modules that own behavior and state.
 
+## Startup architecture from `public/InvisibleSupport/src/main.js`
+
+### Module imports by layer
+
+`main.js` is a composition root that imports modules in explicit migration layers:
+
+1. **Shared infrastructure**
+   - `./shared/utils.js`
+   - `./shared/localization/index.js`
+   - `./shared/ui/notifications.js`
+   - `./shared/infrastructure/event-bus.js`
+   - `./shared/infrastructure/store.js`
+2. **Services / integrations**
+   - `./shared/services/github.js`
+   - `./shared/services/storage-manager.js`
+3. **Feature slices**
+   - Documents: `./features/documents/{store,viewer,library-view,upload}.js`
+   - Images: `./features/images/{store,viewer,gallery,upload}.js`
+   - Settings + storage UI: `./features/settings/github-settings.js`, `./features/storage/ui.js`
+4. **Shared UI component**
+   - `./shared/ui/split-pane.js`
+
+### Global exports for legacy compatibility (`window.*`)
+
+During migration away from inline scripts, `main.js` publishes selected modules on `window`:
+
+- `window.Utils`
+- `window.Localization`
+- `window.Notifications`
+- `window.EventBus`
+- `window.Store`
+- `window.GitHubIntegration`
+- `window.StorageManager`
+- `window.DocumentStore`
+- `window.ImageStore`
+- `window.DocumentViewer`
+- `window.ImageViewer`
+- `window.ImageGallery`
+- `window.LibraryView`
+
+After initialization, storage modal helpers are also exported:
+
+- `window.openStorageModal = StorageUI.openModal`
+- `window.closeStorageModal = StorageUI.closeModal`
+
+### Initialization order in `init()`
+
+`init()` executes in this exact sequence:
+
+1. `Localization.apply()`
+2. `GitHubSettings.init()`
+3. `StorageUI.init()`
+4. `DocumentViewer.init()`
+5. `LibraryView.init()`
+6. `UploadController.init()`
+7. `ImageViewer.init()`
+8. `ImageGallery.init()`
+9. `ImageUpload.init()`
+10. `SplitPane.init()`
+11. `initPanelToggles()`
+
+### DOM readiness guard
+
+Startup is protected by a `DOMContentLoaded` guard:
+
+- If `document.readyState === 'loading'`, register `document.addEventListener('DOMContentLoaded', init)`.
+- Otherwise, call `init()` immediately.
+
+This keeps initialization deterministic when scripts load either before or after the DOM is parsed.
+
+### Panel toggle behavior
+
+`initPanelToggles()` binds click handlers to every `[data-panel-toggle]` button.
+
+On click:
+
+1. Resolve nearest `.u-card` ancestor with `btn.closest('.u-card')`.
+2. Toggle `.is-collapsed` on that card (`card.classList.toggle('is-collapsed')`).
+3. Update button label to `Expand` when collapsed, otherwise `Collapse`.
+4. Update `aria-label` to `Expand panel` / `Collapse panel` for accessibility.
+
+The effective collapsed selector is `.u-card.is-collapsed`.
+
 ## Panel inventory (from `index.html` heading anchors)
 
 The Home page panel headings and anchor IDs are:
