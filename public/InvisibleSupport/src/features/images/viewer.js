@@ -174,17 +174,23 @@ function renderImage(image) {
 }
 
 async function copyCurrentLink() {
-    const image = currentId ? ImageStore.getImage(currentId) : null;
-    const link = getImageUrl(image) || linkInput?.value || '';
-    if (!link) {
-        return;
-    }
+    try {
+        const image = currentId ? ImageStore.getImage(currentId) : null;
+        const link = getImageUrl(image) || linkInput?.value || '';
+        if (!link) {
+            Notifications.toast(t('common.copyFailure'), 'error');
+            return;
+        }
 
-    const copied = await Utils.copyToClipboard(link);
-    Notifications.toast(
-        copied ? t('common.copySuccess') : t('common.copyFailure'),
-        copied ? 'success' : 'error'
-    );
+        const copied = await Utils.copyToClipboard(link);
+        Notifications.toast(
+            copied ? t('common.copySuccess') : t('common.copyFailure'),
+            copied ? 'success' : 'error'
+        );
+    } catch (err) {
+        console.warn('Copy failed', err);
+        Notifications.toast(t('common.copyFailure'), 'error');
+    }
 }
 
 export function init() {

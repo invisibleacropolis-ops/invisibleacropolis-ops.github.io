@@ -135,6 +135,16 @@ export function init() {
     searchInput?.addEventListener('input', e => { query = e.target.value.trim().toLowerCase(); render(); });
 
     rows?.addEventListener('click', e => {
+        const copyTarget = e.target.closest('[data-copy]');
+        if (copyTarget) {
+            const link = copyTarget.dataset.copy;
+            if (link) {
+                Utils.copyToClipboard(link)
+                    .then(ok => Notifications.toast(ok ? t('common.copySuccess') : t('common.copyFailure'), ok ? 'success' : 'error'))
+                    .catch(() => Notifications.toast(t('common.copyFailure'), 'error'));
+            }
+            return;
+        }
         const actionTarget = e.target.closest('[data-action]');
         if (!actionTarget) return;
         const row = actionTarget.closest('tr[data-id]');

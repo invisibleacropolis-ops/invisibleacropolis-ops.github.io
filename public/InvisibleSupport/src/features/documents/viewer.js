@@ -211,17 +211,23 @@ function updateMeta(doc) {
 }
 
 async function copyCurrentLink() {
-    const doc = currentId ? DocumentStore.getDocument(currentId) : null;
-    const link = getDocumentUrl(doc) || linkInput?.value || '';
-    if (!link) {
-        return;
-    }
+    try {
+        const doc = currentId ? DocumentStore.getDocument(currentId) : null;
+        const link = getDocumentUrl(doc) || linkInput?.value || '';
+        if (!link) {
+            Notifications.toast(t('common.copyFailure'), 'error');
+            return;
+        }
 
-    const copied = await Utils.copyToClipboard(link);
-    Notifications.toast(
-        copied ? t('common.copySuccess') : t('common.copyFailure'),
-        copied ? 'success' : 'error'
-    );
+        const copied = await Utils.copyToClipboard(link);
+        Notifications.toast(
+            copied ? t('common.copySuccess') : t('common.copyFailure'),
+            copied ? 'success' : 'error'
+        );
+    } catch (err) {
+        console.warn('Copy failed', err);
+        Notifications.toast(t('common.copyFailure'), 'error');
+    }
 }
 
 async function buildPreviewContent(doc) {
