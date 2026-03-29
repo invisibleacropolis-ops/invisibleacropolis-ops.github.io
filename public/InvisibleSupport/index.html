@@ -1,0 +1,2200 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Invisible Support Portal</title>
+    <style>
+      /*
+        Design tokens create a consistent visual system for engineers and designers.
+        Tokens are exposed as CSS custom properties so themes can be swapped or extended.
+      */
+      :root {
+        color-scheme: light dark;
+        --color-surface: #ffffff;
+        --color-surface-muted: #f5f7fa;
+        --color-elevated: #ffffffee;
+        --color-border: #d8dee6;
+        --color-text: #1c2333;
+        --color-text-muted: #546173;
+        --color-accent: #4b6bfb;
+        --color-accent-strong: #2e51f0;
+        --color-success: #3bb273;
+        --color-danger: #f25757;
+        --color-immersive: 200 56% 16%;
+
+        --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+        --font-mono: "JetBrains Mono", "SFMono-Regular", ui-monospace, monospace;
+
+        --space-2xs: 0.25rem;
+        --space-xs: 0.5rem;
+        --space-sm: 0.75rem;
+        --space-md: 1rem;
+        --space-lg: 1.5rem;
+        --space-xl: 2rem;
+        --space-2xl: 3rem;
+
+        --radius-sm: 0.5rem;
+        --radius-md: 0.75rem;
+        --radius-lg: 1.5rem;
+
+        --shadow-sm: 0 8px 20px rgba(28, 35, 51, 0.08);
+        --shadow-lg: 0 24px 60px rgba(28, 35, 51, 0.16);
+
+        --transition-base: 180ms ease;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --color-surface: #101321;
+          --color-surface-muted: #161a2d;
+          --color-elevated: rgba(18, 22, 38, 0.9);
+          --color-border: rgba(119, 131, 160, 0.3);
+          --color-text: #f5f7ff;
+          --color-text-muted: #a6b2d2;
+        }
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      html {
+        height: 100%;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: var(--font-sans);
+        background: var(--color-surface-muted);
+        color: var(--color-text);
+        overflow-y: auto;
+        overflow-x: hidden;
+        scrollbar-gutter: stable;
+      }
+
+      body::-webkit-scrollbar {
+        width: 0.75rem;
+      }
+
+      body::-webkit-scrollbar-track {
+        background: color-mix(in srgb, var(--color-surface-muted) 80%, transparent 20%);
+      }
+
+      body::-webkit-scrollbar-thumb {
+        background: color-mix(in srgb, var(--color-accent) 45%, transparent 55%);
+        border-radius: var(--radius-md);
+      }
+
+      .theme {
+        position: relative;
+        overflow-x: hidden;
+        overflow-y: visible;
+      }
+
+      .theme--immersive::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background: radial-gradient(
+            circle at 10% 20%,
+            hsla(var(--color-immersive) / 0.6) 0,
+            transparent 55%
+          ),
+          radial-gradient(
+            circle at 80% 10%,
+            hsla(220 60% 40% / 0.55) 0,
+            transparent 50%
+          ),
+          radial-gradient(
+            circle at 50% 100%,
+            hsla(260 65% 45% / 0.45) 0,
+            transparent 60%
+          );
+        pointer-events: none;
+        opacity: 0.9;
+        z-index: -2;
+      }
+
+      .theme--immersive::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background: linear-gradient(
+          180deg,
+          rgba(12, 16, 28, 0.35) 0%,
+          rgba(12, 16, 28, 0.1) 35%,
+          rgba(12, 16, 28, 0.65) 100%
+        );
+        mix-blend-mode: multiply;
+        pointer-events: none;
+        z-index: -1;
+      }
+
+      .portal {
+        position: relative;
+        padding: var(--space-2xl) clamp(var(--space-md), 6vw, var(--space-2xl));
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-xl);
+      }
+
+      .portal__header {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-sm);
+        max-width: 48rem;
+      }
+
+      .storage-meter {
+        display: grid;
+        gap: var(--space-xs);
+        padding: var(--space-sm) var(--space-md);
+        border-radius: var(--radius-md);
+        border: 1px solid color-mix(in srgb, var(--color-border) 75%, transparent 25%);
+        background: color-mix(in srgb, var(--color-surface) 88%, transparent 12%);
+        max-width: min(24rem, 100%);
+      }
+
+      .storage-meter__heading {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: var(--space-sm);
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--color-text-muted);
+      }
+
+      .storage-meter__values {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: var(--space-sm);
+        font-size: 0.9rem;
+        font-weight: 600;
+      }
+
+      .storage-meter__progress {
+        position: relative;
+        height: 0.5rem;
+        border-radius: var(--radius-md);
+        background: color-mix(in srgb, var(--color-border) 50%, transparent 50%);
+        overflow: hidden;
+      }
+
+      .storage-meter__progress-bar {
+        position: absolute;
+        inset: 0;
+        width: 0%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--color-accent), var(--color-accent-strong));
+        transition: width var(--transition-base);
+      }
+
+      .storage-meter.is-warning .storage-meter__progress-bar {
+        background: linear-gradient(90deg, var(--color-danger), color-mix(in srgb, var(--color-danger) 70%, var(--color-accent) 30%));
+      }
+
+      .storage-meter.is-exceeded .storage-meter__progress-bar {
+        background: var(--color-danger);
+      }
+
+      .storage-meter__warning {
+        margin: 0;
+        font-size: 0.85rem;
+        color: var(--color-danger);
+      }
+
+      .storage-meter__actions {
+        display: flex;
+        justify-content: flex-end;
+      }
+
+      .storage-meter__button {
+        font-size: 0.85rem;
+        padding: var(--space-2xs) var(--space-sm);
+      }
+
+      .portal__heading {
+        font-size: clamp(2rem, 3vw, 2.75rem);
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        margin: 0;
+      }
+
+      .portal__lede {
+        margin: 0;
+        color: var(--color-text-muted);
+        font-size: 1.05rem;
+        line-height: 1.6;
+      }
+
+      .portal__grid {
+        display: grid;
+        gap: var(--space-xl);
+      }
+
+      .portal__top-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
+        gap: var(--space-xl);
+        align-items: start;
+      }
+
+      @media (max-width: 640px) {
+        .portal__top-row {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* Split-pane: two panels separated by a draggable handle */
+      .split-pane {
+        display: flex;
+        align-items: stretch;
+        gap: 0;
+      }
+
+      .split-pane > :first-child {
+        width: var(--split-left, 50%);
+        flex-shrink: 0;
+        min-width: 0;
+        overflow: hidden;
+      }
+
+      .split-pane > :last-child {
+        flex: 1 1 0%;
+        min-width: 0;
+        overflow: hidden;
+      }
+
+      .split-pane__handle {
+        flex: 0 0 auto;
+        width: 22px;
+        cursor: col-resize;
+        background: transparent;
+        position: relative;
+        touch-action: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1;
+      }
+
+      .split-pane__handle::before {
+        content: '';
+        width: 4px;
+        height: 100%;
+        min-height: 4rem;
+        border-radius: 2px;
+        background: color-mix(in srgb, var(--color-border) 60%, transparent 40%);
+        transition: background-color var(--transition-base), width var(--transition-base);
+      }
+
+      .split-pane__handle::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 2px;
+        height: 2rem;
+        border-radius: 1px;
+        background: color-mix(in srgb, var(--color-text-muted) 40%, transparent 60%);
+        transition: background-color var(--transition-base), height var(--transition-base);
+      }
+
+      .split-pane__handle:hover::before,
+      .split-pane__handle.is-dragging::before {
+        width: 6px;
+        background: color-mix(in srgb, var(--color-accent) 55%, transparent 45%);
+      }
+
+      .split-pane__handle:hover::after,
+      .split-pane__handle.is-dragging::after {
+        background: var(--color-accent);
+        height: 3rem;
+      }
+
+      .split-pane__handle:focus-visible {
+        outline: 2px solid color-mix(in srgb, var(--color-accent) 65%, white 35%);
+        outline-offset: -2px;
+        border-radius: 3px;
+      }
+
+      @media (max-width: 960px) {
+        .split-pane {
+          flex-direction: column;
+          gap: var(--space-xl);
+        }
+
+        .split-pane > :first-child {
+          width: 100%;
+          flex-shrink: 1;
+        }
+
+        .split-pane__handle {
+          display: none;
+        }
+      }
+
+      /* Panel collapse toggle */
+      .panel-toggle {
+        appearance: none;
+        border: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent 40%);
+        background: color-mix(in srgb, var(--color-surface) 80%, transparent 20%);
+        border-radius: var(--radius-sm);
+        padding: var(--space-2xs) var(--space-xs);
+        font-size: 0.75rem;
+        color: var(--color-text-muted);
+        cursor: pointer;
+        transition: background-color var(--transition-base), color var(--transition-base);
+        margin-left: auto;
+      }
+
+      .panel-toggle:hover {
+        background: color-mix(in srgb, var(--color-accent) 12%, transparent 88%);
+        color: var(--color-accent-strong);
+      }
+
+      .u-card.is-collapsed > :not(.u-card__header) {
+        display: none;
+      }
+
+      .u-card.is-collapsed {
+        gap: 0;
+      }
+
+      .u-card__header-row {
+        display: flex;
+        align-items: center;
+        gap: var(--space-sm);
+      }
+
+      .image-portal {
+        display: grid;
+        gap: var(--space-xl);
+      }
+
+      .image-portal__header {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-sm);
+        max-width: 48rem;
+      }
+
+      .toast-stack {
+        position: fixed;
+        bottom: var(--space-xl);
+        right: var(--space-xl);
+        display: grid;
+        gap: var(--space-sm);
+        width: min(24rem, calc(100vw - 2 * var(--space-xl)));
+        z-index: 1000;
+        pointer-events: none;
+      }
+
+      .toast {
+        display: flex;
+        align-items: center;
+        gap: var(--space-sm);
+        border-radius: var(--radius-md);
+        padding: var(--space-sm) var(--space-md);
+        background: var(--color-elevated);
+        border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent 30%);
+        box-shadow: var(--shadow-sm);
+        color: var(--color-text);
+        opacity: 0;
+        transform: translateY(10px);
+        transition: opacity var(--transition-base), transform var(--transition-base);
+        pointer-events: auto;
+      }
+
+      .toast.is-visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .toast__icon {
+        font-size: 1.2rem;
+      }
+
+      .toast__message {
+        flex: 1 1 auto;
+      }
+
+      .toast__dismiss {
+        margin-left: auto;
+        appearance: none;
+        border: none;
+        background: transparent;
+        color: var(--color-text-muted);
+        font-weight: 600;
+        cursor: pointer;
+        padding: var(--space-2xs) var(--space-xs);
+      }
+
+      .toast__dismiss:hover {
+        color: var(--color-text);
+      }
+
+      .toast__dismiss:focus-visible {
+        outline: 2px solid color-mix(in srgb, var(--color-accent) 65%, white 35%);
+        outline-offset: 2px;
+        border-radius: var(--radius-sm);
+      }
+
+      .toast--success {
+        border-color: color-mix(in srgb, var(--color-success) 40%, transparent 60%);
+      }
+
+      .toast--success .toast__icon {
+        color: var(--color-success);
+      }
+
+      .toast--error {
+        border-color: color-mix(in srgb, var(--color-danger) 40%, transparent 60%);
+      }
+
+      .toast--error .toast__icon {
+        color: var(--color-danger);
+      }
+
+      .toast--info {
+        border-color: color-mix(in srgb, var(--color-accent) 40%, transparent 60%);
+      }
+
+      .toast--info .toast__icon {
+        color: var(--color-accent-strong);
+      }
+
+      @media (max-width: 640px) {
+        .toast-stack {
+          left: var(--space-md);
+          right: var(--space-md);
+          width: auto;
+          bottom: var(--space-lg);
+        }
+      }
+
+      /* Utility foundation */
+      .u-card {
+        background: var(--color-elevated);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--color-border);
+        box-shadow: var(--shadow-sm);
+        padding: var(--space-xl) clamp(var(--space-lg), 4vw, var(--space-xl));
+        backdrop-filter: blur(14px);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-lg);
+      }
+
+      .u-card__header {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-xs);
+      }
+
+      .u-card__title {
+        font-size: 1.35rem;
+        font-weight: 600;
+        margin: 0;
+      }
+
+      .u-card__subtitle {
+        margin: 0;
+        color: var(--color-text-muted);
+        font-size: 0.95rem;
+      }
+
+      .u-btn {
+        appearance: none;
+        border: none;
+        border-radius: var(--radius-md);
+        padding: var(--space-sm) var(--space-lg);
+        font-size: 0.95rem;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        cursor: pointer;
+        transition: transform var(--transition-base),
+          box-shadow var(--transition-base),
+          background-color var(--transition-base);
+      }
+
+      .u-btn--sm {
+        padding: var(--space-2xs) var(--space-sm);
+        font-size: 0.85rem;
+      }
+
+      .u-btn:focus-visible {
+        outline: 3px solid color-mix(in srgb, var(--color-accent) 60%, white 40%);
+        outline-offset: 2px;
+      }
+
+      .u-btn--primary {
+        background: linear-gradient(135deg, var(--color-accent), var(--color-accent-strong));
+        color: white;
+        box-shadow: 0 12px 24px rgba(75, 107, 251, 0.32);
+      }
+
+      .u-btn--primary:hover {
+        transform: translateY(-1px);
+      }
+
+      .u-btn--ghost {
+        background: color-mix(in srgb, var(--color-accent) 12%, transparent 88%);
+        color: var(--color-accent-strong);
+        border: 1px solid color-mix(in srgb, var(--color-accent) 40%, transparent 60%);
+      }
+
+      .u-input {
+        width: 100%;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--color-border);
+        background: color-mix(in srgb, var(--color-surface) 90%, transparent 10%);
+        padding: var(--space-sm) var(--space-md);
+        font-size: 1rem;
+        color: var(--color-text);
+        transition: border-color var(--transition-base), box-shadow var(--transition-base);
+      }
+
+      .u-input:focus {
+        border-color: color-mix(in srgb, var(--color-accent) 60%, var(--color-border) 40%);
+        box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-accent) 16%, transparent 84%);
+        outline: none;
+      }
+
+      .u-input[type="file"] {
+        padding: var(--space-sm);
+      }
+
+      .u-tabs {
+        display: flex;
+        gap: var(--space-xs);
+        border-radius: var(--radius-md);
+        background: color-mix(in srgb, var(--color-surface) 65%, transparent 35%);
+        padding: var(--space-2xs);
+      }
+
+      .u-tabs__trigger {
+        flex: 1 1 auto;
+        text-align: center;
+        padding: var(--space-sm) var(--space-md);
+        border-radius: var(--radius-md);
+        font-size: 0.9rem;
+        color: var(--color-text-muted);
+        cursor: pointer;
+        transition: background-color var(--transition-base), color var(--transition-base);
+      }
+
+      .u-tabs__trigger.is-active {
+        background: var(--color-surface);
+        color: var(--color-text);
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-border) 80%, transparent 20%);
+      }
+
+      .u-modal {
+        position: fixed;
+        inset: 0;
+        display: none;
+        place-items: center;
+        padding: var(--space-xl);
+        background: rgba(12, 16, 28, 0.45);
+        backdrop-filter: blur(10px);
+      }
+
+      .u-modal.is-open {
+        display: grid;
+      }
+
+      .storage-modal__summary {
+        border-top: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent 20%);
+        padding-top: var(--space-md);
+        display: grid;
+        gap: var(--space-md);
+      }
+
+      .storage-summary {
+        margin: 0;
+        display: grid;
+        gap: var(--space-xs);
+      }
+
+      .storage-summary__row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-sm);
+      }
+
+      .storage-summary__label {
+        font-size: 0.9rem;
+        color: var(--color-text-muted);
+      }
+
+      .storage-summary__value {
+        font-size: 0.95rem;
+        font-weight: 600;
+      }
+
+      .storage-breakdown {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: var(--space-xs);
+      }
+
+      .storage-breakdown__item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-sm);
+        font-size: 0.9rem;
+      }
+
+      .storage-breakdown__label {
+        color: var(--color-text-muted);
+      }
+
+      .storage-breakdown__value {
+        font-weight: 600;
+      }
+
+      .u-modal__dialog {
+        background: var(--color-elevated);
+        padding: var(--space-xl);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-lg);
+        max-width: 28rem;
+        width: min(100%, 28rem);
+      }
+
+      .u-copy {
+        display: flex;
+        gap: var(--space-sm);
+        align-items: center;
+        padding: var(--space-sm) var(--space-md);
+        border-radius: var(--radius-md);
+        border: 1px dashed color-mix(in srgb, var(--color-border) 75%, transparent 25%);
+        background: color-mix(in srgb, var(--color-surface) 80%, transparent 20%);
+      }
+
+      .u-copy__value {
+        flex: 1 1 auto;
+        font-family: var(--font-mono);
+        font-size: 0.95rem;
+        overflow-wrap: anywhere;
+      }
+
+      .u-copy__button {
+        padding: var(--space-2xs) var(--space-sm);
+        border-radius: var(--radius-sm);
+        background: transparent;
+        color: var(--color-accent-strong);
+        border: 1px solid color-mix(in srgb, var(--color-accent) 35%, transparent 65%);
+        cursor: pointer;
+      }
+
+      .stack {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-md);
+      }
+
+      .stack--lg {
+        gap: var(--space-lg);
+      }
+
+      .upload-card__dropzone {
+        position: relative;
+        border-radius: var(--radius-lg);
+        border: 2px dashed color-mix(in srgb, var(--color-border) 70%, transparent 30%);
+        padding: clamp(var(--space-lg), 6vw, var(--space-2xl));
+        text-align: center;
+        display: grid;
+        gap: var(--space-md);
+        background: color-mix(
+          in srgb,
+          var(--color-surface) 85%,
+          rgba(255, 255, 255, 0.85) 15%
+        );
+        transition: border-color var(--transition-base),
+          background-color var(--transition-base),
+          transform var(--transition-base);
+      }
+
+      .upload-card__dropzone.is-dragover {
+        border-color: color-mix(in srgb, var(--color-accent) 60%, transparent 40%);
+        background: color-mix(in srgb, var(--color-surface) 75%, rgba(75, 107, 251, 0.12) 25%);
+        transform: translateY(-2px);
+      }
+
+      .upload-card__dropzone input[type="file"] {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .upload-card__accepted {
+        margin: 0;
+        font-size: 0.9rem;
+        color: var(--color-text-muted);
+      }
+
+      .upload-card__dropzone svg {
+        width: 3rem;
+        height: 3rem;
+        margin: 0 auto;
+        color: var(--color-accent-strong);
+      }
+
+      .upload-card__queue {
+        border-radius: var(--radius-md);
+        border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent 20%);
+        background: color-mix(in srgb, var(--color-surface) 92%, transparent 8%);
+        padding: var(--space-md);
+        display: grid;
+        gap: var(--space-sm);
+      }
+
+      .upload-card__queue-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-sm);
+      }
+
+      .upload-card__queue-summary {
+        margin: 0;
+        font-size: 0.9rem;
+        color: var(--color-text);
+      }
+
+      .upload-card__queue-empty {
+        margin: 0;
+        font-size: 0.9rem;
+        color: var(--color-text-muted);
+      }
+
+      .upload-card__queue-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: var(--space-xs);
+      }
+
+      .upload-card__queue-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-sm);
+        padding: var(--space-xs) var(--space-sm);
+        border-radius: var(--radius-sm);
+        background: color-mix(in srgb, var(--color-surface-muted) 70%, transparent 30%);
+      }
+
+      .upload-card__queue-item strong {
+        display: block;
+        font-size: 0.95rem;
+      }
+
+      .upload-card__queue-meta {
+        margin: 0;
+        font-size: 0.8rem;
+        color: var(--color-text-muted);
+      }
+
+      .upload-card__queue-remove {
+        border: none;
+        background: none;
+        color: var(--color-accent-strong);
+        font-weight: 600;
+        cursor: pointer;
+        padding: var(--space-2xs) var(--space-xs);
+      }
+
+      .upload-card__queue-remove:hover {
+        text-decoration: underline;
+      }
+
+      .upload-card__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-sm);
+        justify-content: center;
+      }
+
+      .form-grid {
+        display: grid;
+        gap: var(--space-md);
+      }
+
+      .form-grid--split {
+        grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+        gap: var(--space-md);
+      }
+
+      .image-gallery__toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-sm);
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .image-gallery__search {
+        flex: 1 1 16rem;
+      }
+
+      .image-gallery__views {
+        display: inline-flex;
+        gap: var(--space-2xs);
+        padding: var(--space-2xs);
+        border-radius: var(--radius-md);
+        background: color-mix(in srgb, var(--color-surface) 65%, transparent 35%);
+      }
+
+      .image-gallery__view {
+        border: none;
+        background: transparent;
+        color: var(--color-text-muted);
+        padding: var(--space-2xs) var(--space-sm);
+        border-radius: var(--radius-md);
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: background-color var(--transition-base), color var(--transition-base);
+      }
+
+      .image-gallery__view.is-active {
+        background: var(--color-surface);
+        color: var(--color-text);
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-border) 80%, transparent 20%);
+      }
+
+      .image-gallery__items {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: var(--space-md);
+      }
+
+      .image-gallery__items--grid {
+        grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+      }
+
+      .image-gallery__items--list {
+        grid-template-columns: 1fr;
+      }
+
+      .image-gallery__item {
+        min-width: 0;
+      }
+
+      .image-gallery__thumb {
+        width: 100%;
+        display: grid;
+        gap: var(--space-sm);
+        padding: var(--space-sm);
+        border-radius: var(--radius-lg);
+        border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent 20%);
+        background: color-mix(in srgb, var(--color-surface) 88%, transparent 12%);
+        cursor: pointer;
+        text-align: left;
+        transition: border-color var(--transition-base), box-shadow var(--transition-base), transform var(--transition-base);
+      }
+
+      .image-gallery__thumb:hover,
+      .image-gallery__thumb:focus-visible {
+        outline: none;
+        border-color: color-mix(in srgb, var(--color-accent) 50%, transparent 50%);
+        box-shadow: 0 12px 24px rgba(75, 107, 251, 0.16);
+        transform: translateY(-1px);
+      }
+
+      .image-gallery__thumb.is-selected {
+        border-color: color-mix(in srgb, var(--color-accent) 65%, transparent 35%);
+        box-shadow: 0 16px 32px rgba(75, 107, 251, 0.24);
+      }
+
+      .image-gallery__thumb-media {
+        position: relative;
+        aspect-ratio: 4 / 3;
+        overflow: hidden;
+        border-radius: var(--radius-md);
+        background: color-mix(in srgb, var(--color-surface-muted) 85%, transparent 15%);
+      }
+
+      .image-gallery__thumb-media img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform var(--transition-base);
+      }
+
+      .image-gallery__thumb:hover .image-gallery__thumb-media img,
+      .image-gallery__thumb:focus-visible .image-gallery__thumb-media img {
+        transform: scale(1.03);
+      }
+
+      .image-gallery__thumb-meta {
+        display: grid;
+        gap: var(--space-2xs);
+        font-size: 0.85rem;
+        color: var(--color-text-muted);
+      }
+
+      .image-gallery__meta-title {
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: var(--color-text);
+      }
+
+      .image-gallery__meta-subtitle {
+        color: var(--color-text-muted);
+      }
+
+      .image-gallery__thumb-extra {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2xs);
+        font-size: 0.75rem;
+        color: var(--color-text-muted);
+      }
+
+      .image-gallery__items--list .image-gallery__thumb {
+        grid-template-columns: minmax(0, 9rem) minmax(0, 1fr);
+        align-items: center;
+      }
+
+      .image-gallery__items--list .image-gallery__thumb-media {
+        width: 100%;
+      }
+
+      .image-gallery__items--list .image-gallery__thumb-meta {
+        align-self: stretch;
+      }
+
+      .image-gallery__thumb-actions {
+        display: flex;
+        gap: var(--space-2xs);
+      }
+
+      .image-gallery__delete {
+        border: none;
+        background: transparent;
+        color: var(--color-danger);
+        font-size: 0.8rem;
+        cursor: pointer;
+        padding: var(--space-2xs) var(--space-sm);
+        border-radius: var(--radius-sm);
+        transition: background-color var(--transition-base), color var(--transition-base);
+      }
+
+      .image-gallery__delete:hover,
+      .image-gallery__delete:focus-visible {
+        background: color-mix(in srgb, var(--color-danger) 15%, transparent 85%);
+        color: var(--color-danger);
+        outline: none;
+      }
+
+      .image-gallery__empty {
+        margin: 0;
+        padding: var(--space-md);
+        text-align: center;
+        font-size: 0.9rem;
+        color: var(--color-text-muted);
+        border-radius: var(--radius-md);
+        background: color-mix(in srgb, var(--color-surface) 85%, transparent 15%);
+      }
+
+      .image-viewer__toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        align-items: center;
+        gap: var(--space-sm);
+        margin-bottom: var(--space-md);
+      }
+
+      .image-viewer__canvas {
+        position: relative;
+        min-height: 20rem;
+        border-radius: var(--radius-lg);
+        border: 1px solid color-mix(in srgb, var(--color-border) 75%, transparent 25%);
+        background: color-mix(in srgb, var(--color-surface) 82%, transparent 18%);
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+      }
+
+      .image-viewer__canvas[data-fit="actual"] {
+        overflow: auto;
+      }
+
+      .image-viewer__canvas img {
+        max-width: 100%;
+        max-height: 100%;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        transform-origin: center;
+        transition: transform 160ms ease, object-fit var(--transition-base);
+      }
+
+      .image-viewer__canvas[data-fit="cover"] img {
+        object-fit: cover;
+      }
+
+      .image-viewer__canvas[data-fit="actual"] img {
+        width: auto;
+        height: auto;
+        max-width: none;
+        max-height: none;
+        object-fit: contain;
+      }
+
+      .image-viewer__empty {
+        text-align: center;
+        display: grid;
+        gap: var(--space-2xs);
+        color: var(--color-text-muted);
+      }
+
+      .image-viewer__controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-sm);
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .image-viewer__control-group {
+        display: inline-flex;
+        gap: var(--space-2xs);
+        padding: var(--space-2xs);
+        border-radius: var(--radius-md);
+        background: color-mix(in srgb, var(--color-surface) 65%, transparent 35%);
+      }
+
+      .image-viewer__control {
+        border: none;
+        background: transparent;
+        color: var(--color-text-muted);
+        padding: var(--space-2xs) var(--space-sm);
+        border-radius: var(--radius-md);
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: background-color var(--transition-base), color var(--transition-base);
+      }
+
+      .image-viewer__control.is-active {
+        background: var(--color-surface);
+        color: var(--color-text);
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-border) 80%, transparent 20%);
+      }
+
+      .image-viewer__slider {
+        min-width: 10rem;
+        accent-color: var(--color-accent);
+      }
+
+      .image-viewer__meta {
+        display: grid;
+        gap: var(--space-lg);
+      }
+
+      .image-viewer__details {
+        display: grid;
+        gap: var(--space-md);
+        grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+      }
+
+      .image-viewer__details dt {
+        margin: 0;
+        font-size: 0.8rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--color-text-muted);
+      }
+
+      .image-viewer__details dd {
+        margin: 0;
+        font-weight: 600;
+        font-size: 0.95rem;
+      }
+
+      .image-viewer__exif {
+        border-top: 1px solid color-mix(in srgb, var(--color-border) 75%, transparent 25%);
+        padding-top: var(--space-md);
+        display: grid;
+        gap: var(--space-sm);
+      }
+
+      .image-viewer__exif h3 {
+        margin: 0;
+        font-size: 1rem;
+      }
+
+      .image-viewer__exif-list {
+        display: grid;
+        gap: var(--space-2xs);
+        font-size: 0.85rem;
+        color: var(--color-text-muted);
+      }
+
+      .library-card__table {
+        border-radius: var(--radius-lg);
+        border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent 20%);
+        background: color-mix(in srgb, var(--color-surface) 92%, transparent 8%);
+        overflow-x: auto;
+        overflow-y: hidden;
+      }
+
+      .library-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 100%;
+      }
+
+      .library-table thead {
+        background: color-mix(in srgb, var(--color-surface) 70%, transparent 30%);
+        color: color-mix(in srgb, var(--color-text) 90%, white 10%);
+      }
+
+      .library-table th,
+      .library-table td {
+        padding: var(--space-sm) var(--space-md);
+        text-align: left;
+        font-size: 0.9rem;
+      }
+
+      .library-table th {
+        font-weight: 600;
+        border-bottom: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent 20%);
+      }
+
+      .library-table td {
+        border-bottom: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent 30%);
+        vertical-align: top;
+      }
+
+      .library-table tr.is-selected {
+        background: color-mix(in srgb, var(--color-accent) 12%, transparent 88%);
+      }
+
+      .library-table tr:last-child td {
+        border-bottom: none;
+      }
+
+      .library-table__title {
+        display: grid;
+        gap: var(--space-2xs);
+      }
+
+      .library-table__title strong {
+        font-weight: 600;
+      }
+
+      .library-table__title span {
+        color: var(--color-text-muted);
+        font-size: 0.85rem;
+      }
+
+      .library-table__actions-heading {
+        text-align: right;
+      }
+
+      .library-table__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2xs);
+        justify-content: flex-end;
+      }
+
+      .library-action {
+        border: 1px solid color-mix(in srgb, var(--color-border) 75%, transparent 25%);
+        background: color-mix(in srgb, var(--color-surface) 88%, transparent 12%);
+        border-radius: var(--radius-sm);
+        padding: var(--space-2xs) var(--space-sm);
+        font-size: 0.8rem;
+        cursor: pointer;
+        color: var(--color-text);
+        transition: background-color var(--transition-base), border-color var(--transition-base);
+      }
+
+      .library-action:hover,
+      .library-action:focus-visible {
+        border-color: color-mix(in srgb, var(--color-accent) 50%, transparent 50%);
+        background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface) 88%);
+        outline: none;
+      }
+
+      .library-action.is-disabled {
+        pointer-events: none;
+        opacity: 0.5;
+      }
+
+      .library-card__empty {
+        margin: 0;
+        padding: var(--space-md);
+        font-size: 0.9rem;
+        color: var(--color-text-muted);
+        text-align: center;
+        background: color-mix(in srgb, var(--color-surface) 85%, transparent 15%);
+      }
+
+
+      .upload-progress {
+        display: grid;
+        gap: var(--space-2xs);
+        background: color-mix(in srgb, var(--color-surface) 82%, transparent 18%);
+        border-radius: var(--radius-md);
+        border: 1px solid color-mix(in srgb, var(--color-border) 75%, transparent 25%);
+        padding: var(--space-sm) var(--space-md);
+      }
+
+      .upload-progress__bar {
+        position: relative;
+        width: 100%;
+        height: 0.75rem;
+        border-radius: var(--radius-sm);
+        background: color-mix(in srgb, var(--color-surface) 70%, transparent 30%);
+        overflow: hidden;
+      }
+
+      .upload-progress__fill {
+        position: absolute;
+        inset: 0;
+        width: 0%;
+        background: linear-gradient(135deg, var(--color-accent), var(--color-accent-strong));
+        border-radius: inherit;
+        transition: width 120ms ease;
+      }
+
+      .upload-progress__label {
+        margin: 0;
+        font-size: 0.85rem;
+        color: var(--color-text-muted);
+      }
+
+      .upload-feedback {
+        margin: 0;
+        font-size: 0.9rem;
+        border-radius: var(--radius-md);
+        padding: var(--space-sm) var(--space-md);
+        border: 1px solid transparent;
+      }
+
+      .upload-feedback.is-error {
+        color: var(--color-danger);
+        border-color: color-mix(in srgb, var(--color-danger) 40%, transparent 60%);
+        background: color-mix(in srgb, var(--color-danger) 8%, var(--color-surface) 92%);
+      }
+
+      .upload-feedback.is-success {
+        color: var(--color-success);
+        border-color: color-mix(in srgb, var(--color-success) 40%, transparent 60%);
+        background: color-mix(in srgb, var(--color-success) 10%, var(--color-surface) 90%);
+      }
+
+      .viewer-card__toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--space-sm);
+        margin-bottom: var(--space-md);
+      }
+
+      .viewer-card__selector {
+        flex: 1 1 16rem;
+        min-width: 12rem;
+      }
+
+      .viewer-card__select {
+        width: 100%;
+      }
+
+      .viewer-card__resize,
+      .image-viewer__resize,
+      .image-viewer__toolbar {
+        display: none;
+      }
+
+      .viewer-card__preview {
+        min-height: 18rem;
+        border-radius: var(--radius-lg);
+        border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent 20%);
+        background: color-mix(in srgb, var(--color-surface) 70%, transparent 30%);
+        display: grid;
+        gap: var(--space-md);
+        padding: var(--space-lg);
+      }
+
+      .viewer-card__preview > * {
+        justify-self: stretch;
+      }
+
+      .viewer-card__preview[data-state="empty"],
+      .viewer-card__preview[data-state="loading"] {
+        justify-items: center;
+        align-content: center;
+        text-align: center;
+      }
+
+      .viewer-card__preview[data-state="empty"] > *,
+      .viewer-card__preview[data-state="loading"] > * {
+        justify-self: center;
+      }
+
+      .viewer-card__preview iframe,
+      .viewer-card__preview object,
+      .viewer-card__preview embed {
+        width: 100%;
+        height: min(70vh, 42rem);
+        border: none;
+        border-radius: var(--radius-md);
+        background: white;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .viewer-card__pdf {
+        position: relative;
+        width: 100%;
+        min-height: min(70vh, 42rem);
+        border-radius: var(--radius-md);
+        background: white;
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+        display: grid;
+        place-items: center;
+        padding: var(--space-md);
+        color: var(--color-text-muted);
+        font-size: 0.95rem;
+        text-align: center;
+      }
+
+      .viewer-card__pdf[data-state="ready"] {
+        padding: 0;
+        color: inherit;
+        display: block;
+      }
+
+      .viewer-card__pdf-message {
+        margin: 0;
+      }
+
+      .viewer-card__docx {
+        width: 100%;
+        max-height: min(70vh, 42rem);
+        overflow-y: auto;
+        border-radius: var(--radius-md);
+        background: white;
+        box-shadow: var(--shadow-sm);
+        padding: var(--space-md);
+        color: #111;
+        line-height: 1.65;
+      }
+
+      .viewer-card__docx * {
+        color: inherit !important;
+      }
+
+      .viewer-card__docx[data-state="loading"] {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        color: var(--color-text-muted);
+      }
+
+      .viewer-card__docx-message {
+        margin: 0;
+        font-size: 0.95rem;
+      }
+
+      .viewer-card__preview img {
+        width: 100%;
+        height: auto;
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .viewer-card__preview video,
+      .viewer-card__preview audio {
+        width: 100%;
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .viewer-card__preview pre {
+        margin: 0;
+        width: 100%;
+        max-height: min(70vh, 42rem);
+        overflow: auto;
+        border-radius: var(--radius-md);
+        padding: var(--space-md);
+        background: color-mix(in srgb, var(--color-surface) 85%, transparent 15%);
+        text-align: left;
+        font-family: var(--font-mono);
+        font-size: 0.9rem;
+        line-height: 1.5;
+        white-space: pre-wrap;
+      }
+
+      .viewer-card__loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-sm);
+        color: var(--color-text-muted);
+        font-size: 0.95rem;
+      }
+
+      .viewer-card__loading::before {
+        content: "";
+        width: 1.25rem;
+        height: 1.25rem;
+        border-radius: 50%;
+        border: 2px solid color-mix(in srgb, var(--color-accent) 60%, transparent 40%);
+        border-top-color: var(--color-accent);
+        animation: viewer-spin 1s linear infinite;
+      }
+
+      @keyframes viewer-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .viewer-card__fallback {
+        display: grid;
+        gap: var(--space-xs);
+        text-align: center;
+      }
+
+      .viewer-card__meta {
+        display: grid;
+        gap: var(--space-lg);
+      }
+
+      .viewer-card__details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+        gap: var(--space-sm);
+        margin: 0;
+      }
+
+      .viewer-card__details div {
+        background: color-mix(in srgb, var(--color-surface) 85%, transparent 15%);
+        padding: var(--space-sm);
+        border-radius: var(--radius-md);
+        border: 1px solid color-mix(in srgb, var(--color-border) 75%, transparent 25%);
+      }
+
+      .viewer-card__details dt {
+        margin: 0;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        color: var(--color-text-muted);
+        letter-spacing: 0.06em;
+      }
+
+      .viewer-card__details dd {
+        margin: var(--space-2xs) 0 0;
+        font-weight: 600;
+      }
+
+      .viewer-card__description {
+        margin: 0;
+        font-size: 0.9rem;
+        color: var(--color-text-muted);
+      }
+
+      .viewer-card__link {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-sm);
+        align-items: center;
+      }
+
+      .viewer-card__link-input {
+        flex: 1 1 16rem;
+        min-width: 0;
+      }
+
+      .viewer-card__empty {
+        display: grid;
+        gap: var(--space-sm);
+      }
+
+      footer {
+        text-align: center;
+        padding-bottom: var(--space-xl);
+        color: color-mix(in srgb, var(--color-text) 70%, white 30%);
+        font-size: 0.85rem;
+      }
+    </style>
+    <script src="https://documentcloud.adobe.com/view-sdk/main.js" defer></script>
+  </head>
+  <body class="theme theme--immersive">
+    <main class="portal" id="support-portal">
+      <header class="portal__header">
+        <p class="u-copy" role="status" aria-live="polite">         
+        </p>
+        <h1 class="portal__heading">Invisible Support Upload Hub</h1>
+        <p class="portal__lede">
+        </p>
+<section
+          class="storage-meter"
+          role="region"
+          aria-live="polite"
+          aria-label="Storage usage"
+          data-storage-meter
+        >
+          <div class="storage-meter__heading">
+            <span data-i18n-key="labels.storageUsed"></span>
+            <span data-storage-limit></span>
+          </div>
+          <div class="storage-meter__values">
+            <span data-storage-summary></span>
+            <button
+              class="u-btn u-btn--ghost storage-meter__button"
+              type="button"
+              data-storage-manage
+              data-i18n-key="labels.storageManageCta"
+            ></button>
+            <a href="subspace.html" class="u-btn u-btn--primary">SubSpace</a>
+          </div>
+          <div class="storage-meter__progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" data-storage-progress>
+            <span class="storage-meter__progress-bar" data-storage-progress-bar></span>
+          </div>
+          <p class="storage-meter__warning" data-storage-warning hidden></p>
+        </section>
+      </header>
+
+      <div class="portal__grid">
+        <!-- Top row: Upload workflow + Repository storage side by side -->
+        <div class="portal__top-row">
+          <article class="u-card upload-card" aria-labelledby="upload-workflow">
+            <div class="u-card__header">
+              <div class="u-card__header-row">
+                <h2 class="u-card__title" id="upload-workflow">Upload workflow</h2>
+                <button class="panel-toggle" type="button" data-panel-toggle aria-label="Collapse upload panel">Collapse</button>
+              </div>
+              <p class="u-card__subtitle">
+                Centralize artifacts by dragging, dropping, or linking your diagnostic assets.
+              </p>
+            </div>
+
+            <form class="stack stack--lg" id="document-upload-form" aria-label="Document upload" novalidate>
+              <div
+                class="upload-card__dropzone"
+                role="region"
+                aria-label="Upload dropzone"
+                data-dropzone
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true" role="presentation">
+                  <path
+                    fill="currentColor"
+                    d="M12 3a1 1 0 0 1 1 1v8.586l2.293-2.293a1 1 0 0 1 1.414 1.414l-4 4a1 1 0 0 1-1.414 0l-4-4a1 1 0 1 1 1.414-1.414L11 12.586V4a1 1 0 0 1 1-1Zm-7 9a1 1 0 0 1 1 1v4a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-4a1 1 0 1 1 2 0v4a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4v-4a1 1 0 0 1 1-1Z"
+                  />
+                </svg>
+                <div class="stack">
+                  <p class="portal__lede" style="font-size: 1rem;">
+                    Drop files here or browse to upload.
+                  </p>
+                  <div class="upload-card__actions">
+                    <label class="u-btn u-btn--primary" for="primary-upload">Browse files</label>
+                    <span aria-hidden="true">or</span>
+                    <span class="u-card__subtitle">Paste from clipboard (⌘/Ctrl + V)</span>
+                  </div>
+                  <p class="upload-card__accepted">PDF, DOCX, PPTX, XLSX, images, CSV, and more.</p>
+                </div>
+                <input
+                  class="u-input"
+                  type="file"
+                  id="primary-upload"
+                  name="documents"
+                  multiple
+                  accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.csv,.txt,.rtf,.png,.jpg,.jpeg,.gif,.webp,.heic,.mp4,.mov,.json,.log,.zip"
+                  aria-label="Upload files"
+                  data-file-input
+                />
+              </div>
+
+              <section
+                class="upload-card__queue stack"
+                data-upload-queue
+                hidden
+                aria-live="polite"
+              >
+                <div class="upload-card__queue-header">
+                  <span class="u-card__subtitle" data-i18n-key="upload.queueTitle"></span>
+                  <button
+                    class="u-btn u-btn--ghost u-btn--sm"
+                    type="button"
+                    data-queue-clear
+                    data-i18n-key="upload.queueClear"
+                  ></button>
+                </div>
+                <p class="upload-card__queue-summary" data-queue-summary hidden></p>
+                <p class="upload-card__queue-empty" data-queue-empty data-i18n-key="upload.queueEmpty"></p>
+                <ul class="upload-card__queue-list" data-queue-list></ul>
+              </section>
+
+              <div class="form-grid form-grid--split">
+                <label class="stack" for="document-title">
+                  <span class="u-card__subtitle">Title <span aria-hidden="true">(optional)</span></span>
+                  <input
+                    class="u-input"
+                    type="text"
+                    id="document-title"
+                    name="title"
+                    placeholder="e.g. Database latency analysis"
+                    data-title-input
+                  />
+                </label>
+                <label class="stack" for="document-description">
+                  <span class="u-card__subtitle">Description <span aria-hidden="true">(optional)</span></span>
+                  <input
+                    class="u-input"
+                    type="text"
+                    id="document-description"
+                    name="description"
+                    placeholder="Short note about the document"
+                    data-description-input
+                  />
+                </label>
+              </div>
+
+              <div class="stack">
+                <span class="u-card__subtitle">Upload progress</span>
+                <div class="upload-progress" data-upload-progress hidden>
+                  <div class="upload-progress__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                    <span class="upload-progress__fill" data-progress-fill></span>
+                  </div>
+                  <p class="upload-progress__label" data-progress-label>Waiting for files…</p>
+                </div>
+              </div>
+
+              <p class="upload-feedback" data-upload-feedback role="alert" hidden></p>
+
+              <div class="upload-card__actions" style="justify-content: flex-start;">
+                <button class="u-btn u-btn--primary" type="submit">Upload documents</button>
+                <button class="u-btn u-btn--ghost" type="reset">Reset</button>
+              </div>
+            </form>
+          </article>
+
+          <article class="u-card" aria-labelledby="repo-storage">
+            <div class="u-card__header">
+              <div class="u-card__header-row">
+                <h2 class="u-card__title" id="repo-storage">Repository storage</h2>
+                <button class="panel-toggle" type="button" data-panel-toggle aria-label="Collapse settings panel">Collapse</button>
+              </div>
+              <p class="u-card__subtitle">
+                Configure GitHub integration so uploads persist to this repository.
+              </p>
+            </div>
+
+            <form class="stack stack--lg" data-github-settings novalidate>
+              <div class="form-grid form-grid--split">
+                <label class="stack" for="github-owner">
+                  <span class="u-card__subtitle" data-i18n-key="labels.githubOwner"></span>
+                  <input class="u-input" type="text" id="github-owner" name="github-owner" autocomplete="off" data-github-owner />
+                </label>
+                <label class="stack" for="github-repo">
+                  <span class="u-card__subtitle" data-i18n-key="labels.githubRepo"></span>
+                  <input class="u-input" type="text" id="github-repo" name="github-repo" autocomplete="off" data-github-repo />
+                </label>
+              </div>
+
+              <div class="form-grid form-grid--split">
+                <label class="stack" for="github-branch">
+                  <span class="u-card__subtitle" data-i18n-key="labels.githubBranch"></span>
+                  <input class="u-input" type="text" id="github-branch" name="github-branch" autocomplete="off" placeholder="main" data-github-branch />
+                </label>
+                <label class="stack" for="github-limit">
+                  <span class="u-card__subtitle" data-i18n-key="labels.githubStorageLimit"></span>
+                  <input class="u-input" type="number" min="1" step="1" id="github-limit" name="github-limit" data-github-limit />
+                </label>
+              </div>
+
+              <label class="stack" for="github-token">
+                <span class="u-card__subtitle" data-i18n-key="labels.githubToken"></span>
+                <input class="u-input" type="password" id="github-token" name="github-token" autocomplete="off" data-github-token />
+              </label>
+
+              <p class="upload-feedback" data-github-feedback hidden></p>
+
+              <div class="upload-card__actions" style="justify-content: flex-start;">
+                <button class="u-btn u-btn--primary" type="submit" data-i18n-key="common.save"></button>
+                <button class="u-btn u-btn--ghost" type="button" data-github-test>Test connection</button>
+              </div>
+            </form>
+          </article>
+        </div>
+
+        <!-- Bottom row: Asset Library and Document Viewer side by side with resizable split -->
+        <div class="split-pane" data-split-id="doc-split" style="--split-left: 45%;">
+          <article class="u-card library-card" aria-labelledby="asset-library">
+            <div class="u-card__header">
+              <div class="u-card__header-row">
+                <h2 class="u-card__title" id="asset-library">Asset library</h2>
+                <button class="panel-toggle" type="button" data-panel-toggle aria-label="Collapse library panel">Collapse</button>
+              </div>
+              <p class="u-card__subtitle">
+                Reference previously uploaded artifacts to accelerate triage.
+              </p>
+            </div>
+
+            <div class="stack" role="region" aria-live="polite">
+              <label class="stack" for="library-search">
+                <span class="u-card__subtitle">Filter library</span>
+                <input
+                  class="u-input"
+                  type="search"
+                  id="library-search"
+                  placeholder="Search by title, file name, or type"
+                  autocomplete="off"
+                  data-library-search
+                />
+              </label>
+
+              <div class="library-card__table" role="region" aria-label="Document library table">
+                <table class="library-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Title</th>
+                      <th scope="col">Size</th>
+                      <th scope="col">Last updated</th>
+                      <th scope="col" class="library-table__actions-heading">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody data-library-rows></tbody>
+                </table>
+                <p class="library-card__empty" data-library-empty hidden>No documents uploaded yet.</p>
+              </div>
+            </div>
+          </article>
+
+          <div
+            class="split-pane__handle"
+            data-split-handle
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Drag to resize library and viewer panels"
+            aria-valuemin="15"
+            aria-valuemax="85"
+            aria-valuenow="45"
+            tabindex="0"
+          ></div>
+
+          <article class="u-card viewer-card" aria-labelledby="document-viewer">
+            <div class="u-card__header">
+              <div class="u-card__header-row">
+                <h2 class="u-card__title" id="document-viewer">Document viewer</h2>
+                <button class="panel-toggle" type="button" data-panel-toggle aria-label="Collapse viewer panel">Collapse</button>
+              </div>
+              <p class="u-card__subtitle">Preview uploaded documents inline or switch to immersive mode.</p>
+            </div>
+
+            <div class="viewer-card__toolbar" role="group" aria-label="Document viewer controls">
+              <label class="viewer-card__selector">
+                <span class="visually-hidden">Select a document to preview</span>
+                <select class="u-input viewer-card__select" data-viewer-select aria-label="Select document">
+                  <option value="" selected>Select a document…</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="viewer-card__preview" data-viewer-preview>
+              <div class="viewer-card__empty" data-viewer-empty>
+                <h3>Nothing selected yet</h3>
+                <p class="portal__lede" style="font-size: 0.95rem;">
+                  Choose an item from the library to load a preview, transcript, or streaming session.
+                </p>
+              </div>
+            </div>
+
+            <div class="viewer-card__meta" data-viewer-meta hidden>
+              <div class="stack">
+                <span class="u-card__subtitle">Document details</span>
+                <dl class="viewer-card__details">
+                  <div>
+                    <dt>Title</dt>
+                    <dd data-viewer-name>—</dd>
+                  </div>
+                  <div>
+                    <dt>File name</dt>
+                    <dd data-viewer-filename>—</dd>
+                  </div>
+                  <div>
+                    <dt>Type</dt>
+                    <dd data-viewer-type>—</dd>
+                  </div>
+                  <div>
+                    <dt>Size</dt>
+                    <dd data-viewer-size>—</dd>
+                  </div>
+                  <div>
+                    <dt>Last updated</dt>
+                    <dd data-viewer-updated>—</dd>
+                  </div>
+                </dl>
+                <p class="viewer-card__description" data-viewer-description hidden></p>
+              </div>
+
+              <div class="stack">
+                <span class="u-card__subtitle">Shareable link</span>
+                <div class="viewer-card__link">
+                  <input
+                    class="u-input viewer-card__link-input"
+                    type="text"
+                    readonly
+                    id="viewer-direct-link"
+                    data-viewer-link
+                    value=""
+                  />
+                  <button class="u-btn u-btn--ghost" type="button" data-viewer-copy>Copy</button>
+                  <a class="u-btn u-btn--primary" href="#" target="_blank" rel="noopener" data-viewer-open>
+                    Open in new tab
+                  </a>
+                </div>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+
+      <section class="image-portal" aria-labelledby="image-management">
+        <div class="image-portal__header">
+          <h2 class="portal__heading" id="image-management">Image management</h2>
+          <p class="portal__lede">
+          </p>
+        </div>
+
+        <!-- Image upload (full width) -->
+        <article class="u-card image-upload-card" aria-labelledby="image-upload-title">
+          <div class="u-card__header">
+            <div class="u-card__header-row">
+              <h2 class="u-card__title" id="image-upload-title">Image upload</h2>
+              <button class="panel-toggle" type="button" data-panel-toggle aria-label="Collapse image upload panel">Collapse</button>
+            </div>
+            <p class="u-card__subtitle">
+              Drag and drop visual assets or browse your workstation.
+            </p>
+          </div>
+
+          <form class="stack stack--lg" data-image-form novalidate>
+            <div class="stack">
+              <div class="upload-card__dropzone" role="region" aria-label="Image upload dropzone" data-image-dropzone>
+                <svg viewBox="0 0 48 48" role="presentation" aria-hidden="true">
+                  <path
+                    fill="currentColor"
+                    d="M24 6a12 12 0 0 0-12 12v3H8a6 6 0 0 0 0 12h32a6 6 0 0 0 1-11.9V18A12 12 0 0 0 24 6Zm0 4a8 8 0 0 1 8 8v3h-4.5a1.5 1.5 0 0 0-1.07.44L24 23.86l-2.43-2.42A1.5 1.5 0 0 0 20.5 21H16v-3a8 8 0 0 1 8-8Zm-2 11.62 1.43 1.43a1.5 1.5 0 0 0 2.12 0L27 21.05l3.45 3.45a1.5 1.5 0 0 0 1.06.44H36a2 2 0 0 1 0 4H12a2 2 0 1 1 0-4h4.5l4.5-4.38Z"
+                  />
+                </svg>
+                <p class="portal__lede">
+                  Drag and drop visual assets or browse your workstation. Files are inspected before upload.
+                </p>
+                <div class="upload-card__actions">
+                  <label class="u-btn u-btn--primary" for="image-upload-input">Browse images</label>
+                  <span aria-hidden="true">or</span>
+                  <span class="u-card__subtitle">Drop anywhere to upload</span>
+                </div>
+                <p class="upload-card__accepted">
+                  JPEG, PNG, WebP, AVIF, GIF, and HEIC · Max dimension 8,192&nbsp;px on either side.
+                </p>
+              </div>
+              <input
+                class="u-input"
+                type="file"
+                id="image-upload-input"
+                name="images"
+                accept="image/*"
+                multiple
+                data-image-file-input
+              />
+            </div>
+
+            <div class="form-grid form-grid--split">
+              <label class="stack" for="image-title">
+                <span class="u-card__subtitle">Title <span aria-hidden="true">(optional)</span></span>
+                <input
+                  class="u-input"
+                  type="text"
+                  id="image-title"
+                  placeholder="e.g. PagerDuty status overview"
+                  data-image-title
+                />
+              </label>
+              <label class="stack" for="image-alt">
+                <span class="u-card__subtitle">Alt text <span aria-hidden="true">(optional)</span></span>
+                <input
+                  class="u-input"
+                  type="text"
+                  id="image-alt"
+                  placeholder="Accessible description for screen readers"
+                  data-image-alt
+                />
+              </label>
+            </div>
+
+            <div class="stack">
+              <span class="u-card__subtitle">Upload progress</span>
+              <div class="upload-progress" data-image-progress hidden>
+                <div
+                  class="upload-progress__bar"
+                  role="progressbar"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  aria-valuenow="0"
+                  data-image-progress-bar
+                >
+                  <span class="upload-progress__fill" data-image-progress-fill></span>
+                </div>
+                <p class="upload-progress__label" data-image-progress-label>Waiting for images…</p>
+              </div>
+            </div>
+
+            <p class="upload-feedback" data-image-feedback role="alert" hidden></p>
+
+            <div class="upload-card__actions" style="justify-content: flex-start;">
+              <button class="u-btn u-btn--primary" type="submit">Upload images</button>
+              <button class="u-btn u-btn--ghost" type="reset">Reset</button>
+            </div>
+          </form>
+        </article>
+
+        <!-- Image Gallery and Image Viewer side by side with resizable split -->
+        <div class="split-pane" data-split-id="img-split" style="--split-left: 40%;">
+          <article class="u-card image-gallery-card" aria-labelledby="image-gallery">
+            <div class="u-card__header">
+              <div class="u-card__header-row">
+                <h2 class="u-card__title" id="image-gallery">Image gallery</h2>
+                <button class="panel-toggle" type="button" data-panel-toggle aria-label="Collapse gallery panel">Collapse</button>
+              </div>
+              <p class="u-card__subtitle">Switch between grid and list layouts while thumbnails lazy-load in view.</p>
+            </div>
+
+            <div class="stack">
+              <div class="image-gallery__toolbar">
+                <label class="stack image-gallery__search" for="image-gallery-search">
+                  <span class="u-card__subtitle">Filter images</span>
+                  <input
+                    class="u-input"
+                    type="search"
+                    id="image-gallery-search"
+                    placeholder="Search by title, file name, or EXIF metadata"
+                    autocomplete="off"
+                    data-image-search
+                  />
+                </label>
+                <div class="image-gallery__views" role="group" aria-label="Select gallery view">
+                  <button class="image-gallery__view is-active" type="button" data-image-view="grid">Grid</button>
+                  <button class="image-gallery__view" type="button" data-image-view="list">List</button>
+                </div>
+              </div>
+
+              <ul class="image-gallery__items image-gallery__items--grid" data-image-gallery-items aria-live="polite"></ul>
+              <p class="image-gallery__empty" data-image-gallery-empty hidden>No images uploaded yet.</p>
+            </div>
+          </article>
+
+          <div
+            class="split-pane__handle"
+            data-split-handle
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Drag to resize gallery and viewer panels"
+            aria-valuemin="15"
+            aria-valuemax="85"
+            aria-valuenow="40"
+            tabindex="0"
+          ></div>
+
+          <article class="u-card image-viewer-card" aria-labelledby="image-viewer">
+            <div class="u-card__header">
+              <div class="u-card__header-row">
+                <h2 class="u-card__title" id="image-viewer">Image viewer</h2>
+                <button class="panel-toggle" type="button" data-panel-toggle aria-label="Collapse viewer panel">Collapse</button>
+              </div>
+              <p class="u-card__subtitle">Preview images with zoom controls and EXIF metadata.</p>
+            </div>
+
+            <div class="stack" data-image-viewer>
+              <div class="image-viewer__canvas" data-image-canvas data-fit="contain">
+                <div class="image-viewer__empty" data-image-empty>
+                  <h3>Waiting for a selection</h3>
+                  <p class="portal__lede" style="font-size: 0.95rem;">
+                    Choose a thumbnail to open a rich preview with zoom controls and EXIF-aware metadata.
+                  </p>
+                </div>
+                <img data-image-preview alt="" hidden />
+              </div>
+
+              <div class="image-viewer__controls" data-image-controls hidden>
+                <div class="image-viewer__control-group" role="group" aria-label="Fit controls">
+                  <button class="image-viewer__control is-active" type="button" data-image-fit="contain">Fit</button>
+                  <button class="image-viewer__control" type="button" data-image-fit="cover">Fill</button>
+                  <button class="image-viewer__control" type="button" data-image-fit="actual">Actual</button>
+                </div>
+                <label class="stack" style="gap: var(--space-2xs); min-width: 10rem;">
+                  <span class="u-card__subtitle">Zoom</span>
+                  <input
+                    class="image-viewer__slider"
+                    type="range"
+                    min="25"
+                    max="200"
+                    step="5"
+                    value="100"
+                    data-image-zoom
+                  />
+                </label>
+              </div>
+
+              <div class="image-viewer__meta" data-image-meta hidden>
+                <dl class="image-viewer__details">
+                  <div>
+                    <dt>Title</dt>
+                    <dd data-image-name>—</dd>
+                  </div>
+                  <div>
+                    <dt>File name</dt>
+                    <dd data-image-filename>—</dd>
+                  </div>
+                  <div>
+                    <dt>Dimensions</dt>
+                    <dd data-image-dimensions>—</dd>
+                  </div>
+                  <div>
+                    <dt>Size</dt>
+                    <dd data-image-size>—</dd>
+                  </div>
+                  <div>
+                    <dt>Type</dt>
+                    <dd data-image-type>—</dd>
+                  </div>
+                  <div>
+                    <dt>Alt text</dt>
+                    <dd data-image-alt>—</dd>
+                  </div>
+                  <div>
+                    <dt>Captured</dt>
+                    <dd data-image-taken>—</dd>
+                  </div>
+                </dl>
+
+                <div class="image-viewer__exif" data-image-exif hidden>
+                  <h3>EXIF metadata</h3>
+                  <div class="image-viewer__exif-list" data-image-exif-list></div>
+                </div>
+
+                <div class="stack">
+                  <span class="u-card__subtitle">Direct link</span>
+                  <div class="viewer-card__link">
+                    <input
+                      class="u-input viewer-card__link-input"
+                      type="text"
+                      readonly
+                      id="image-direct-link"
+                      data-image-link
+                      value=""
+                    />
+                    <button class="u-btn u-btn--ghost" type="button" data-image-copy>Copy</button>
+                    <a class="u-btn u-btn--primary" href="#" target="_blank" rel="noopener" data-image-open aria-disabled="true">
+                      Open in new tab
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <div class="toast-stack" role="status" aria-live="polite" aria-atomic="false" data-toast-stack></div>
+
+    <div class="u-modal" id="clipboard-confirm" role="dialog" aria-modal="true" aria-labelledby="clipboard-title">
+      <div class="u-modal__dialog">
+        <div class="stack">
+          <h2 class="u-card__title" id="clipboard-title">Copied to clipboard</h2>
+          <p class="u-card__subtitle" id="clipboard-description">
+            The requested value is available for sharing. Paste it into any chat or ticket.
+          </p>
+          <button class="u-btn u-btn--primary" type="button" data-close-modal>Continue</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="u-modal" id="storage-modal" role="dialog" aria-modal="true" aria-labelledby="storage-title" aria-describedby="storage-description">
+      <div class="u-modal__dialog">
+        <div class="stack">
+          <h2 class="u-card__title" id="storage-title" data-i18n-key="labels.storageDialogTitle"></h2>
+          <p class="u-card__subtitle" id="storage-description" data-i18n-key="labels.storageDialogDescription"></p>
+          <div class="storage-modal__summary" data-storage-summary>
+            <dl class="storage-summary">
+              <div class="storage-summary__row">
+                <dt class="storage-summary__label" data-i18n-key="labels.storageUsed"></dt>
+                <dd class="storage-summary__value" data-storage-used>—</dd>
+              </div>
+              <div class="storage-summary__row">
+                <dt class="storage-summary__label" data-i18n-key="labels.storageAvailable"></dt>
+                <dd class="storage-summary__value" data-storage-available>—</dd>
+              </div>
+            </dl>
+            <ul class="storage-breakdown">
+              <li class="storage-breakdown__item">
+                <span class="storage-breakdown__label" data-i18n-key="labels.storageDocuments"></span>
+                <span class="storage-breakdown__value" data-storage-documents>—</span>
+              </li>
+              <li class="storage-breakdown__item">
+                <span class="storage-breakdown__label" data-i18n-key="labels.storageImages"></span>
+                <span class="storage-breakdown__value" data-storage-images>—</span>
+              </li>
+            </ul>
+          </div>
+          <div class="upload-card__actions" style="justify-content: flex-end;">
+            <button class="u-btn u-btn--primary" type="button" data-storage-clear data-i18n-key="labels.storageClearCta"></button>
+            <button class="u-btn u-btn--ghost" type="button" data-storage-cancel data-i18n-key="labels.storageCancelCta"></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      Invisible Support · Seamless context hand-offs for modern ops teams
+    </footer>
+
+    <!-- ES Module entry point - loads before legacy inline scripts -->
+    <script type="module" src="./src/main.js"></script>
+
+  </body>
+</html>
