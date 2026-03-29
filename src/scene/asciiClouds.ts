@@ -1,111 +1,134 @@
 import * as THREE from "three";
-import { FontLoader, type Font } from "three/examples/jsm/loaders/FontLoader.js";
+import { FontLoader } from "three/examples/jsm/loaders/FontLoader.js";
 
-/* ───────────────────────────────────────────────────────────────
-   ASCII Cloud Layer – Volumetric glyph cloud system
-   ─────────────────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════
+   ASCII Cloud Layer – Sigil Formation System
+
+   Glyphs coalesce into structured sigil shapes (diamond, mandala,
+   cross, vesica) that form, breathe, mutate, and dissolve over
+   the terrain. Multiple formation animation methods give variety.
+   Frustum + distance culling keep performance tight.
+   ═══════════════════════════════════════════════════════════════ */
+
+/** Runtime-tunable parameters (mutate these directly; update loop reads every frame) */
+export type AsciiCloudRuntimeParams = {
+  // ── Size & Scale ──
+  sigilScaleMul: number;      // multiplier on sigil formation size
+  glyphScaleMul: number;      // multiplier on individual glyph size
+  altitudeOffset: number;     // added to each sigil's base altitude
+  layerSpreadMul: number;     // multiplier on vertical spacing between layers
+  // ── Motion ──
+  driftSpeedMul: number;      // multiplier on lateral drift velocity
+  windStrengthMul: number;    // multiplier on wind force
+  waveSpeedMul: number;       // multiplier on vertical oscillation speed
+  waveAmplitudeMul: number;   // multiplier on vertical oscillation range
+  tumbleSpeedMul: number;     // multiplier on glyph rotation speed
+  bobAmplitude: number;       // vertical bob amplitude (world units)
+  // ── Formation ──
+  formSpeedMul: number;       // multiplier on form/dissolve rate (higher = faster)
+  stableDurationMul: number;  // multiplier on how long sigils hold formation
+  dormantDurationMul: number; // multiplier on dormant gap between cycles
+  scatterRadiusMul: number;   // multiplier on scatter distance for converge/spiral
+  staggerStrength: number;    // 0–2: how much centre-first stagger affects formation
+  // ── Appearance ──
+  opacityMul: number;         // overall opacity multiplier
+  breathDepth: number;        // 0–1: how strong the breathing animation is
+  mutationRateMul: number;    // multiplier on character mutation frequency
+  cullDistance: number;        // max render distance from camera
+};
 
 export type AsciiCloudField = {
   group: THREE.Group;
-  update: (timeSeconds: number, deltaSeconds: number) => void;
+  update: (t: number, dt: number, camera: THREE.Camera) => void;
+  /** Live-tunable params — mutate freely, read every frame */
+  params: AsciiCloudRuntimeParams;
+};
+
+/* ── Sigil template slot ─────────────────────────────────────── */
+
+type SigilSlot = {
+  /** Normalised X in [-1, 1] */
+  x: number;
+  /** Normalised Y in [-1, 1] */
+  y: number;
+  /** Relative scale (0.3–1.4) */
+  scale: number;
+};
+
+/* ── Formation animation method ──────────────────────────────── */
+
+type FormationMethod = "converge" | "cascade" | "spiral";
+
+/* ── Per-sigil state ─────────────────────────────────────────── */
+
+type Sigil = {
+  id: number;
+  group: THREE.Group;
+  /** World-space anchor position */
+  worldX: number;
+  worldZ: number;
+  altitude: number;
+  /** How big the sigil is in world units */
+  sigilScale: number;
+  /** Drift velocity (world units / sec) */
+  driftVX: number;
+  driftVZ: number;
+  /** Accumulated drift from wind + own velocity */
+  driftAccumX: number;
+  driftAccumZ: number;
+  /** 0 = forming, 1 = stable, 2 = dissolving, 3 = dormant */
+  phase: number;
+  phaseTimer: number;
+  formDuration: number;
+  stableDuration: number;
+  dissolveDuration: number;
+  dormantDuration: number;
+  formationMethod: FormationMethod;
+  layerIndex: number;
+  windInfluence: number;
+  /** Bounding radius for frustum culling */
+  cullRadius: number;
+  /** Cached: is this sigil in the view frustum? */
+  inFrustum: boolean;
 };
 
 /* ── Per-glyph state ─────────────────────────────────────────── */
 
 type AsciiGlyph = {
   mesh: THREE.Mesh;
-  /** Which cloud cluster this glyph belongs to */
-  clusterId: number;
-  /** Layer index (0 = lowest) */
+  sigilId: number;
   layerIndex: number;
-  /** Local offset from cluster centre */
-  localOffset: THREE.Vector3;
-  /** Orbital angle around world Y axis (radians) */
-  angle: number;
-  /** Orbital radius from world centre */
-  radius: number;
-  /** Drift speed in radians/sec along the orbit */
-  driftSpeed: number;
-  /** Base Y position */
-  baseY: number;
-  /** Vertical oscillation speed */
-  waveSpeed: number;
-  /** Vertical oscillation amplitude */
-  waveAmplitude: number;
-  /** Phase offset for wave */
+  /** Target position in sigil-local space (from template) */
+  homeX: number;
+  homeY: number;
+  homeScale: number;
+  /** Scattered position offset (where the glyph drifts from/to) */
+  scatterX: number;
+  scatterY: number;
+  /** 0–1 stagger: center glyphs form first (0), edge glyphs last (1) */
+  stagger: number;
+  /** Animation */
   wavePhase: number;
-  /** When reveal starts (seconds) */
-  revealDelay: number;
-  /** Duration of reveal fade-in */
-  revealDuration: number;
-  /** Lifecycle start time */
-  lifeStart: number;
-  /** Lifecycle duration */
-  lifeDuration: number;
-  /** When next mutation fires */
-  nextMutationAt: number;
-  /** Cadence between mutations */
-  mutationCadence: number;
-  /** Base scale of this glyph */
-  baseScale: number;
-  /** Z-rotation velocity (slow tumble) */
+  waveSpeed: number;
+  waveAmp: number;
   tumbleSpeed: number;
-  /** Whether this glyph is part of a wisp tendril */
-  isWisp: boolean;
-  /** Wisp extension factor (0 = retracted, 1 = fully extended) */
-  wispExtension: number;
-  /** Wisp target extension */
-  wispTarget: number;
-  /** Wisp extension speed */
-  wispSpeed: number;
-  /** Depth offset within cluster for parallax */
-  depthOffset: number;
+  baseRotZ: number;
+  /** Mutation timing */
+  nextMutationAt: number;
+  mutationCadence: number;
+  lifeStart: number;
+  lifeDuration: number;
+  /** Composite base scale */
+  baseScale: number;
 };
 
-/* ── Cloud cluster: a group of glyphs that move together ────── */
-
-type CloudCluster = {
-  id: number;
-  /** World-space centre position */
-  centre: THREE.Vector3;
-  /** Orbital angle of the cluster */
-  angle: number;
-  /** Orbital radius */
-  radius: number;
-  /** Drift speed around the orbit */
-  driftSpeed: number;
-  /** Base Y elevation */
-  baseY: number;
-  /** Cluster "size" – how spread out the glyphs are */
-  spread: number;
-  /** Current formation phase (0 = forming, 1 = stable, 2 = dissolving) */
-  phase: number;
-  /** Phase timer */
-  phaseTimer: number;
-  /** Duration of each phase */
-  formDuration: number;
-  stableDuration: number;
-  dissolveDuration: number;
-  /** Vertical drift rate */
-  verticalDrift: number;
-  /** Layer this cluster belongs to */
-  layerIndex: number;
-  /** Wind influence multiplier */
-  windInfluence: number;
-};
-
-/* ── Wind system ─────────────────────────────────────────────── */
+/* ── Wind ────────────────────────────────────────────────────── */
 
 type WindState = {
-  /** Current wind direction angle (radians) */
   direction: number;
-  /** Current wind strength */
   strength: number;
-  /** Target wind direction (slowly interpolated to) */
   targetDirection: number;
-  /** Target wind strength */
   targetStrength: number;
-  /** Time until next wind shift */
   nextShiftAt: number;
 };
 
@@ -114,518 +137,589 @@ type WindState = {
 type AsciiCloudOptions = {
   seed?: number;
   layerCount?: number;
-  clustersPerLayer?: number;
-  glyphsPerCluster?: number;
-  wispGlyphsPerCluster?: number;
-  baseRadius?: number;
+  sigilsPerLayer?: number;
+  glyphsPerSigil?: number;
+  terrainWidth?: number;
+  terrainDepth?: number;
+  baseAltitude?: number;
+  verticalSpacing?: number;
+  sigilScaleMin?: number;
+  sigilScaleMax?: number;
   glyphSizeMin?: number;
   glyphSizeMax?: number;
-  verticalSpacing?: number;
   extrudeDepth?: number;
   palette?: number[];
   characters?: string;
+  /** Max distance from camera before a sigil is culled */
+  cullDistance?: number;
 };
 
-/* ── Character sets ──────────────────────────────────────────── */
+/* ── Constants ───────────────────────────────────────────────── */
 
-const CORE_GLYPHS = "@#$%&*+=-:;<>[]{}()!?/\\|^~";
-const ARROW_GLYPHS = "^v<>";
-const BRACKET_GLYPHS = "[]{}()";
-const SYMBOL_GLYPHS = "@#$%&*";
-const ALL_GLYPHS = CORE_GLYPHS + ARROW_GLYPHS + BRACKET_GLYPHS + SYMBOL_GLYPHS;
-
+const ALL_GLYPHS = "@#$%&*+=-:;<>[]{}()!?/\\|^~";
 const FONT_URL = "/helvetiker_regular.typeface.json";
+const FORMATION_METHODS: FormationMethod[] = ["converge", "cascade", "spiral"];
 
-/* ── Seeded PRNG ─────────────────────────────────────────────── */
+/* ── PRNG ────────────────────────────────────────────────────── */
 
 const createSeededRandom = (seed: number): (() => number) => {
-  let state = seed >>> 0;
-  return () => {
-    state = (state * 1664525 + 1013904223) >>> 0;
-    return state / 0x100000000;
-  };
+  let s = seed >>> 0;
+  return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 0x100000000; };
+};
+const pick = <T>(a: T[], r: () => number): T => a[Math.floor(r() * a.length) % a.length] as T;
+const gaussR = (r: () => number, m: number, s: number) => {
+  const u1 = Math.max(1e-10, r()), u2 = r();
+  return m + Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2) * s;
 };
 
-const pick = <T>(items: T[], random: () => number): T => {
-  const index = Math.floor(random() * items.length) % items.length;
-  return items[index] as T;
+/* ── Easing helpers ──────────────────────────────────────────── */
+
+const smoothstep = (a: number, b: number, x: number) => {
+  const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+};
+const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+const easeOutBack = (t: number) => {
+  const c = 1.7;
+  return 1 + (t - 1) ** 3 + c * (t - 1) ** 2;
 };
 
-/** Gaussian-ish distribution via Box-Muller approximation */
-const gaussRandom = (random: () => number, mean: number, stddev: number): number => {
-  const u1 = Math.max(1e-10, random());
-  const u2 = random();
-  const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
-  return mean + z * stddev;
+/* ═══════════════════════════════════════════════════════════════
+   Sigil Template Generators
+   Each returns exactly `count` slots normalised to [-1, 1].
+   ═══════════════════════════════════════════════════════════════ */
+
+const generateDiamondSlots = (random: () => number, count: number): SigilSlot[] => {
+  const slots: SigilSlot[] = [];
+  // Hero centre glyph
+  slots.push({ x: 0, y: 0, scale: 1.3 });
+  let attempts = 0;
+  while (slots.length < count && attempts < count * 20) {
+    attempts++;
+    const x = (random() - 0.5) * 2;
+    const y = (random() - 0.5) * 2;
+    const diamond = Math.abs(x) + Math.abs(y);
+    if (diamond > 1.0) continue;
+    // Denser toward centre
+    const dist = Math.sqrt(x * x + y * y);
+    if (random() > (1 - dist * 0.4)) continue;
+    // Slight grid snapping for structured feel
+    const snap = 0.12;
+    const sx = Math.round(x / snap) * snap + (random() - 0.5) * snap * 0.4;
+    const sy = Math.round(y / snap) * snap + (random() - 0.5) * snap * 0.4;
+    const scale = 0.4 + (1 - dist) * 0.7 + random() * 0.2;
+    slots.push({ x: sx, y: sy, scale });
+  }
+  return slots.slice(0, count);
 };
 
-/* ── Main factory ────────────────────────────────────────────── */
+const generateCircleSlots = (random: () => number, count: number): SigilSlot[] => {
+  const slots: SigilSlot[] = [];
+  slots.push({ x: 0, y: 0, scale: 1.2 });
+  // Concentric rings
+  const rings = 4;
+  const perRing = Math.floor((count - 1) / rings);
+  for (let r = 0; r < rings; r++) {
+    const radius = (r + 1) / rings * 0.9;
+    const n = Math.min(perRing + (r === rings - 1 ? (count - 1 - perRing * rings) : 0), count - slots.length);
+    for (let i = 0; i < n; i++) {
+      const angle = (i / n) * Math.PI * 2 + random() * 0.25;
+      const jR = radius + (random() - 0.5) * 0.08;
+      slots.push({
+        x: Math.cos(angle) * jR,
+        y: Math.sin(angle) * jR,
+        scale: 0.4 + (1 - radius) * 0.6 + random() * 0.15,
+      });
+    }
+  }
+  return slots.slice(0, count);
+};
+
+const generateCrossSlots = (random: () => number, count: number): SigilSlot[] => {
+  const slots: SigilSlot[] = [];
+  slots.push({ x: 0, y: 0, scale: 1.3 });
+  const armW = 0.18;
+  let attempts = 0;
+  while (slots.length < count && attempts < count * 20) {
+    attempts++;
+    const x = (random() - 0.5) * 2;
+    const y = (random() - 0.5) * 2;
+    const inVert = Math.abs(x) < armW && Math.abs(y) < 0.95;
+    const inHoriz = Math.abs(y) < armW && Math.abs(x) < 0.95;
+    if (!inVert && !inHoriz) continue;
+    const dist = Math.sqrt(x * x + y * y);
+    const scale = 0.45 + (1 - dist * 0.6) * 0.5 + random() * 0.15;
+    slots.push({ x: x + (random() - 0.5) * 0.04, y: y + (random() - 0.5) * 0.04, scale });
+  }
+  return slots.slice(0, count);
+};
+
+const generateVesicaSlots = (random: () => number, count: number): SigilSlot[] => {
+  // Intersection of two circles offset on X
+  const slots: SigilSlot[] = [];
+  slots.push({ x: 0, y: 0, scale: 1.25 });
+  const offset = 0.55;
+  let attempts = 0;
+  while (slots.length < count && attempts < count * 20) {
+    attempts++;
+    const x = (random() - 0.5) * 1.4;
+    const y = (random() - 0.5) * 2;
+    // Inside both circles
+    const d1 = Math.sqrt((x - offset) ** 2 + y * y);
+    const d2 = Math.sqrt((x + offset) ** 2 + y * y);
+    if (d1 > 1.0 || d2 > 1.0) continue;
+    const dist = Math.sqrt(x * x + y * y);
+    const scale = 0.35 + (1 - dist * 0.6) * 0.65 + random() * 0.15;
+    slots.push({ x, y, scale });
+  }
+  return slots.slice(0, count);
+};
+
+const SIGIL_GENERATORS = [generateDiamondSlots, generateCircleSlots, generateCrossSlots, generateVesicaSlots];
+
+/* ═══════════════════════════════════════════════════════════════
+   Main Factory
+   ═══════════════════════════════════════════════════════════════ */
 
 export const createAsciiCloudField = async (
   options: AsciiCloudOptions = {},
 ): Promise<AsciiCloudField> => {
   const {
     seed = 90210,
-    layerCount = 5,
-    clustersPerLayer = 8,
-    glyphsPerCluster = 18,
-    wispGlyphsPerCluster = 6,
-    baseRadius = 1200,
-    glyphSizeMin = 12,
-    glyphSizeMax = 36,
-    verticalSpacing = 130,
-    extrudeDepth = 3,
+    layerCount = 4,
+    sigilsPerLayer = 4,
+    glyphsPerSigil = 35,
+    terrainWidth = 7000,
+    terrainDepth = 7000,
+    baseAltitude = 350,
+    verticalSpacing = 120,
+    sigilScaleMin = 80,
+    sigilScaleMax = 180,
+    glyphSizeMin = 10,
+    glyphSizeMax = 32,
+    extrudeDepth = 2.5,
     palette = [0xe4efff, 0xc4d8ff, 0x9ab8ff, 0x7da4ff, 0x6690ff],
     characters = ALL_GLYPHS,
+    cullDistance = 5000,
   } = options;
 
   const random = createSeededRandom(seed);
   const font = await new FontLoader().loadAsync(FONT_URL);
-  const group = new THREE.Group();
-  group.name = "ascii-cloud-field";
+  const rootGroup = new THREE.Group();
+  rootGroup.name = "ascii-cloud-field";
+
+  const halfW = terrainWidth * 0.5;
+  const halfD = terrainDepth * 0.5;
+  const chars = Array.from(new Set(characters));
 
   /* ── Geometry caches ────────────────────────────────────────── */
 
   const shapeCache = new Map<string, THREE.ShapeGeometry>();
   const extrudeCache = new Map<string, THREE.ExtrudeGeometry>();
 
-  const getShapeGeometry = (char: string, size: number): THREE.ShapeGeometry => {
-    const key = `s-${char}-${size.toFixed(1)}`;
-    const existing = shapeCache.get(key);
-    if (existing) return existing;
-    const shapes = font.generateShapes(char, size);
-    const geo = new THREE.ShapeGeometry(shapes);
-    centreGeometry(geo);
-    shapeCache.set(key, geo);
-    return geo;
-  };
-
-  const getExtrudeGeometry = (char: string, size: number, depth: number): THREE.ExtrudeGeometry => {
-    const key = `e-${char}-${size.toFixed(1)}-${depth.toFixed(1)}`;
-    const existing = extrudeCache.get(key);
-    if (existing) return existing;
-    const shapes = font.generateShapes(char, size);
-    const geo = new THREE.ExtrudeGeometry(shapes, {
-      depth,
-      bevelEnabled: true,
-      bevelThickness: depth * 0.15,
-      bevelSize: depth * 0.1,
-      bevelSegments: 1,
-    });
-    centreGeometry(geo);
-    extrudeCache.set(key, geo);
-    return geo;
-  };
-
-  const centreGeometry = (geo: THREE.BufferGeometry) => {
+  const centre = (geo: THREE.BufferGeometry) => {
     geo.computeBoundingBox();
-    const box = geo.boundingBox;
-    if (box) {
-      const cx = -(box.min.x + box.max.x) * 0.5;
-      const cy = -(box.min.y + box.max.y) * 0.5;
-      const cz = -(box.min.z + box.max.z) * 0.5;
-      geo.translate(cx, cy, cz);
-    }
+    const b = geo.boundingBox!;
+    geo.translate(-(b.min.x + b.max.x) * 0.5, -(b.min.y + b.max.y) * 0.5, -(b.min.z + b.max.z) * 0.5);
   };
 
-  /* ── Wind system ────────────────────────────────────────────── */
+  const getFlat = (ch: string, sz: number): THREE.ShapeGeometry => {
+    const k = `s-${ch}-${sz.toFixed(0)}`;
+    let g = shapeCache.get(k);
+    if (!g) { g = new THREE.ShapeGeometry(font.generateShapes(ch, sz)); centre(g); shapeCache.set(k, g); }
+    return g;
+  };
+
+  const getExtrude = (ch: string, sz: number, d: number): THREE.ExtrudeGeometry => {
+    const k = `e-${ch}-${sz.toFixed(0)}-${d.toFixed(1)}`;
+    let g = extrudeCache.get(k);
+    if (!g) {
+      g = new THREE.ExtrudeGeometry(font.generateShapes(ch, sz), {
+        depth: d, bevelEnabled: true, bevelThickness: d * 0.15, bevelSize: d * 0.1, bevelSegments: 1,
+      });
+      centre(g);
+      extrudeCache.set(k, g);
+    }
+    return g;
+  };
+
+  const randomGeo = (sz: number) => {
+    const ch = pick(chars, random);
+    return random() > 0.4 ? getExtrude(ch, sz, extrudeDepth * (0.4 + random() * 0.6)) : getFlat(ch, sz);
+  };
+
+  /* ── Wind ───────────────────────────────────────────────────── */
 
   const wind: WindState = {
     direction: random() * Math.PI * 2,
-    strength: 0.15 + random() * 0.25,
+    strength: 8 + random() * 10,
     targetDirection: random() * Math.PI * 2,
-    targetStrength: 0.1 + random() * 0.3,
-    nextShiftAt: 8 + random() * 15,
+    targetStrength: 6 + random() * 14,
+    nextShiftAt: 10 + random() * 15,
   };
 
-  const updateWind = (timeSeconds: number, deltaSeconds: number) => {
-    if (timeSeconds >= wind.nextShiftAt) {
-      wind.targetDirection += (random() - 0.5) * Math.PI * 0.8;
-      wind.targetStrength = 0.08 + random() * 0.35;
-      wind.nextShiftAt = timeSeconds + 10 + random() * 20;
-    }
-    wind.direction += (wind.targetDirection - wind.direction) * deltaSeconds * 0.15;
-    wind.strength += (wind.targetStrength - wind.strength) * deltaSeconds * 0.2;
-  };
+  /* ── Frustum culling objects (pre-allocated) ────────────────── */
 
-  /* ── Build clusters ─────────────────────────────────────────── */
+  const _frustum = new THREE.Frustum();
+  const _mat4 = new THREE.Matrix4();
+  const _sphere = new THREE.Sphere();
+  const _vec3 = new THREE.Vector3();
 
-  const chars = Array.from(new Set(characters));
-  const clusters: CloudCluster[] = [];
-  const glyphs: AsciiGlyph[] = [];
+  /* ── Build sigils ───────────────────────────────────────────── */
 
-  for (let layerIndex = 0; layerIndex < layerCount; layerIndex++) {
-    const layerGroup = new THREE.Group();
-    layerGroup.name = `ascii-cloud-layer-${layerIndex}`;
+  const sigils: Sigil[] = [];
+  const sigilGlyphs: AsciiGlyph[][] = []; // glyphs indexed by sigil ID
 
-    const layerRadius = baseRadius + layerIndex * 200 + (random() - 0.5) * 100;
-    const layerY = 220 + layerIndex * verticalSpacing;
-    const tint = palette[layerIndex % palette.length] ?? 0xd5e6ff;
+  for (let li = 0; li < layerCount; li++) {
+    const layerY = baseAltitude + li * verticalSpacing;
+    const tint = palette[li % palette.length] ?? 0xd5e6ff;
 
-    // Higher layers are more transparent and larger
-    const layerOpacityScale = 1.0 - layerIndex * 0.08;
-    const layerSizeScale = 1.0 + layerIndex * 0.12;
+    for (let si = 0; si < sigilsPerLayer; si++) {
+      const sigilId = sigils.length;
+      const sigilGroup = new THREE.Group();
+      sigilGroup.name = `sigil-${sigilId}`;
 
-    for (let ci = 0; ci < clustersPerLayer; ci++) {
-      const clusterAngle = (ci / clustersPerLayer) * Math.PI * 2 + (random() - 0.5) * 0.6;
-      const clusterRadius = layerRadius * (0.6 + random() * 0.5);
-      const clusterSpread = 60 + random() * 120;
+      // Scatter across terrain
+      const wx = (random() - 0.5) * terrainWidth * 0.8;
+      const wz = (random() - 0.5) * terrainDepth * 0.8;
+      const alt = layerY + (random() - 0.5) * 50;
+      const scale = sigilScaleMin + random() * (sigilScaleMax - sigilScaleMin);
 
-      const cluster: CloudCluster = {
-        id: clusters.length,
-        centre: new THREE.Vector3(),
-        angle: clusterAngle,
-        radius: clusterRadius,
-        driftSpeed: 0.015 + random() * 0.04,
-        baseY: layerY + (random() - 0.5) * 80,
-        spread: clusterSpread,
+      // Orient sigil: mostly vertical with random Y rotation and slight lean
+      sigilGroup.rotation.set(
+        -0.3 - random() * 0.4,           // lean top backward 17-40°
+        random() * Math.PI * 2,           // face random direction
+        (random() - 0.5) * 0.15,         // slight roll
+      );
+      sigilGroup.position.set(wx, alt, wz);
+
+      const driftAngle = random() * Math.PI * 2;
+      const driftMag = 1.5 + random() * 4;
+
+      const sigil: Sigil = {
+        id: sigilId,
+        group: sigilGroup,
+        worldX: wx,
+        worldZ: wz,
+        altitude: alt,
+        sigilScale: scale,
+        driftVX: Math.cos(driftAngle) * driftMag,
+        driftVZ: Math.sin(driftAngle) * driftMag,
+        driftAccumX: 0,
+        driftAccumZ: 0,
         phase: 0,
-        phaseTimer: random() * 5, // stagger initial formation
-        formDuration: 3 + random() * 5,
-        stableDuration: 12 + random() * 25,
-        dissolveDuration: 4 + random() * 8,
-        verticalDrift: (random() - 0.5) * 8,
-        layerIndex,
-        windInfluence: 0.5 + random() * 0.7,
+        phaseTimer: random() * 3, // stagger starts
+        formDuration: 4 + random() * 6,
+        stableDuration: 18 + random() * 30,
+        dissolveDuration: 5 + random() * 8,
+        dormantDuration: 6 + random() * 12,
+        formationMethod: pick(FORMATION_METHODS, random),
+        layerIndex: li,
+        windInfluence: 0.3 + random() * 0.6,
+        cullRadius: scale * 1.6,
+        inFrustum: false,
       };
-      clusters.push(cluster);
+      sigils.push(sigil);
 
-      // ── Core cluster glyphs ──
-      const totalGlyphs = glyphsPerCluster + Math.floor(random() * 6) - 3;
-      for (let gi = 0; gi < totalGlyphs; gi++) {
-        const glyphChar = pick(chars, random);
-        const size = (glyphSizeMin + random() * (glyphSizeMax - glyphSizeMin)) * layerSizeScale;
-        const useExtrude = random() > 0.35; // 65% of glyphs are 3D extruded
+      // Generate template and create glyphs
+      const generator = pick(SIGIL_GENERATORS, random);
+      const slots = generator(random, glyphsPerSigil);
+      const glyphsForSigil: AsciiGlyph[] = [];
 
-        const geometry = useExtrude
-          ? getExtrudeGeometry(glyphChar, size, extrudeDepth * (0.5 + random()))
-          : getShapeGeometry(glyphChar, size);
-
-        const material = new THREE.MeshBasicMaterial({
-          color: tint,
-          transparent: true,
-          depthWrite: false,
-          opacity: 0,
-          side: THREE.DoubleSide,
+      for (let gi = 0; gi < slots.length; gi++) {
+        const slot = slots[gi]!;
+        const sz = (glyphSizeMin + (glyphSizeMax - glyphSizeMin) * slot.scale) * (1 + li * 0.08);
+        const geo = randomGeo(sz);
+        const mat = new THREE.MeshBasicMaterial({
+          color: tint, transparent: true, depthWrite: false, opacity: 0, side: THREE.DoubleSide,
         });
-
-        const mesh = new THREE.Mesh(geometry, material);
+        const mesh = new THREE.Mesh(geo, mat);
         mesh.renderOrder = 3;
+        mesh.frustumCulled = false; // we do manual sigil-level culling
 
-        // Distribute within cluster using gaussian-ish distribution
-        const localX = gaussRandom(random, 0, clusterSpread * 0.45);
-        const localY = gaussRandom(random, 0, clusterSpread * 0.25);
-        const localZ = gaussRandom(random, 0, clusterSpread * 0.35);
+        const dist = Math.sqrt(slot.x ** 2 + slot.y ** 2);
+        const rotZ = random() * Math.PI * 2;
+        mesh.rotation.set(random() * 0.2, random() * 0.2, rotZ);
 
         const glyph: AsciiGlyph = {
           mesh,
-          clusterId: cluster.id,
-          layerIndex,
-          localOffset: new THREE.Vector3(localX, localY, localZ),
-          angle: clusterAngle + (random() - 0.5) * 0.3,
-          radius: clusterRadius + (random() - 0.5) * clusterSpread * 0.4,
-          driftSpeed: cluster.driftSpeed * (0.85 + random() * 0.3),
-          baseY: cluster.baseY + localY,
-          waveSpeed: 0.3 + random() * 1.0,
-          waveAmplitude: 4 + random() * 20,
+          sigilId,
+          layerIndex: li,
+          homeX: slot.x * scale,
+          homeY: slot.y * scale,
+          homeScale: slot.scale,
+          scatterX: (random() - 0.5) * scale * 3.5,
+          scatterY: (random() - 0.5) * scale * 3.5,
+          stagger: dist, // normalised 0-1 distance from centre → centre forms first
           wavePhase: random() * Math.PI * 2,
-          revealDelay: cluster.phaseTimer + gi * 0.06 + random() * 0.4,
-          revealDuration: 0.6 + random() * 1.8,
+          waveSpeed: 0.3 + random() * 0.8,
+          waveAmp: 2 + random() * 8,
+          tumbleSpeed: (random() - 0.5) * 0.08,
+          baseRotZ: rotZ,
+          nextMutationAt: 3 + random() * 8,
+          mutationCadence: 4 + random() * 8,
           lifeStart: random() * 10,
           lifeDuration: 8 + random() * 14,
-          nextMutationAt: 2.5 + random() * 7,
-          mutationCadence: 3 + random() * 6,
-          baseScale: (0.5 + random() * 0.7) * layerSizeScale,
-          tumbleSpeed: (random() - 0.5) * 0.15,
-          isWisp: false,
-          wispExtension: 0,
-          wispTarget: 0,
-          wispSpeed: 0,
-          depthOffset: (random() - 0.5) * clusterSpread * 0.6,
+          baseScale: (0.5 + slot.scale * 0.6) * (1 + li * 0.06),
         };
 
-        mesh.rotation.set(
-          random() * Math.PI * 0.3,
-          random() * Math.PI * 2,
-          random() * Math.PI * 2,
-        );
-
-        glyphs.push(glyph);
-        layerGroup.add(mesh);
+        glyphsForSigil.push(glyph);
+        sigilGroup.add(mesh);
       }
 
-      // ── Wisp/tendril glyphs extending from cluster edges ──
-      const wispCount = wispGlyphsPerCluster + Math.floor(random() * 4) - 2;
-      for (let wi = 0; wi < Math.max(0, wispCount); wi++) {
-        const glyphChar = pick(chars, random);
-        const size = (glyphSizeMin * 0.7 + random() * glyphSizeMin * 0.6) * layerSizeScale;
-        const useExtrude = random() > 0.5;
-
-        const geometry = useExtrude
-          ? getExtrudeGeometry(glyphChar, size, extrudeDepth * 0.4)
-          : getShapeGeometry(glyphChar, size);
-
-        const material = new THREE.MeshBasicMaterial({
-          color: tint,
-          transparent: true,
-          depthWrite: false,
-          opacity: 0,
-          side: THREE.DoubleSide,
-        });
-
-        const mesh = new THREE.Mesh(geometry, material);
-        mesh.renderOrder = 3;
-
-        // Wisps extend outward from cluster centre
-        const wispAngle = random() * Math.PI * 2;
-        const wispDist = clusterSpread * (0.8 + random() * 1.2);
-        const localX = Math.cos(wispAngle) * wispDist;
-        const localZ = Math.sin(wispAngle) * wispDist;
-        const localY = (random() - 0.5) * clusterSpread * 0.3;
-
-        const glyph: AsciiGlyph = {
-          mesh,
-          clusterId: cluster.id,
-          layerIndex,
-          localOffset: new THREE.Vector3(localX, localY, localZ),
-          angle: clusterAngle + (random() - 0.5) * 0.5,
-          radius: clusterRadius + wispDist * 0.3,
-          driftSpeed: cluster.driftSpeed * (0.7 + random() * 0.4),
-          baseY: cluster.baseY + localY,
-          waveSpeed: 0.5 + random() * 1.5,
-          waveAmplitude: 8 + random() * 30,
-          wavePhase: random() * Math.PI * 2,
-          revealDelay: cluster.phaseTimer + totalGlyphs * 0.06 + wi * 0.12 + random() * 0.8,
-          revealDuration: 1.0 + random() * 2.5,
-          lifeStart: random() * 10,
-          lifeDuration: 6 + random() * 10,
-          nextMutationAt: 1.5 + random() * 4,
-          mutationCadence: 2 + random() * 4,
-          baseScale: (0.35 + random() * 0.5) * layerSizeScale,
-          tumbleSpeed: (random() - 0.5) * 0.25,
-          isWisp: true,
-          wispExtension: 0,
-          wispTarget: 0.3 + random() * 0.7,
-          wispSpeed: 0.1 + random() * 0.3,
-          depthOffset: (random() - 0.5) * clusterSpread * 0.4,
-        };
-
-        mesh.rotation.set(
-          random() * Math.PI * 0.4,
-          random() * Math.PI * 2,
-          random() * Math.PI * 2,
-        );
-
-        glyphs.push(glyph);
-        layerGroup.add(mesh);
-      }
+      sigilGlyphs.push(glyphsForSigil);
+      rootGroup.add(sigilGroup);
     }
-
-    group.add(layerGroup);
   }
 
-  /* ── Mutation logic ─────────────────────────────────────────── */
+  /* ── Reformation: give a sigil a new template ───────────────── */
 
-  const mutateGlyph = (glyph: AsciiGlyph, timeSeconds: number) => {
-    const glyphChar = pick(chars, random);
-    const size = glyphSizeMin + random() * (glyphSizeMax - glyphSizeMin);
-    const useExtrude = random() > 0.35;
+  const reformSigil = (sigil: Sigil) => {
+    const glyphs = sigilGlyphs[sigil.id]!;
+    const generator = pick(SIGIL_GENERATORS, random);
+    const slots = generator(random, glyphs.length);
+    sigil.formationMethod = pick(FORMATION_METHODS, random);
 
-    glyph.mesh.geometry = useExtrude
-      ? getExtrudeGeometry(glyphChar, size, extrudeDepth * (0.4 + random() * 0.6))
-      : getShapeGeometry(glyphChar, size);
+    for (let i = 0; i < glyphs.length; i++) {
+      const g = glyphs[i]!;
+      const s = slots[i] ?? slots[slots.length - 1]!;
+      g.homeX = s.x * sigil.sigilScale;
+      g.homeY = s.y * sigil.sigilScale;
+      g.homeScale = s.scale;
+      g.scatterX = (random() - 0.5) * sigil.sigilScale * 3.5;
+      g.scatterY = (random() - 0.5) * sigil.sigilScale * 3.5;
+      g.stagger = Math.sqrt(s.x ** 2 + s.y ** 2);
+      g.baseScale = (0.5 + s.scale * 0.6) * (1 + g.layerIndex * 0.06);
 
-    glyph.lifeStart = timeSeconds;
-    glyph.lifeDuration = 6 + random() * 12;
-    glyph.nextMutationAt = timeSeconds + glyph.mutationCadence * (0.6 + random() * 0.8);
-    glyph.mesh.rotation.z += (random() - 0.5) * 0.6;
-    glyph.mesh.rotation.y += (random() - 0.5) * 0.4;
+      // Mutate character on reform
+      const sz = glyphSizeMin + (glyphSizeMax - glyphSizeMin) * s.scale;
+      g.mesh.geometry = randomGeo(sz);
+    }
   };
 
-  /* ── Sectional formation: track which sector is currently forming ── */
+  /* ── Mutation helper ────────────────────────────────────────── */
 
-  let activeSector = 0;
-  let sectorTimer = 0;
-  const sectorCount = layerCount * 2;
-  const sectorDuration = 4 + random() * 6;
+  const mutateGlyph = (g: AsciiGlyph, t: number) => {
+    const sz = glyphSizeMin + random() * (glyphSizeMax - glyphSizeMin);
+    g.mesh.geometry = randomGeo(sz);
+    g.lifeStart = t;
+    g.lifeDuration = 6 + random() * 12;
+    g.nextMutationAt = t + g.mutationCadence * (0.6 + random() * 0.8);
+    g.mesh.rotation.z += (random() - 0.5) * 0.4;
+  };
 
-  /* ── Update loop ────────────────────────────────────────────── */
+  /* ── Wrap coordinate for terrain recycling ──────────────────── */
+
+  const wrap = (v: number, half: number) => {
+    if (v > half) return v - half * 2;
+    if (v < -half) return v + half * 2;
+    return v;
+  };
+
+  /* ── Runtime params (live-tunable every frame) ──────────────── */
+
+  const params: AsciiCloudRuntimeParams = {
+    sigilScaleMul: 1,
+    glyphScaleMul: 1,
+    altitudeOffset: 0,
+    layerSpreadMul: 1,
+    driftSpeedMul: 1,
+    windStrengthMul: 1,
+    waveSpeedMul: 1,
+    waveAmplitudeMul: 1,
+    tumbleSpeedMul: 1,
+    bobAmplitude: 6,
+    formSpeedMul: 1,
+    stableDurationMul: 1,
+    dormantDurationMul: 1,
+    scatterRadiusMul: 1,
+    staggerStrength: 1,
+    opacityMul: 1,
+    breathDepth: 0.55,
+    mutationRateMul: 1,
+    cullDistance,
+  };
+
+  /* ═══ Update Loop ═══════════════════════════════════════════ */
 
   return {
-    group,
-    update: (timeSeconds: number, deltaSeconds: number) => {
-      updateWind(timeSeconds, deltaSeconds);
+    group: rootGroup,
+    params,
+    update: (t: number, dt: number, camera: THREE.Camera) => {
+      const p = params; // alias for brevity
 
-      // Advance sector formation
-      sectorTimer += deltaSeconds;
-      if (sectorTimer > sectorDuration) {
-        sectorTimer = 0;
-        activeSector = (activeSector + 1) % sectorCount;
+      // ── Wind ──
+      if (t >= wind.nextShiftAt) {
+        wind.targetDirection += (random() - 0.5) * Math.PI * 0.7;
+        wind.targetStrength = 5 + random() * 16;
+        wind.nextShiftAt = t + 12 + random() * 25;
       }
+      wind.direction += (wind.targetDirection - wind.direction) * dt * 0.12;
+      wind.strength += (wind.targetStrength - wind.strength) * dt * 0.15;
+      const windDX = Math.cos(wind.direction) * wind.strength * p.windStrengthMul;
+      const windDZ = Math.sin(wind.direction) * wind.strength * p.windStrengthMul;
 
-      // Wind displacement vector
-      const windDx = Math.cos(wind.direction) * wind.strength;
-      const windDz = Math.sin(wind.direction) * wind.strength;
+      // ── Build frustum once per frame ──
+      _mat4.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+      _frustum.setFromProjectionMatrix(_mat4);
+      const camPos = camera.position;
 
-      // Update cluster phases
-      for (const cluster of clusters) {
-        cluster.phaseTimer += deltaSeconds;
-        const totalCycleDuration = cluster.formDuration + cluster.stableDuration + cluster.dissolveDuration;
+      // ── Global breath ──
+      const breathRange = p.breathDepth * 0.28;
+      const breath = (1 - p.breathDepth * 0.28) + Math.sin(t * 0.38) * breathRange * 0.5 + Math.sin(t * 0.17) * breathRange * 0.5;
 
-        if (cluster.phaseTimer > totalCycleDuration) {
-          // Reset cycle – cluster reforms
-          cluster.phaseTimer = 0;
-          cluster.angle += (random() - 0.5) * 0.4;
-          cluster.baseY += (random() - 0.5) * 30;
-          cluster.spread = 60 + random() * 120;
+      // ── Update each sigil ──
+      for (const sigil of sigils) {
+        // Drift (scaled by runtime param)
+        const driftMul = p.driftSpeedMul;
+        sigil.driftAccumX += (sigil.driftVX * driftMul + windDX * sigil.windInfluence) * dt;
+        sigil.driftAccumZ += (sigil.driftVZ * driftMul + windDZ * sigil.windInfluence) * dt;
+
+        // Wrap at terrain edges
+        let curX = sigil.worldX + sigil.driftAccumX;
+        let curZ = sigil.worldZ + sigil.driftAccumZ;
+        if (Math.abs(curX) > halfW * 1.15) {
+          sigil.driftAccumX = wrap(curX, halfW * 1.15) - sigil.worldX;
+          curX = sigil.worldX + sigil.driftAccumX;
+        }
+        if (Math.abs(curZ) > halfD * 1.15) {
+          sigil.driftAccumZ = wrap(curZ, halfD * 1.15) - sigil.worldZ;
+          curZ = sigil.worldZ + sigil.driftAccumZ;
         }
 
-        // Determine phase
-        if (cluster.phaseTimer < cluster.formDuration) {
-          cluster.phase = 0; // forming
-        } else if (cluster.phaseTimer < cluster.formDuration + cluster.stableDuration) {
-          cluster.phase = 1; // stable
+        // Vertical position: base altitude + runtime offset + layer spread + bob
+        const layerAltitude = sigil.altitude + p.altitudeOffset + (sigil.layerIndex * verticalSpacing * (p.layerSpreadMul - 1));
+        const bobY = Math.sin(t * 0.25 + sigil.id * 1.7) * p.bobAmplitude;
+        sigil.group.position.set(curX, layerAltitude + bobY, curZ);
+
+        // ── Frustum + distance culling ──
+        _vec3.set(curX, layerAltitude + bobY, curZ);
+        const dist = _vec3.distanceTo(camPos);
+        const effectiveCullRadius = sigil.cullRadius * p.sigilScaleMul;
+        _sphere.set(_vec3, effectiveCullRadius);
+        sigil.inFrustum = dist < p.cullDistance && _frustum.intersectsSphere(_sphere);
+        sigil.group.visible = sigil.inFrustum;
+        if (!sigil.inFrustum) continue;
+
+        // ── Phase lifecycle (form speed affects form/dissolve, other multipliers for stable/dormant) ──
+        const effectiveFormDur = sigil.formDuration / p.formSpeedMul;
+        const effectiveDissolveDur = sigil.dissolveDuration / p.formSpeedMul;
+        const effectiveStableDur = sigil.stableDuration * p.stableDurationMul;
+        const effectiveDormantDur = sigil.dormantDuration * p.dormantDurationMul;
+
+        sigil.phaseTimer += dt;
+        const totalCycle = effectiveFormDur + effectiveStableDur + effectiveDissolveDur + effectiveDormantDur;
+        if (sigil.phaseTimer >= totalCycle) {
+          sigil.phaseTimer = 0;
+          sigil.phase = 0;
+          reformSigil(sigil);
+        } else if (sigil.phaseTimer < effectiveFormDur) {
+          sigil.phase = 0;
+        } else if (sigil.phaseTimer < effectiveFormDur + effectiveStableDur) {
+          sigil.phase = 1;
+        } else if (sigil.phaseTimer < effectiveFormDur + effectiveStableDur + effectiveDissolveDur) {
+          sigil.phase = 2;
         } else {
-          cluster.phase = 2; // dissolving
+          sigil.phase = 3;
         }
 
-        // Drift cluster orbit
-        cluster.angle += cluster.driftSpeed * deltaSeconds + windDx * cluster.windInfluence * deltaSeconds * 0.02;
-
-        // Update cluster centre
-        cluster.centre.set(
-          Math.cos(cluster.angle) * cluster.radius,
-          cluster.baseY + Math.sin(timeSeconds * 0.3 + cluster.id) * cluster.verticalDrift,
-          Math.sin(cluster.angle) * cluster.radius,
-        );
-      }
-
-      // Global breathing
-      const globalBreath = 0.7 + Math.sin(timeSeconds * 0.4) * 0.15 + Math.sin(timeSeconds * 0.17) * 0.15;
-
-      // Update each glyph
-      for (const glyph of glyphs) {
-        const cluster = clusters[glyph.clusterId]!;
-
-        // ── Cluster phase opacity multiplier ──
-        let clusterOpacity = 1;
-        if (cluster.phase === 0) {
-          // Forming: ease in
-          const t = cluster.phaseTimer / cluster.formDuration;
-          clusterOpacity = smoothstep(0, 1, t);
-        } else if (cluster.phase === 2) {
-          // Dissolving: ease out
-          const dissolveStart = cluster.formDuration + cluster.stableDuration;
-          const t = (cluster.phaseTimer - dissolveStart) / cluster.dissolveDuration;
-          clusterOpacity = 1 - smoothstep(0, 1, t);
+        // Dormant → hide all children cheaply
+        if (sigil.phase === 3) {
+          sigil.group.visible = false;
+          continue;
         }
 
-        // ── Sectional formation boost ──
-        const glyphSector = (glyph.layerIndex * 2 + (glyph.clusterId % 2)) % sectorCount;
-        const sectorActive = glyphSector === activeSector || glyphSector === (activeSector + 1) % sectorCount;
-        const sectorBoost = sectorActive ? 1.15 : 0.92;
-
-        // ── Orbital position with wind influence ──
-        glyph.angle += glyph.driftSpeed * deltaSeconds + windDx * 0.01 * deltaSeconds;
-        const orbitX = Math.cos(glyph.angle) * glyph.radius;
-        const orbitZ = Math.sin(glyph.angle) * glyph.radius;
-
-        // ── Vertical wave ──
-        const waveY = Math.sin(timeSeconds * glyph.waveSpeed + glyph.wavePhase + glyph.angle * 1.2) * glyph.waveAmplitude;
-
-        // ── Wisp extension animation ──
-        let wispMultiplier = 1;
-        if (glyph.isWisp) {
-          // Wisps extend and retract rhythmically
-          glyph.wispTarget = 0.3 + Math.sin(timeSeconds * glyph.wispSpeed * 2 + glyph.wavePhase) * 0.5 + 0.2;
-          glyph.wispExtension += (glyph.wispTarget - glyph.wispExtension) * deltaSeconds * glyph.wispSpeed * 3;
-          wispMultiplier = glyph.wispExtension;
+        // Compute formationT using effective durations
+        let formT: number;
+        if (sigil.phase === 0) {
+          formT = Math.min(1, sigil.phaseTimer / effectiveFormDur);
+        } else if (sigil.phase === 1) {
+          formT = 1;
+        } else {
+          const dissolveElapsed = sigil.phaseTimer - effectiveFormDur - effectiveStableDur;
+          formT = Math.max(0, 1 - dissolveElapsed / effectiveDissolveDur);
         }
 
-        // ── Compose position ──
-        const localX = glyph.localOffset.x * wispMultiplier;
-        const localY = glyph.localOffset.y * wispMultiplier;
-        const localZ = glyph.localOffset.z * wispMultiplier;
+        const method = sigil.formationMethod;
+        const glyphs = sigilGlyphs[sigil.id]!;
+        const scaleMul = p.sigilScaleMul;
+        const scatterMul = p.scatterRadiusMul;
+        const staggerStr = p.staggerStrength;
 
-        // Wind pushes glyph positions
-        const windPushX = windDx * 15 * glyph.layerIndex * 0.3;
-        const windPushZ = windDz * 15 * glyph.layerIndex * 0.3;
+        // ── Update glyphs within this sigil ──
+        for (const g of glyphs) {
+          // Position from formation method (with runtime scatter/stagger scaling)
+          const staggeredT = Math.max(0, Math.min(1,
+            (formT * 1.4 - g.stagger * 0.5 * staggerStr) / (1.4 - g.stagger * 0.5 * staggerStr),
+          ));
 
-        glyph.mesh.position.set(
-          orbitX + localX + windPushX,
-          glyph.baseY + waveY + localY,
-          orbitZ + localZ + glyph.depthOffset + windPushZ,
-        );
+          let px: number, py: number;
+          switch (method) {
+            case "converge": {
+              const e = easeOutCubic(staggeredT);
+              px = g.homeX * scaleMul + g.scatterX * scatterMul * (1 - e);
+              py = g.homeY * scaleMul + g.scatterY * scatterMul * (1 - e);
+              break;
+            }
+            case "cascade": {
+              px = g.homeX * scaleMul;
+              py = g.homeY * scaleMul;
+              break;
+            }
+            case "spiral": {
+              const e = easeOutCubic(staggeredT);
+              const angle = (1 - e) * Math.PI * 2.5;
+              const drift = 1 - e;
+              const cos = Math.cos(angle), sin = Math.sin(angle);
+              px = g.homeX * scaleMul + (g.scatterX * cos - g.scatterY * sin) * scatterMul * drift;
+              py = g.homeY * scaleMul + (g.scatterX * sin + g.scatterY * cos) * scatterMul * drift;
+              break;
+            }
+          }
 
-        // ── Face outward with slight tumble ──
-        glyph.mesh.lookAt(
-          glyph.mesh.position.x * 1.06,
-          glyph.mesh.position.y + 12,
-          glyph.mesh.position.z * 1.06,
-        );
-        glyph.mesh.rotation.z += glyph.tumbleSpeed * deltaSeconds;
+          // Per-glyph wave
+          const wave = Math.sin(t * g.waveSpeed * p.waveSpeedMul + g.wavePhase) * g.waveAmp * p.waveAmplitudeMul;
+          g.mesh.position.set(px, py + wave, 0);
 
-        // ── Opacity computation ──
-        const revealT = THREE.MathUtils.clamp(
-          (timeSeconds - glyph.revealDelay) / glyph.revealDuration,
-          0,
-          1,
-        );
-        const lifeT = (timeSeconds - glyph.lifeStart) / glyph.lifeDuration;
-        const lifeWave = 0.5 + Math.sin(lifeT * Math.PI * 2) * 0.5;
-        const breath = globalBreath * (0.85 + Math.sin(timeSeconds * (0.7 + glyph.layerIndex * 0.1) + glyph.angle * 2) * 0.15);
+          // Gentle tumble
+          g.mesh.rotation.z = g.baseRotZ + g.tumbleSpeed * p.tumbleSpeedMul * t;
 
-        let opacity = Math.pow(revealT, 1.6) * lifeWave * breath * clusterOpacity * sectorBoost;
+          // ── Opacity (formation method + life + breath, scaled by runtime param) ──
+          let methodOp: number;
+          switch (method) {
+            case "converge": methodOp = smoothstep(0, 0.4, staggeredT); break;
+            case "cascade": methodOp = staggeredT > 0.02 ? smoothstep(0, 0.3, staggeredT) : 0; break;
+            case "spiral": methodOp = smoothstep(0, 0.5, staggeredT); break;
+          }
+          const lifeT = (t - g.lifeStart) / g.lifeDuration;
+          const lifeWave = 0.55 + Math.sin(lifeT * Math.PI * 2) * 0.45;
+          let opacity = methodOp * lifeWave * breath;
+          opacity *= 1.0 - g.layerIndex * 0.06;
+          opacity = Math.min(opacity * 0.65 * p.opacityMul, 0.85);
 
-        // Wisps are more transparent
-        if (glyph.isWisp) {
-          opacity *= 0.5 * glyph.wispExtension;
+          const mat = g.mesh.material;
+          if (mat instanceof THREE.MeshBasicMaterial) {
+            mat.opacity = Math.max(0, opacity);
+          }
+
+          // ── Scale ──
+          let methodSc: number;
+          switch (method) {
+            case "converge": methodSc = 0.3 + easeOutCubic(staggeredT) * 0.7; break;
+            case "cascade": methodSc = staggeredT > 0.02 ? easeOutBack(Math.min(1, staggeredT)) : 0; break;
+            case "spiral": methodSc = 0.2 + easeOutCubic(staggeredT) * 0.8; break;
+          }
+          const scaleWave = 0.9 + Math.sin(t * g.waveSpeed * p.waveSpeedMul * 0.4 + g.wavePhase) * 0.1;
+          g.mesh.scale.setScalar(g.baseScale * p.glyphScaleMul * methodSc * scaleWave);
+
+          // ── Mutation (only during stable phase, rate scaled by param) ──
+          if (sigil.phase === 1 && t >= g.nextMutationAt) {
+            mutateGlyph(g, t);
+            // Scale next mutation time by mutation rate
+            g.nextMutationAt = t + g.mutationCadence * (0.6 + random() * 0.8) / Math.max(0.1, p.mutationRateMul);
+          }
         }
-
-        // Layer-based distance fade (higher layers more translucent)
-        opacity *= 1.0 - glyph.layerIndex * 0.07;
-
-        // Clamp
-        opacity = Math.min(opacity * 0.6, 0.75);
-
-        const material = glyph.mesh.material;
-        if (material instanceof THREE.MeshBasicMaterial) {
-          material.opacity = Math.max(0, opacity);
-        }
-
-        // ── Scale animation ──
-        const scaleWave = glyph.baseScale * (0.85 + Math.sin(timeSeconds * glyph.waveSpeed * 0.5 + glyph.angle) * 0.18);
-        const clusterScaleInfluence = cluster.phase === 0
-          ? smoothstep(0, 1, cluster.phaseTimer / cluster.formDuration)
-          : cluster.phase === 2
-            ? 1 - smoothstep(0, 1, (cluster.phaseTimer - cluster.formDuration - cluster.stableDuration) / cluster.dissolveDuration) * 0.4
-            : 1;
-        glyph.mesh.scale.setScalar(scaleWave * clusterScaleInfluence);
-
-        // ── Mutation ──
-        if (timeSeconds >= glyph.nextMutationAt) {
-          mutateGlyph(glyph, timeSeconds);
-        }
-      }
-
-      // ── Global layer drift ──
-      // Each layer group rotates at slightly different rates for parallax
-      const children = group.children;
-      for (let i = 0; i < children.length; i++) {
-        const layerGroup = children[i];
-        if (!layerGroup) continue;
-        const rate = 0.004 + i * 0.0015 + Math.sin(timeSeconds * 0.06 + i) * 0.001;
-        layerGroup.rotation.y += deltaSeconds * rate;
-        // Subtle vertical float per layer
-        layerGroup.position.y = Math.sin(timeSeconds * 0.15 + i * 1.3) * 8;
       }
     },
   };
-};
-
-/* ── Utility ─────────────────────────────────────────────────── */
-
-const smoothstep = (edge0: number, edge1: number, x: number): number => {
-  const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
-  return t * t * (3 - 2 * t);
 };
