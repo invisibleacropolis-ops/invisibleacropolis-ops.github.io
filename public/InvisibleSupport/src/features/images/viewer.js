@@ -182,7 +182,7 @@ async function copyCurrentLink() {
             return;
         }
 
-        const copied = await Utils.copyToClipboard(link);
+        const copied = await Utils.copyToClipboard(link, linkInput);
         Notifications.toast(
             copied ? t('common.copySuccess') : t('common.copyFailure'),
             copied ? 'success' : 'error'
