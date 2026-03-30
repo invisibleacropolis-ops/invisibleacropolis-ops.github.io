@@ -4,12 +4,12 @@
 The Image Gallery panel is the browsing and selection surface for image assets already present in the image store. It renders image thumbnails in **grid** or **list** modes, supports search filtering, supports keyboard delete/select actions, and keeps selection state synchronized with the Image Viewer panel.
 
 - DOM mount selectors: `[data-image-search]`, `[data-image-view]`, `[data-image-gallery-items]`, `[data-image-gallery-empty]`
-- Primary module: `public/InvisibleSupport/src/features/images/gallery.js`
+- Primary module: `InvisibleSupport/src/features/images/gallery.js`
 - Supporting modules:  
-  - `public/InvisibleSupport/src/features/images/store.js` (source data and deletion)  
-  - `public/InvisibleSupport/src/features/images/viewer.js` (selection target and selected-id source)  
-  - `public/InvisibleSupport/src/shared/utils.js` (`formatBytes`)  
-  - `public/InvisibleSupport/src/shared/ui/notifications.js` (`toast` feedback)
+  - `InvisibleSupport/src/features/images/store.js` (source data and deletion)  
+  - `InvisibleSupport/src/features/images/viewer.js` (selection target and selected-id source)  
+  - `InvisibleSupport/src/shared/utils.js` (`formatBytes`)  
+  - `InvisibleSupport/src/shared/ui/notifications.js` (`toast` feedback)
 
 ## Initialization and ownership
 `init()` binds selectors once, subscribes to store updates, wires view/search inputs, and wires keyboard handlers on the gallery list container. On every store update, the module re-renders the filtered item list and applies selected-item styling based on current viewer selection.

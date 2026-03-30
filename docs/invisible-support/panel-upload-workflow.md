@@ -33,17 +33,17 @@ Accessibility-related attributes in this panel include:
 
 ## 3) Owning modules/files
 ### Primary owner
-- `public/InvisibleSupport/src/features/documents/upload.js`
+- `InvisibleSupport/src/features/documents/upload.js`
 
 ### Direct dependencies in the upload flow
-- `public/InvisibleSupport/src/features/documents/store.js`
-- `public/InvisibleSupport/src/shared/services/storage-manager.js`
-- `public/InvisibleSupport/src/shared/services/github.js`
-- `public/InvisibleSupport/src/shared/utils.js`
+- `InvisibleSupport/src/features/documents/store.js`
+- `InvisibleSupport/src/shared/services/storage-manager.js`
+- `InvisibleSupport/src/shared/services/github.js`
+- `InvisibleSupport/src/shared/utils.js`
 
 ### Integration targets updated after success
-- `public/InvisibleSupport/src/features/documents/viewer.js` (selection handoff)
-- `public/InvisibleSupport/src/features/documents/library-view.js` (row focus handoff)
+- `InvisibleSupport/src/features/documents/viewer.js` (selection handoff)
+- `InvisibleSupport/src/features/documents/library-view.js` (row focus handoff)
 
 ## 4) Initialization path
 1. App bootstrap calls `init()` for the documents upload module.

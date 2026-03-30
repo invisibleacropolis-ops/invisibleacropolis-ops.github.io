@@ -35,40 +35,40 @@ Observed and source-confirmed panel set:
 ## Source-of-truth file map (by layer)
 
 ### Markup and styling
-- `public/InvisibleSupport/index.html`
+- `InvisibleSupport/index.html`
   - Home page structure, panel DOM, data attributes, modal markup, embedded styles.
 
 ### App bootstrap and orchestration
-- `public/InvisibleSupport/src/main.js`
+- `InvisibleSupport/src/main.js`
   - Imports all modules and initializes panel features.
   - Wires split panes, collapsible panels, and legacy global exports.
 
 ### Documents feature slice
-- `public/InvisibleSupport/src/features/documents/upload.js`
-- `public/InvisibleSupport/src/features/documents/store.js`
-- `public/InvisibleSupport/src/features/documents/library-view.js`
-- `public/InvisibleSupport/src/features/documents/viewer.js`
+- `InvisibleSupport/src/features/documents/upload.js`
+- `InvisibleSupport/src/features/documents/store.js`
+- `InvisibleSupport/src/features/documents/library-view.js`
+- `InvisibleSupport/src/features/documents/viewer.js`
 
 ### Images feature slice
-- `public/InvisibleSupport/src/features/images/upload.js`
-- `public/InvisibleSupport/src/features/images/store.js`
-- `public/InvisibleSupport/src/features/images/gallery.js`
-- `public/InvisibleSupport/src/features/images/viewer.js`
+- `InvisibleSupport/src/features/images/upload.js`
+- `InvisibleSupport/src/features/images/store.js`
+- `InvisibleSupport/src/features/images/gallery.js`
+- `InvisibleSupport/src/features/images/viewer.js`
 
 ### Settings and storage UI
-- `public/InvisibleSupport/src/features/settings/github-settings.js`
-- `public/InvisibleSupport/src/features/storage/ui.js`
+- `InvisibleSupport/src/features/settings/github-settings.js`
+- `InvisibleSupport/src/features/storage/ui.js`
 
 ### Shared infrastructure/services
-- `public/InvisibleSupport/src/shared/services/github.js`
-- `public/InvisibleSupport/src/shared/services/storage-manager.js`
-- `public/InvisibleSupport/src/shared/services/base-store.js`
-- `public/InvisibleSupport/src/shared/ui/split-pane.js`
-- `public/InvisibleSupport/src/shared/ui/notifications.js`
-- `public/InvisibleSupport/src/shared/localization/index.js`
-- `public/InvisibleSupport/src/shared/utils.js`
-- `public/InvisibleSupport/src/shared/infrastructure/event-bus.js`
-- `public/InvisibleSupport/src/shared/infrastructure/store.js`
+- `InvisibleSupport/src/shared/services/github.js`
+- `InvisibleSupport/src/shared/services/storage-manager.js`
+- `InvisibleSupport/src/shared/services/base-store.js`
+- `InvisibleSupport/src/shared/ui/split-pane.js`
+- `InvisibleSupport/src/shared/ui/notifications.js`
+- `InvisibleSupport/src/shared/localization/index.js`
+- `InvisibleSupport/src/shared/utils.js`
+- `InvisibleSupport/src/shared/infrastructure/event-bus.js`
+- `InvisibleSupport/src/shared/infrastructure/store.js`
 
 ### Storage manifests and static data
 - `public/InvisibleSupport/storage/documents.json`
@@ -241,4 +241,4 @@ Documentation is complete when:
 
 - Keep docs colocated by feature domain under `docs/invisible-support/`.
 - Update panel docs whenever selectors/data attributes or module exports change.
-- Treat `public/InvisibleSupport/index.html` as the UI contract baseline; update docs in the same PR as panel markup changes.
+- Treat `InvisibleSupport/index.html` as the UI contract baseline; update docs in the same PR as panel markup changes.

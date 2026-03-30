@@ -11,11 +11,11 @@ The Document viewer panel renders a preview for the selected document, exposes d
 - Open action: `[data-viewer-open]`
 
 ## Owning modules
-- Primary renderer/controller: `public/InvisibleSupport/src/features/documents/viewer.js`
-- Shared document store subscription: `public/InvisibleSupport/src/features/documents/store.js`
-- Library synchronization peer: `public/InvisibleSupport/src/features/documents/library-view.js`
-- Shared utilities (clipboard + object URL semantics): `public/InvisibleSupport/src/shared/utils.js`
-- User notifications: `public/InvisibleSupport/src/shared/ui/notifications.js`
+- Primary renderer/controller: `InvisibleSupport/src/features/documents/viewer.js`
+- Shared document store subscription: `InvisibleSupport/src/features/documents/store.js`
+- Library synchronization peer: `InvisibleSupport/src/features/documents/library-view.js`
+- Shared utilities (clipboard + object URL semantics): `InvisibleSupport/src/shared/utils.js`
+- User notifications: `InvisibleSupport/src/shared/ui/notifications.js`
 
 ## Selection model and synchronization
 The viewer maintains `currentId` as the selected document.

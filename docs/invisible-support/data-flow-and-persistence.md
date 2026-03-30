@@ -4,14 +4,14 @@ This document traces how the Invisible Support portal moves data between UI feat
 
 ## Scope traced
 
-- Feature modules under `public/InvisibleSupport/src/features/**`:
+- Feature modules under `InvisibleSupport/src/features/**`:
   - Documents: `upload.js`, `store.js`, `library-view.js`, `viewer.js`.
   - Images: `upload.js`, `store.js`, `gallery.js`, `viewer.js`.
   - Storage/settings: `storage/ui.js`, `settings/github-settings.js`.
 - Shared services:
-  - `public/InvisibleSupport/src/shared/services/github.js`
-  - `public/InvisibleSupport/src/shared/services/storage-manager.js`
-  - `public/InvisibleSupport/src/shared/services/base-store.js` (bridge used by both document/image stores)
+  - `InvisibleSupport/src/shared/services/github.js`
+  - `InvisibleSupport/src/shared/services/storage-manager.js`
+  - `InvisibleSupport/src/shared/services/base-store.js` (bridge used by both document/image stores)
 - Manifests:
   - `public/InvisibleSupport/storage/documents.json`
   - `public/InvisibleSupport/storage/images.json`

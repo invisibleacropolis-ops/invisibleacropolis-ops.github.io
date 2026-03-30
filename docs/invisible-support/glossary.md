@@ -155,18 +155,18 @@ In this doc set, a **direct link** means a user-actionable URL for the currently
 
 ## Key module quick-reference map
 
-- Composition root and init order: `public/InvisibleSupport/src/main.js`
+- Composition root and init order: `InvisibleSupport/src/main.js`
 - Shared UI/services:
-  - `public/InvisibleSupport/src/shared/ui/split-pane.js`
-  - `public/InvisibleSupport/src/shared/ui/notifications.js`
-  - `public/InvisibleSupport/src/shared/services/github.js`
-  - `public/InvisibleSupport/src/shared/services/storage-manager.js`
-  - `public/InvisibleSupport/src/shared/services/base-store.js`
-  - `public/InvisibleSupport/src/shared/utils.js`
+  - `InvisibleSupport/src/shared/ui/split-pane.js`
+  - `InvisibleSupport/src/shared/ui/notifications.js`
+  - `InvisibleSupport/src/shared/services/github.js`
+  - `InvisibleSupport/src/shared/services/storage-manager.js`
+  - `InvisibleSupport/src/shared/services/base-store.js`
+  - `InvisibleSupport/src/shared/utils.js`
 - Feature modules:
-  - Documents: `public/InvisibleSupport/src/features/documents/{upload,library-view,viewer,store}.js`
-  - Images: `public/InvisibleSupport/src/features/images/{upload,gallery,viewer,store}.js`
-  - Settings/storage UI: `public/InvisibleSupport/src/features/settings/github-settings.js`, `public/InvisibleSupport/src/features/storage/ui.js`
+  - Documents: `InvisibleSupport/src/features/documents/{upload,library-view,viewer,store}.js`
+  - Images: `InvisibleSupport/src/features/images/{upload,gallery,viewer,store}.js`
+  - Settings/storage UI: `InvisibleSupport/src/features/settings/github-settings.js`, `InvisibleSupport/src/features/storage/ui.js`
 
 ## Key selector quick-reference map
 

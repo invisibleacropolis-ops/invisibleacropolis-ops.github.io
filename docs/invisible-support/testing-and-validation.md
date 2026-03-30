@@ -35,7 +35,7 @@ npm run build
 
 ## 2) Manual QA checklist
 
-Execute QA in this order to match startup and shared dependency flow from `public/InvisibleSupport/src/main.js`:
+Execute QA in this order to match startup and shared dependency flow from `InvisibleSupport/src/main.js`:
 1. Repository storage panel (GitHub settings)
 2. Upload workflow + Asset library + Document viewer
 3. Image upload + Image gallery + Image viewer
@@ -126,7 +126,7 @@ Checklist:
 
 ## 3) GitHub integration validation cases
 
-Use `public/InvisibleSupport/src/shared/services/github.js`, `storage-manager.js`, and feature stores as expected behavior references.
+Use `InvisibleSupport/src/shared/services/github.js`, `storage-manager.js`, and feature stores as expected behavior references.
 
 ### Case 1: Missing config (no token or owner/repo)
 Setup:

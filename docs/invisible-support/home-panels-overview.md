@@ -1,8 +1,8 @@
 # Invisible Support Home Panels Overview
 
-This page is the entry point for the `docs/invisible-support/` documentation set. It maps each Home panel in `public/InvisibleSupport/index.html` to the feature modules that own behavior and state.
+This page is the entry point for the `docs/invisible-support/` documentation set. It maps each Home panel in `InvisibleSupport/index.html` to the feature modules that own behavior and state.
 
-## Startup architecture from `public/InvisibleSupport/src/main.js`
+## Startup architecture from `InvisibleSupport/src/main.js`
 
 ### Module imports by layer
 
@@ -97,7 +97,7 @@ The Home page panel headings and anchor IDs are:
 6. **Image gallery** (`#image-gallery`)
 7. **Image viewer** (`#image-viewer`)
 
-## Source-of-truth ownership map (`public/InvisibleSupport/src/features/**`)
+## Source-of-truth ownership map (`InvisibleSupport/src/features/**`)
 
 | Panel | Heading anchor | Primary owning modules | Related modules |
 |---|---|---|---|
