@@ -177,11 +177,12 @@ export function readFileAsDataUrl(file, progressCallback) {
 }
 
 /**
- * Copies text to the clipboard with fallback for older browsers
+ * Copies text to the clipboard with robust multi-step fallback behavior.
  * @param {string} text - Text to copy
+ * @param {HTMLInputElement|HTMLTextAreaElement|null} sourceEl - Optional visible source field to select from.
  * @returns {Promise<boolean>} True if successful
  */
-export async function copyToClipboard(text) {
+export async function copyToClipboard(text, sourceEl = null) {
     if (!text) return false;
     try {
         await navigator.clipboard.writeText(text);
@@ -189,24 +190,53 @@ export async function copyToClipboard(text) {
     } catch (error) {
         console.warn('Async clipboard failed, attempting fallback', error);
     }
+
+    const activeEl = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const selection = document.getSelection();
+    const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+    const canSelectSource = sourceEl && typeof sourceEl.select === 'function';
+
+    if (canSelectSource) {
+        try {
+            sourceEl.focus({ preventScroll: true });
+            sourceEl.select();
+            if (typeof sourceEl.setSelectionRange === 'function') {
+                sourceEl.setSelectionRange(0, String(text).length);
+            }
+            if (document.execCommand('copy')) {
+                activeEl?.focus?.({ preventScroll: true });
+                if (range && selection) {
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                }
+                return true;
+            }
+        } catch (error) {
+            console.warn('Source element copy fallback failed', error);
+        }
+    }
+
     const textarea = document.createElement('textarea');
     textarea.value = text;
     textarea.setAttribute('readonly', 'true');
     textarea.style.position = 'fixed';
-    textarea.style.top = '-9999px';
+    textarea.style.top = '0';
+    textarea.style.left = '0';
+    textarea.style.opacity = '0';
     document.body.appendChild(textarea);
-    const selection = document.getSelection();
-    const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+    textarea.focus({ preventScroll: true });
     textarea.select();
     let success = false;
     try {
         success = document.execCommand('copy');
     } catch (error) {
-        console.error('Fallback copy failed', error);
-        success = false;
+        console.error('Textarea fallback copy failed', error);
+    } finally {
+        textarea.blur();
+        document.body.removeChild(textarea);
     }
-    textarea.blur();
-    document.body.removeChild(textarea);
+
+    activeEl?.focus?.({ preventScroll: true });
     if (range && selection) {
         selection.removeAllRanges();
         selection.addRange(range);
