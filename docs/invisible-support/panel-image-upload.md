@@ -1,10 +1,10 @@
 # Panel: Image upload
 
 ## Purpose
-The Image upload panel accepts one or more image files, validates each file, uploads the payload to GitHub-backed storage, persists metadata to the image store, and updates related UI surfaces (gallery + viewer). The controller is initialized by `init()` in `InvisibleSupport/src/features/images/upload.js` and binds to form-level data selectors.
+The Image upload panel accepts one or more image files, validates each file, uploads the payload to GitHub-backed storage, persists metadata to the image store, and updates related UI surfaces (gallery + viewer). The controller is initialized by `init()` in `invisible-support/src/features/images/upload.js` and binds to form-level data selectors.
 
 ## DOM selectors used by the module
-`InvisibleSupport/src/features/images/upload.js` queries and controls the following selectors:
+`invisible-support/src/features/images/upload.js` queries and controls the following selectors:
 
 - `[data-image-form]` — root form element and event host (`submit`, `reset`).
 - `[data-image-dropzone]` — drag-and-drop target with `is-dragover` visual state.
@@ -16,11 +16,11 @@ The Image upload panel accepts one or more image files, validates each file, upl
 
 ## Module ownership and dependencies
 
-- **Primary module:** `InvisibleSupport/src/features/images/upload.js`
+- **Primary module:** `invisible-support/src/features/images/upload.js`
 - **Dependencies requested for this panel:**
-  - `InvisibleSupport/src/features/images/store.js`
-  - `InvisibleSupport/src/shared/services/github.js`
-  - `InvisibleSupport/src/shared/utils.js`
+  - `invisible-support/src/features/images/store.js`
+  - `invisible-support/src/shared/services/github.js`
+  - `invisible-support/src/shared/utils.js`
 
 Dependency responsibilities in this upload flow:
 

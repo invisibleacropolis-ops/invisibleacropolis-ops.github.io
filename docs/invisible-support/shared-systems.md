@@ -4,7 +4,7 @@ This page documents cross-panel infrastructure in the Invisible Support Portal s
 
 ## Split panes
 
-**Source:** `InvisibleSupport/src/shared/ui/split-pane.js`
+**Source:** `invisible-support/src/shared/ui/split-pane.js`
 
 ### DOM contract
 - Container: `.split-pane[data-split-id]`
@@ -35,10 +35,10 @@ This page documents cross-panel infrastructure in the Invisible Support Portal s
 ## Storage meter + storage management modal
 
 **Sources:**
-- `InvisibleSupport/src/features/storage/ui.js`
-- `InvisibleSupport/src/shared/services/storage-manager.js`
-- `InvisibleSupport/src/features/documents/store.js`
-- `InvisibleSupport/src/features/images/store.js`
+- `invisible-support/src/features/storage/ui.js`
+- `invisible-support/src/shared/services/storage-manager.js`
+- `invisible-support/src/features/documents/store.js`
+- `invisible-support/src/features/images/store.js`
 
 ### DOM contract
 - Meter root: `[data-storage-meter]`
@@ -90,7 +90,7 @@ This page documents cross-panel infrastructure in the Invisible Support Portal s
 **Primary selector target:** `#clipboard-confirm` with close button `[data-close-modal]`.
 
 ### Current state of implementation
-- The modal markup exists in `InvisibleSupport/index.html`.
+- The modal markup exists in `invisible-support/index.html`.
 - In the current ESM code path, copy actions in document/image modules use:
   - `Utils.copyToClipboard(...)`
   - `Notifications.toast(...)`
@@ -104,7 +104,7 @@ This page documents cross-panel infrastructure in the Invisible Support Portal s
 
 ## Localization
 
-**Source:** `InvisibleSupport/src/shared/localization/index.js`
+**Source:** `invisible-support/src/shared/localization/index.js`
 
 ### DOM contract
 - Translation selector: `[data-i18n-key]`
@@ -124,7 +124,7 @@ This page documents cross-panel infrastructure in the Invisible Support Portal s
 
 ## Notifications
 
-**Source:** `InvisibleSupport/src/shared/ui/notifications.js`
+**Source:** `invisible-support/src/shared/ui/notifications.js`
 
 ### DOM contract
 - Toast host container: `[data-toast-stack]`
@@ -149,8 +149,8 @@ This page documents cross-panel infrastructure in the Invisible Support Portal s
 ## State + event infrastructure
 
 **Sources:**
-- `InvisibleSupport/src/shared/infrastructure/store.js`
-- `InvisibleSupport/src/shared/infrastructure/event-bus.js`
+- `invisible-support/src/shared/infrastructure/store.js`
+- `invisible-support/src/shared/infrastructure/event-bus.js`
 
 ### Event bus contract (`event-bus.js`)
 - `subscribe(event, callback)` → returns unsubscribe function.
@@ -176,7 +176,7 @@ This page documents cross-panel infrastructure in the Invisible Support Portal s
 
 ## Utility contracts (`shared/utils.js`)
 
-**Source:** `InvisibleSupport/src/shared/utils.js`
+**Source:** `invisible-support/src/shared/utils.js`
 
 ### Object URL lifecycle helpers
 - `createObjectUrl(blobOrFile)`

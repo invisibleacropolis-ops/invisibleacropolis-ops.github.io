@@ -4,12 +4,12 @@
 The Image Viewer panel presents the currently selected image with interactive fit/zoom controls, metadata and EXIF details, and direct-link actions (copy/open). It is selection-driven by image ids in the shared image store and emits selection-change events consumed by the gallery.
 
 - DOM mount selectors: `[data-image-viewer]`, `[data-image-canvas]`, `[data-image-preview]`, `[data-image-fit]`, `[data-image-zoom]`, `[data-image-meta]`, `[data-image-exif]`, `[data-image-copy]`, `[data-image-open]`
-- Primary module: `InvisibleSupport/src/features/images/viewer.js`
+- Primary module: `invisible-support/src/features/images/viewer.js`
 - Supporting modules:  
-  - `InvisibleSupport/src/features/images/store.js` (selected-image lookup + subscription)  
-  - `InvisibleSupport/src/shared/utils.js` (`formatBytes`, `formatDateTime`, `copyToClipboard`)  
-  - `InvisibleSupport/src/shared/ui/notifications.js` (copy success/failure toasts)  
-  - `InvisibleSupport/src/shared/services/github.js` (repo-backed open/download path)
+  - `invisible-support/src/features/images/store.js` (selected-image lookup + subscription)  
+  - `invisible-support/src/shared/utils.js` (`formatBytes`, `formatDateTime`, `copyToClipboard`)  
+  - `invisible-support/src/shared/ui/notifications.js` (copy success/failure toasts)  
+  - `invisible-support/src/shared/services/github.js` (repo-backed open/download path)
 
 ## Initialization and selector contract
 `init()` resolves and caches all viewer elements, attaches listeners, subscribes to image store changes, and renders the empty state by default.

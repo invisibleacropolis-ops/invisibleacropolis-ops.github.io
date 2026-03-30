@@ -16,12 +16,12 @@ The settings controller binds to the following selectors:
 - `[data-github-feedback]` (inline feedback target)
 
 ## Module ownership
-- **Owner module:** `InvisibleSupport/src/features/settings/github-settings.js`
+- **Owner module:** `invisible-support/src/features/settings/github-settings.js`
 
 ## Service dependencies
-- `shared/services/github.js` (implemented at `InvisibleSupport/src/shared/services/github.js`)
-- `shared/services/storage-manager.js` (implemented at `InvisibleSupport/src/shared/services/storage-manager.js`)
-- `shared/ui/notifications.js` (implemented at `InvisibleSupport/src/shared/ui/notifications.js`)
+- `shared/services/github.js` (implemented at `invisible-support/src/shared/services/github.js`)
+- `shared/services/storage-manager.js` (implemented at `invisible-support/src/shared/services/storage-manager.js`)
+- `shared/ui/notifications.js` (implemented at `invisible-support/src/shared/ui/notifications.js`)
 
 ## Save flow
 1. Submit handler prevents default form POST and clears existing inline feedback.

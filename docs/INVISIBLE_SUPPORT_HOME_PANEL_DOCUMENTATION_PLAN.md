@@ -1,7 +1,7 @@
 # InvisibleSupport Home Page Panel Documentation Plan
 
 ## Scope and objective
-This plan defines a panel-by-panel documentation rollout for the **Invisible Support Upload Hub** home page (`/InvisibleSupport/`). The goal is to produce engineer-ready documentation that explains:
+This plan defines a panel-by-panel documentation rollout for the **Invisible Support Upload Hub** home page (`/invisible-support/`). The goal is to produce engineer-ready documentation that explains:
 
 - every visible panel and subsection on the home page,
 - the owning files and modules,
@@ -35,44 +35,44 @@ Observed and source-confirmed panel set:
 ## Source-of-truth file map (by layer)
 
 ### Markup and styling
-- `InvisibleSupport/index.html`
+- `invisible-support/index.html`
   - Home page structure, panel DOM, data attributes, modal markup, embedded styles.
 
 ### App bootstrap and orchestration
-- `InvisibleSupport/src/main.js`
+- `invisible-support/src/main.js`
   - Imports all modules and initializes panel features.
   - Wires split panes, collapsible panels, and legacy global exports.
 
 ### Documents feature slice
-- `InvisibleSupport/src/features/documents/upload.js`
-- `InvisibleSupport/src/features/documents/store.js`
-- `InvisibleSupport/src/features/documents/library-view.js`
-- `InvisibleSupport/src/features/documents/viewer.js`
+- `invisible-support/src/features/documents/upload.js`
+- `invisible-support/src/features/documents/store.js`
+- `invisible-support/src/features/documents/library-view.js`
+- `invisible-support/src/features/documents/viewer.js`
 
 ### Images feature slice
-- `InvisibleSupport/src/features/images/upload.js`
-- `InvisibleSupport/src/features/images/store.js`
-- `InvisibleSupport/src/features/images/gallery.js`
-- `InvisibleSupport/src/features/images/viewer.js`
+- `invisible-support/src/features/images/upload.js`
+- `invisible-support/src/features/images/store.js`
+- `invisible-support/src/features/images/gallery.js`
+- `invisible-support/src/features/images/viewer.js`
 
 ### Settings and storage UI
-- `InvisibleSupport/src/features/settings/github-settings.js`
-- `InvisibleSupport/src/features/storage/ui.js`
+- `invisible-support/src/features/settings/github-settings.js`
+- `invisible-support/src/features/storage/ui.js`
 
 ### Shared infrastructure/services
-- `InvisibleSupport/src/shared/services/github.js`
-- `InvisibleSupport/src/shared/services/storage-manager.js`
-- `InvisibleSupport/src/shared/services/base-store.js`
-- `InvisibleSupport/src/shared/ui/split-pane.js`
-- `InvisibleSupport/src/shared/ui/notifications.js`
-- `InvisibleSupport/src/shared/localization/index.js`
-- `InvisibleSupport/src/shared/utils.js`
-- `InvisibleSupport/src/shared/infrastructure/event-bus.js`
-- `InvisibleSupport/src/shared/infrastructure/store.js`
+- `invisible-support/src/shared/services/github.js`
+- `invisible-support/src/shared/services/storage-manager.js`
+- `invisible-support/src/shared/services/base-store.js`
+- `invisible-support/src/shared/ui/split-pane.js`
+- `invisible-support/src/shared/ui/notifications.js`
+- `invisible-support/src/shared/localization/index.js`
+- `invisible-support/src/shared/utils.js`
+- `invisible-support/src/shared/infrastructure/event-bus.js`
+- `invisible-support/src/shared/infrastructure/store.js`
 
 ### Storage manifests and static data
-- `public/InvisibleSupport/storage/documents.json`
-- `public/InvisibleSupport/storage/images.json`
+- `public/invisible-support/storage/documents.json`
+- `public/invisible-support/storage/images.json`
 
 ---
 
@@ -241,4 +241,4 @@ Documentation is complete when:
 
 - Keep docs colocated by feature domain under `docs/invisible-support/`.
 - Update panel docs whenever selectors/data attributes or module exports change.
-- Treat `InvisibleSupport/index.html` as the UI contract baseline; update docs in the same PR as panel markup changes.
+- Treat `invisible-support/index.html` as the UI contract baseline; update docs in the same PR as panel markup changes.

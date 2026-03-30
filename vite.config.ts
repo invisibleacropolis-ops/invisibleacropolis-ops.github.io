@@ -9,7 +9,7 @@ export default defineConfig({
         rollupOptions: {
             input: {
                 main: resolve(__dirname, 'index.html'),
-                invisibleSupport: resolve(__dirname, 'InvisibleSupport/index.html'),
+                invisibleSupport: resolve(__dirname, 'invisible-support/index.html'),
             },
         },
     },

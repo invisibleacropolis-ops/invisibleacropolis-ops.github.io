@@ -9,11 +9,11 @@ The Asset library panel is the document table surface that lets support engineer
 - Empty-state container: `[data-library-empty]`
 
 ## Owning modules
-- Primary renderer/controller: `InvisibleSupport/src/features/documents/library-view.js`
-- Shared state source: `InvisibleSupport/src/features/documents/store.js`
-- Viewer integration target: `InvisibleSupport/src/features/documents/viewer.js`
-- Link copy + format helpers: `InvisibleSupport/src/shared/utils.js`
-- User-facing feedback: `InvisibleSupport/src/shared/ui/notifications.js`
+- Primary renderer/controller: `invisible-support/src/features/documents/library-view.js`
+- Shared state source: `invisible-support/src/features/documents/store.js`
+- Viewer integration target: `invisible-support/src/features/documents/viewer.js`
+- Link copy + format helpers: `invisible-support/src/shared/utils.js`
+- User-facing feedback: `invisible-support/src/shared/ui/notifications.js`
 
 ## Data flow and lifecycle
 1. `init()` binds DOM references for search, rows, and empty state.
