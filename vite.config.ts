@@ -10,6 +10,7 @@ export default defineConfig({
             input: {
                 main: resolve(__dirname, 'index.html'),
                 invisibleSupport: resolve(__dirname, 'invisible-support/index.html'),
+                invisibleSupport2: resolve(__dirname, 'InvisibleSupport2/index.html'),
             },
         },
     },
