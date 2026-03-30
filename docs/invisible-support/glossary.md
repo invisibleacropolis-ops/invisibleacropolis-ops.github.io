@@ -144,7 +144,7 @@ In this doc set, a **direct link** means a user-actionable URL for the currently
   - Module: `src/features/images/viewer.js`.
 
 - **Copy semantics**
-  - Uses `Utils.copyToClipboard(...)` with async clipboard API and fallback strategy.
+  - Uses `Utils.copyToClipboard(...)` with visible-field selection first, then async clipboard, then hidden-textarea fallback.
   - Success/failure surfaced through `Notifications.toast(...)`.
 
 - **Open semantics**

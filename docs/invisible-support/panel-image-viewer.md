@@ -122,7 +122,8 @@ This value is pushed into the link input (`[data-image-link]`) and into copy/ope
 
 ### Copy control (`[data-image-copy]`)
 - Stores the current URL in `data-copy`.
-- On click, `copyCurrentLink()` resolves current URL and attempts `Utils.copyToClipboard(link)`.
+- On click, `copyCurrentLink()` resolves current URL and attempts `Utils.copyToClipboard(link, linkInput)`.
+- Clipboard order prefers selecting the visible `[data-image-link]` field first, then async clipboard, then hidden-textarea fallback.
 - Toast outcomes:
   - success → `common.copySuccess` (`success` tone)
   - failure/no link/error → `common.copyFailure` (`error` tone)

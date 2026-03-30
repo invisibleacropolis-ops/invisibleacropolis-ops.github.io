@@ -190,10 +190,11 @@ This page documents cross-panel infrastructure in the Invisible Support Portal s
 **Contract expectation:** callers creating temporary blob URLs should revoke on cleanup to avoid memory leaks.
 
 ### Clipboard helper
-- `copyToClipboard(text)`
-  1. Preferred path: `navigator.clipboard.writeText(text)`
-  2. Fallback path: hidden `<textarea>` + `document.execCommand('copy')`
-  3. Restores previous text selection range when fallback is used
+- `copyToClipboard(text, sourceEl?)`
+  1. Preferred direct-field path: select/copy from the visible `sourceEl` when provided
+  2. Secondary path: `navigator.clipboard.writeText(text)`
+  3. Final fallback path: hidden `<textarea>` + `document.execCommand('copy')`
+  4. Restores previous focus/selection range when fallback is used
 - Returns `Promise<boolean>` to enforce explicit success/failure handling by callers.
 
 ### Persistence/restoration note

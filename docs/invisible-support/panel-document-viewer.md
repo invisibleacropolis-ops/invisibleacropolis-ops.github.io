@@ -75,15 +75,15 @@ When no document is selected (`renderEmpty()` / `resetMeta()`), metadata resets 
 - Click triggers `copyCurrentLink()`.
 - Link source precedence: selected document URL, then current link input value.
 - Uses `Utils.copyToClipboard(...)` with a **layered clipboard strategy**:
-  1. `navigator.clipboard.writeText(...)` in secure contexts.
-  2. Selection-based fallback using the visible `[data-viewer-link]` input.
+  1. Selection-based copy using the visible `[data-viewer-link]` input.
+  2. `navigator.clipboard.writeText(...)` in secure contexts.
   3. Hidden textarea + `document.execCommand('copy')` fallback for older/locked-down contexts.
 - Reports success/failure via `Notifications.toast(...)` using localized messages.
 
 #### Why the button can appear to "do nothing"
-- In some environments (embedded webviews, stricter browser policies, certain iframe constraints), the async clipboard API can be blocked.
+- In some environments (embedded webviews, stricter browser policies, certain iframe constraints), the async clipboard API can be blocked or behave inconsistently.
 - If fallback only targets off-screen elements, some browsers may reject the copy command without user-visible error.
-- The viewer now explicitly falls back to selecting the visible link input before trying hidden-textarea copy, improving reliability for the "Copy" button while preserving manual highlight/copy behavior.
+- The viewer now treats the visible link field as the primary copy source, which makes the button behave like a direct "copy this field" control while preserving manual highlight/copy behavior.
 
 ### Open in new tab (`[data-viewer-open]`)
 - Click handler prevents default and checks `aria-disabled`.

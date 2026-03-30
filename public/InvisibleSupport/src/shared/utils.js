@@ -183,25 +183,25 @@ export function readFileAsDataUrl(file, progressCallback) {
  * @returns {Promise<boolean>} True if successful
  */
 export async function copyToClipboard(text, sourceEl = null) {
-    if (!text) return false;
-    try {
-        await navigator.clipboard.writeText(text);
-        return true;
-    } catch (error) {
-        console.warn('Async clipboard failed, attempting fallback', error);
-    }
+    const resolvedText = (() => {
+        if (sourceEl && typeof sourceEl.value === 'string' && sourceEl.value) {
+            return sourceEl.value;
+        }
+        return text;
+    })();
+    if (!resolvedText) return false;
 
     const activeEl = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const selection = document.getSelection();
     const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
-    const canSelectSource = sourceEl && typeof sourceEl.select === 'function';
+    const canSelectSource = sourceEl && document.body.contains(sourceEl) && typeof sourceEl.select === 'function';
 
     if (canSelectSource) {
         try {
             sourceEl.focus({ preventScroll: true });
             sourceEl.select();
             if (typeof sourceEl.setSelectionRange === 'function') {
-                sourceEl.setSelectionRange(0, String(text).length);
+                sourceEl.setSelectionRange(0, String(resolvedText).length);
             }
             if (document.execCommand('copy')) {
                 activeEl?.focus?.({ preventScroll: true });
@@ -216,8 +216,15 @@ export async function copyToClipboard(text, sourceEl = null) {
         }
     }
 
+    try {
+        await navigator.clipboard.writeText(resolvedText);
+        return true;
+    } catch (error) {
+        console.warn('Async clipboard failed, attempting textarea fallback', error);
+    }
+
     const textarea = document.createElement('textarea');
-    textarea.value = text;
+    textarea.value = resolvedText;
     textarea.setAttribute('readonly', 'true');
     textarea.style.position = 'fixed';
     textarea.style.top = '0';
