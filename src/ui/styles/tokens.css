@@ -1,6 +1,11 @@
 :root {
   color-scheme: dark;
-  font-family: "Inter", system-ui, sans-serif;
+
+  /* Typography — Cinzel for monumental display, Spectral for prose, Plex Mono for HUD */
+  --font-display: "Cinzel", "Times New Roman", serif;
+  --font-body: "Spectral", Georgia, serif;
+  --font-hud: "IBM Plex Mono", "Courier New", monospace;
+  font-family: var(--font-body);
 
   /* World palette roles */
   --color-surface-canvas: #050608;
@@ -22,6 +27,13 @@
   --color-accent-500: #6fa3ff;
   --color-accent-600: #4f89e8;
 
+  /* World accents, mirrored from the WebGL palette */
+  --color-gilt-300: #ffe2a1;
+  --color-gilt-400: #ffc857;
+  --color-cyan-400: #6fe1ff;
+  --color-rose-400: #ff7ad9;
+  --color-mint-400: #7cffc4;
+
   --color-warning-400: #ffd166;
   --color-warning-500: #ffb347;
 
@@ -35,7 +47,7 @@
   --font-size-md: 0.9rem;
   --font-size-lg: 0.95rem;
   --font-size-xl: 1.1rem;
-  --font-size-display: clamp(2rem, 4.5vw, 4rem);
+  --font-size-display: clamp(2.2rem, 5vw, 4.4rem);
 
   --line-height-tight: 1.05;
   --line-height-body: 1.6;
@@ -61,6 +73,7 @@
   --motion-medium: 320ms;
   --motion-slow: 420ms;
   --easing-standard: ease;
+  --easing-out: cubic-bezier(0.16, 1, 0.3, 1);
 
   /* Accessibility */
   --focus-ring-width: 2px;

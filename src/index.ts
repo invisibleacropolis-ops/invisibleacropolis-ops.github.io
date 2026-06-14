@@ -21,8 +21,12 @@ import { createTerrainMeshFromHeightmap } from "./scene/terrain-heightmap.ts";
 import { WORLD_PALETTE } from "./scene/palette.ts";
 import { createDevPanel, type TerrainConfig, type DevSettings, type AsciiCloudStructure } from "./dev/devPanel.ts";
 import { createNavigationHub } from "./ui/navigationHub.ts";
+import { createHeroOverlay } from "./ui/heroOverlay.ts";
+import { createWaypointCard } from "./ui/waypointCard.ts";
+import { createCompass } from "./ui/compass.ts";
+import type { PageEntry } from "./data/pages.ts";
 import { createExperienceStateMachine, loadExperienceState, type ExperienceMode } from "./ui/experienceState.ts";
-import { createExperienceControls } from "./ui/experienceControls.ts";
+import { createSettingsMenu } from "./ui/settingsMenu.ts";
 import {
   createAnalyticsClient,
   createConsoleAnalyticsProvider,
@@ -41,6 +45,9 @@ if (!canvas) {
 if (!uiRoot) {
   throw new Error("UI root not found");
 }
+
+// Dev tooling (stats + lil-gui) only appears with ?debug in the URL
+const debugEnabled = new URLSearchParams(window.location.search).has("debug");
 
 const appStartMs = performance.now();
 const analytics = createAnalyticsClient([
@@ -177,10 +184,32 @@ const camera = new THREE.PerspectiveCamera(
 );
 camera.position.set(0, 300, 800);
 
+// Link picking — shared by clicks, hover, and the pointer-locked aim ray
+const linkRaycaster = new THREE.Raycaster();
+const pointerNdc = new THREE.Vector2();
+const SCREEN_CENTER = new THREE.Vector2(0, 0);
+
+const pickPageFromRay = (ndc: THREE.Vector2): PageEntry | null => {
+  if (!linksScene) return null;
+  linkRaycaster.setFromCamera(ndc, camera);
+  const hits = linkRaycaster.intersectObjects(linksScene.group.children, true);
+  return linksScene.pageForObject(hits[0]?.object ?? null);
+};
+
+const pickPageAtPointer = (event: MouseEvent): PageEntry | null => {
+  pointerNdc.set(
+    (event.clientX / window.innerWidth) * 2 - 1,
+    -(event.clientY / window.innerHeight) * 2 + 1
+  );
+  return pickPageFromRay(pointerNdc);
+};
+
 // Fix: Pass object to createFlyControls
 const controls = createFlyControls({
   camera,
-  domElement: canvas
+  domElement: canvas,
+  // Clicking a monument should travel, not grab the pointer
+  shouldLock: (event) => pickPageAtPointer(event) === null,
 });
 const experienceState = createExperienceStateMachine(loadExperienceState());
 
@@ -211,7 +240,7 @@ const applyQualityTier = (tier: QualityTier, source: "auto" | "manual", updateTa
   }
 
   saveQualitySettings({ tier, source });
-  experienceControls.setQualityTier(tier, source === "auto");
+  settingsMenu.setQualityTier(tier, source === "auto");
 };
 
 const enableBloom = (object: THREE.Object3D) => {
@@ -221,22 +250,17 @@ const enableBloom = (object: THREE.Object3D) => {
   });
 };
 
-const stats = new Stats();
-document.body.appendChild(stats.dom);
+let stats: Stats | null = null;
+if (debugEnabled) {
+  stats = new Stats();
+  document.body.appendChild(stats.dom);
+}
 
-const navigationHub = createNavigationHub({
+const hudBar = uiRoot.querySelector<HTMLElement>("[data-hud-bar]") ?? undefined;
+
+const settingsMenu = createSettingsMenu({
   root: uiRoot,
-  onLinkClick: (page) => {
-    analytics.track("link_interaction", {
-      url: page.url,
-      origin: "navigation-hub",
-      status: "success",
-    });
-    sessionDepth.recordPageVisit(page.url);
-  },
-});
-const experienceControls = createExperienceControls({
-  root: uiRoot,
+  triggerHost: hudBar,
   onModeChange: (mode: ExperienceMode, source) => {
     const previousMode = experienceState.getState().mode;
     experienceState.dispatch({ type: "set-mode", mode });
@@ -246,18 +270,108 @@ const experienceControls = createExperienceControls({
       source,
     });
   },
-  onOpenOnboarding: () => {},
   onQualityChange: (tier) => applyQualityTier(tier, "manual"),
 });
+const navigationHub = createNavigationHub({
+  root: uiRoot,
+  triggerHost: hudBar,
+  onLinkClick: (page) => {
+    analytics.track("link_interaction", {
+      url: page.url,
+      origin: "navigation-hub",
+      status: "success",
+    });
+    sessionDepth.recordPageVisit(page.url);
+  },
+});
 
-experienceControls.setQualityTier(activeQualityTier, qualitySource === "auto");
+settingsMenu.setQualityTier(activeQualityTier, qualitySource === "auto");
 const uiReadyMs = performance.now();
 const sessionDepth = createSessionDepthTracker(analytics);
+
+// Accent color per destination URL (rebuilt whenever links regenerate)
+const accentByUrl = new Map<string, string>();
+const DEFAULT_ACCENT = "#ffc857";
+
+type TravelOrigin = "world-link-aimed" | "world-link-clicked" | "waypoint-card";
+
+// Step-through veil: a quick accent-colored flash before leaving for a destination
+const travelVeil = document.createElement("div");
+travelVeil.className = "travel-veil";
+uiRoot.append(travelVeil);
+let isTraveling = false;
+
+const travelTo = (page: PageEntry, origin: TravelOrigin) => {
+  if (isTraveling) return;
+  isTraveling = true;
+
+  analytics.track("link_interaction", {
+    url: page.url,
+    origin,
+    status: "success",
+  });
+  sessionDepth.recordPageVisit(page.url);
+
+  travelVeil.style.setProperty("--veil-accent", accentByUrl.get(page.url) ?? DEFAULT_ACCENT);
+  travelVeil.classList.add("is-active");
+  // Inline end-state so the flash lands even if the transition clock stalls
+  travelVeil.style.opacity = "1";
+  window.setTimeout(() => window.location.assign(page.url), 420);
+};
+
+const waypointCard = createWaypointCard({
+  root: uiRoot,
+  onTravel: (page) => travelTo(page, "waypoint-card"),
+});
+
+const compass = createCompass({ root: uiRoot });
+
+const loadingVeil = uiRoot.querySelector<HTMLElement>("[data-loading-veil]");
+const reticle = uiRoot.querySelector<HTMLElement>("[data-reticle]");
+
+const heroOverlay = createHeroOverlay({
+  root: uiRoot,
+  onAction: (action) => {
+    analytics.track("hero_action", { action });
+    if (action === "settings") {
+      // Settings opens above the hero; the landing page stays put behind it.
+      settingsMenu.open();
+      return;
+    }
+    heroOverlay.hide();
+    if (action === "enter") {
+      const state = experienceState.getState();
+      if (state.mode === "explorer" && state.pointerLockConsent) {
+        controls.controls.lock();
+      }
+    } else if (action === "explore") {
+      navigationHub.open();
+    }
+  },
+});
+
+// Clicking the overlay backdrop (outside the buttons) also enters the world
+const heroOverlayElement = uiRoot.querySelector<HTMLElement>("[data-hero-overlay]");
+heroOverlayElement?.addEventListener("click", (event) => {
+  const target = event.target as HTMLElement | null;
+  if (target?.closest("[data-overlay-action]")) return;
+  heroOverlay.hide();
+  const state = experienceState.getState();
+  if (state.mode === "explorer" && state.pointerLockConsent) {
+    controls.controls.lock();
+  }
+});
+
+document.addEventListener("pointerlockchange", () => {
+  const locked = document.pointerLockElement === canvas;
+  reticle?.classList.toggle("is-visible", locked);
+  heroOverlay.setLocked(locked);
+});
 
 experienceState.subscribe((state) => {
   controls.setMode(state.mode);
   controls.setPointerLockAllowed(state.pointerLockConsent);
-  experienceControls.setState(state);
+  settingsMenu.setState(state);
 
 });
 
@@ -285,16 +399,16 @@ const defaultSettings: DevSettings = {
     clusteringFactor: 1,
   },
   bloom: {
-    strength: 0.6,
-    radius: 0.4,
-    threshold: 0.0,
+    strength: 0.42,
+    radius: 0.45,
+    threshold: 0.35,
   },
   terrain: {
     size: 7000,
     segments: 120,
     height: 500,
     colorLow: "#00008b",
-    colorHigh: "#ffffff",
+    colorHigh: "#a8c4ff",
     gradientStart: 0.0,
     gradientEnd: 1.0,
     gradientSkew: 1.0,
@@ -404,6 +518,21 @@ const generateLinks = async (linksConfig?: any) => {
   enableBloom(linksScene.group);
   world.add(linksScene.group);
 
+  accentByUrl.clear();
+  linksScene.labels.forEach(({ page, accentColor }) => {
+    accentByUrl.set(page.url, accentColor);
+  });
+
+  compass.setTargets(
+    linksScene.labels.map(({ page, accentColor, monument }) => ({
+      x: monument.position.x,
+      z: monument.position.z,
+      accentColor,
+      title: page.title,
+      url: page.url,
+    }))
+  );
+
   // Reset Proximity
   proximityEffect = createProximityEffect({
     maxDistance: (linksConfig?.size || 150.0) * 10,
@@ -421,6 +550,56 @@ const generateLinks = async (linksConfig?: any) => {
 const WORLD_SEED = 12345;
 const world = new THREE.Group();
 scene.add(world);
+
+/**
+ * Flight phases: while the hero overlay is up the camera slowly orbits the
+ * valley (a living landing page), then glides into the spawn pose when the
+ * visitor enters, and finally hands over to free flight.
+ */
+type FlightPhase = "orbit" | "glide" | "free";
+let flightPhase: FlightPhase = "orbit";
+
+const ORBIT_RADIUS = 2700;
+const ORBIT_HEIGHT = 640;
+const ORBIT_SPEED = 0.02; // radians per second
+let orbitAngle = 0;
+const orbitLook = new THREE.Vector3(0, 140, 0);
+
+const GLIDE_SECONDS = 1.6;
+let glideElapsed = 0;
+const glideFrom = new THREE.Vector3();
+const glideFromQuat = new THREE.Quaternion();
+const glideToQuat = new THREE.Quaternion();
+
+const spawnPosition = new THREE.Vector3(0, 300, 800);
+const spawnLook = new THREE.Vector3(0, 0, 0);
+const poseHelper = new THREE.Object3D();
+
+/** Frame the highest-priority monument from just inside the ring. */
+const computeSpawnPose = () => {
+  if (linksScene && linksScene.labels.length > 0) {
+    const first = linksScene.labels[0];
+    const monumentPos = first.monument.position;
+    const linkSize = loadSettings().links?.size ?? 150;
+    const textHeight = linkSize * 0.85;
+    const toCenter = new THREE.Vector3(-monumentPos.x, 0, -monumentPos.z).normalize();
+    const camX = monumentPos.x + toCenter.x * linkSize * 7;
+    const camZ = monumentPos.z + toCenter.z * linkSize * 7;
+    const groundY = terrain ? terrain.heightAt(camX, camZ) : 0;
+    const camY = Math.max(monumentPos.y + textHeight + linkSize * 1.1, groundY + linkSize * 1.6);
+    spawnPosition.set(camX, camY, camZ);
+    spawnLook.set(monumentPos.x, monumentPos.y + textHeight, monumentPos.z);
+  }
+  poseHelper.position.copy(spawnPosition);
+  poseHelper.lookAt(spawnLook);
+  glideToQuat.copy(poseHelper.quaternion);
+  // Start the orbit just behind the spawn azimuth so the glide-in stays short
+  orbitAngle = Math.atan2(spawnPosition.z, spawnPosition.x) - 0.25;
+};
+
+const BASE_FOV = 60;
+const BOOST_FOV_KICK = 16;
+const MIN_ALTITUDE_ABOVE_GROUND = 14;
 
 const atmosphereGroup = new THREE.Group();
 world.add(atmosphereGroup);
@@ -448,6 +627,67 @@ const createAtmosphericAccents = () => {
 };
 createAtmosphericAccents();
 
+// Hover picking (unlocked pointer): throttled mousemove raycast
+let hoveredPage: PageEntry | null = null;
+let lastHoverCheckMs = 0;
+window.addEventListener("mousemove", (event) => {
+  if (document.pointerLockElement === canvas) {
+    hoveredPage = null;
+    return;
+  }
+  if (event.target !== canvas) {
+    hoveredPage = null;
+    return;
+  }
+  const now = performance.now();
+  if (now - lastHoverCheckMs < 80) return;
+  lastHoverCheckMs = now;
+  hoveredPage = pickPageAtPointer(event);
+  document.body.style.cursor = hoveredPage ? "pointer" : "default";
+});
+
+let activeWaypointUrl: string | null = null;
+
+const updateWaypoint = () => {
+  // Keep the HUD quiet while the intro overlay is up
+  if (heroOverlayElement && !heroOverlayElement.classList.contains("is-hidden")) {
+    if (activeWaypointUrl !== null) {
+      activeWaypointUrl = null;
+      waypointCard.hide();
+    }
+    reticle?.classList.remove("is-targeting");
+    return;
+  }
+
+  let activePage: PageEntry | null = null;
+
+  if (linksScene) {
+    if (document.pointerLockElement === canvas) {
+      // Pointer locked: whatever the reticle is aiming at
+      activePage = pickPageFromRay(SCREEN_CENTER);
+    } else if (hoveredPage) {
+      activePage = hoveredPage;
+    }
+
+    if (!activePage && proximityEffect) {
+      // Fall back to the nearest monument in range
+      activePage = linksScene.pageForObject(proximityEffect.getActiveTarget());
+    }
+  }
+
+  reticle?.classList.toggle("is-targeting", Boolean(activePage) && document.pointerLockElement === canvas);
+
+  const nextUrl = activePage?.url ?? null;
+  if (nextUrl === activeWaypointUrl) return;
+  activeWaypointUrl = nextUrl;
+
+  if (activePage) {
+    waypointCard.show(activePage, accentByUrl.get(activePage.url) ?? DEFAULT_ACCENT);
+  } else {
+    waypointCard.hide();
+  }
+};
+
 let smoothedFrameTimeMs = 16.7;
 let lowFpsBudgetBreachCount = 0;
 let highFpsRecoveryCount = 0;
@@ -460,9 +700,56 @@ const animate = () => {
   lastFrameAt = now;
   const time = now * 0.001;
 
-  stats.begin();
+  stats?.begin();
 
-  if (controls) controls.update(frameDeltaSeconds);
+  const heroVisible = Boolean(heroOverlayElement && !heroOverlayElement.classList.contains("is-hidden"));
+
+  if (flightPhase === "orbit") {
+    orbitAngle += frameDeltaSeconds * ORBIT_SPEED;
+    const orbitX = Math.cos(orbitAngle) * ORBIT_RADIUS;
+    const orbitZ = Math.sin(orbitAngle) * ORBIT_RADIUS;
+    const groundY = terrain ? terrain.heightAt(orbitX, orbitZ) : 0;
+    camera.position.set(orbitX, Math.max(ORBIT_HEIGHT, groundY + 220), orbitZ);
+    camera.lookAt(orbitLook);
+
+    if (!heroVisible) {
+      // Visitor entered: glide from the orbit into the spawn pose
+      flightPhase = "glide";
+      glideElapsed = 0;
+      glideFrom.copy(camera.position);
+      glideFromQuat.copy(camera.quaternion);
+    }
+  } else if (flightPhase === "glide") {
+    glideElapsed += frameDeltaSeconds;
+    const t = Math.min(1, glideElapsed / GLIDE_SECONDS);
+    const eased = t * t * (3 - 2 * t);
+    camera.position.lerpVectors(glideFrom, spawnPosition, eased);
+    if (document.pointerLockElement !== canvas) {
+      camera.quaternion.slerpQuaternions(glideFromQuat, glideToQuat, eased);
+    }
+    if (t >= 1) {
+      flightPhase = "free";
+    }
+  } else {
+    controls.update(frameDeltaSeconds);
+
+    // Stay above the terrain and inside the world bounds
+    if (terrain) {
+      const minY = terrain.heightAt(camera.position.x, camera.position.z) + MIN_ALTITUDE_ABOVE_GROUND;
+      if (camera.position.y < minY) camera.position.y = minY;
+    }
+    camera.position.x = THREE.MathUtils.clamp(camera.position.x, -5000, 5000);
+    camera.position.z = THREE.MathUtils.clamp(camera.position.z, -5000, 5000);
+    camera.position.y = Math.min(camera.position.y, 4200);
+
+    // Speed-reactive FOV: widen at full boost for a real sense of velocity
+    const targetFov = BASE_FOV + controls.getBoost() * BOOST_FOV_KICK;
+    if (Math.abs(targetFov - camera.fov) > 0.01) {
+      camera.fov += (targetFov - camera.fov) * Math.min(1, frameDeltaSeconds * 4);
+      camera.updateProjectionMatrix();
+    }
+  }
+
   if (weather && rainEnabled) weather.update(time, frameDeltaSeconds);
 
   if (sky) sky.update(time);
@@ -480,12 +767,19 @@ const animate = () => {
     }
   });
 
-  if (linksScene) linksScene.updateVisibility(camera);
+  if (linksScene) {
+    linksScene.updateVisibility(camera);
+    linksScene.update(time, camera);
+  }
   if (proximityEffect) proximityEffect.update(camera);
+  updateWaypoint();
+
+  compass.setVisible(flightPhase !== "orbit");
+  if (flightPhase !== "orbit") compass.update(camera, activeWaypointUrl);
 
   postProcessing.render();
 
-  stats.end();
+  stats?.end();
 
   const frameTimeMs = Math.max(0.1, frameDeltaSeconds * 1000);
   smoothedFrameTimeMs = smoothedFrameTimeMs * 0.9 + frameTimeMs * 0.1;
@@ -585,24 +879,20 @@ const initialize = async () => {
   console.log("World generated");
 
   // Camera Spawn & Controls
-  // 1. Find a random link to look at
-  if (linksScene && linksScene.labels.length > 0) {
-    const target = linksScene.labels[0].mesh.position;
-    // Place camera nearby
-    camera.position.set(target.x, target.y + 20, target.z + 150);
-    camera.lookAt(target);
-  } else {
-    camera.position.set(0, 300, 800);
-    camera.lookAt(0, 0, 0);
-  }
+  // The camera starts on the hero orbit; this fixes where the glide-in lands.
+  computeSpawnPose();
 
   // Create Sky
+  // Deepened versions of the world palette so the horizon doesn't sear
   sky = createSky({
     radius: 10000,
-    topColor: WORLD_PALETTE[0],
-    bottomColor: WORLD_PALETTE[1],
+    topColor: "#123764",
+    bottomColor: "#b84b96",
+    dayDuration: 320,
   });
   world.add(sky.mesh);
+  // The sky owns a night-time starfield that fades in with its day cycle
+  world.add(sky.stars);
 
   const cloudStructure: AsciiCloudStructure = {
     layerCount: 4,
@@ -647,53 +937,29 @@ const initialize = async () => {
   }
 
   // Ray Interaction (Click)
-  const raycaster = new THREE.Raycaster();
-  const mouse = new THREE.Vector2();
+  // Pointer locked: travel to whatever the reticle is aiming at.
+  // Pointer free: travel to the monument under the cursor (any part of it —
+  // text, rings, or light pillar all count).
+  window.addEventListener("click", (event) => {
+    if (!linksScene) return;
 
-
-
-  window.addEventListener("click", () => {
-    // If FPS controls are locked, click handles shooting? 
-    // Or if not locked.
     if (document.pointerLockElement === canvas) {
-      // We are in FPS mode. 
-      // Check center of screen
-      raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-
-      // Intersect links
-      if (linksScene) {
-        const intersects = raycaster.intersectObjects(linksScene.group.children);
-        if (intersects.length > 0) {
-          const mesh = intersects[0].object as THREE.Mesh;
-          if (mesh.userData.linkUrl) {
-            const targetUrl = String(mesh.userData.linkUrl);
-            try {
-              analytics.track("link_interaction", {
-                url: targetUrl,
-                origin: "world-link",
-                status: "success",
-              });
-              sessionDepth.recordPageVisit(targetUrl);
-              window.open(targetUrl, "_self");
-            } catch (error) {
-              analytics.track("link_interaction", {
-                url: targetUrl,
-                origin: "world-link",
-                status: "failure",
-                reason: error instanceof Error ? error.message : "window-open-failed",
-              });
-            }
-          }
-        }
+      const page = pickPageFromRay(SCREEN_CENTER);
+      if (page) {
+        travelTo(page, "world-link-aimed");
       }
-    } else {
-      // Check mouse position? Or center if controls?
-      // If controls are FPS but not locked, we click to lock.
+      return;
+    }
+
+    if (event.target !== canvas) return;
+    const page = pickPageAtPointer(event);
+    if (page) {
+      travelTo(page, "world-link-clicked");
     }
   });
 
-  // Dev Panel
-  createDevPanel({
+  // Dev Panel (only with ?debug in the URL)
+  if (debugEnabled) createDevPanel({
     propsConfig: settings.props,
     onPropsChange: (config) => {
       // Ideally we just update props?
@@ -742,11 +1008,18 @@ const initialize = async () => {
   window.addEventListener("beforeunload", () => {
     sessionDepth.dispose();
     navigationHub.dispose();
-    experienceControls.dispose();
+    settingsMenu.dispose();
+    waypointCard.dispose();
+    compass.dispose();
+    heroOverlay.dispose();
     controls.dispose();
   });
 
   requestAnimationFrame(animate);
+
+  // World is live — lift the veil and present the hero introduction
+  loadingVeil?.classList.add("is-hidden");
+  heroOverlay.show();
 };
 
 void initialize().catch(e => console.error("Initialize failed:", e));

@@ -1,0 +1,27 @@
+- generic [active]:
+  - generic "Three.js scene" [ref=e1] [cursor=pointer]
+  - generic:
+    - button "Destinations" [ref=e2] [cursor=pointer]
+    - generic [ref=e3] [cursor=pointer]:
+      - paragraph [ref=e4]: Interaction mode
+      - generic [ref=e5]:
+        - button "Explorer" [pressed] [ref=e6]
+        - button "Accessibility" [ref=e7]
+      - generic [ref=e8]: Rendering quality
+      - generic [ref=e9]:
+        - combobox "Rendering quality" [ref=e10]:
+          - option "Low"
+          - option "Medium"
+          - option "High"
+          - option "Ultra" [selected]
+        - generic [ref=e11]: Auto-selected for this device
+      - paragraph [ref=e12]: Pointer lock active. Click in canvas to lock camera.
+    - status [ref=e87] [cursor=pointer]:
+      - generic [ref=e88]: 🌌
+      - generic [ref=e89]:
+        - paragraph [ref=e90]: Start here · Showcase · Featured
+        - heading "Interactive 3D Nebula Galaxy" [level=2] [ref=e91]
+        - paragraph [ref=e92]: Interactive 3D galaxy scene with cinematic controls.
+      - button "E Enter" [ref=e93]:
+        - generic [ref=e94]: E
+        - generic [ref=e95]: Enter

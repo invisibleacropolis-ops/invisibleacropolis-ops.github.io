@@ -40,7 +40,7 @@ Behavioral notes:
 - Skipping onboarding can keep user in non-pointer-lock modes.
 
 ## Mode Switch Surface
-**Module**: `src/ui/experienceControls.ts`
+**Module**: `src/ui/settingsMenu.ts`
 
 A compact control surface is rendered into `.ui` with:
 

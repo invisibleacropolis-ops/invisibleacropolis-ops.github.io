@@ -49,7 +49,7 @@ This roadmap sequences implementation work for the 3D index so external engineer
 - **Owner role:** Rendering Engineer (with Experience Designer support).
 - **Dependencies:**
   - Quality tier infrastructure in `src/index.ts` and `src/effects/postprocessing.ts`.
-  - Experience controls and state hooks in `src/ui/experienceControls.ts` and `src/ui/experienceState.ts`.
+  - Experience controls and state hooks in `src/ui/settingsMenu.ts` and `src/ui/experienceState.ts`.
   - Existing guided interaction entry points (hero overlay + onboarding).
 - **Estimate:** 2 weeks.
 - **Definition of done:**

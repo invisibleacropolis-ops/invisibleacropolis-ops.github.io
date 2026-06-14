@@ -105,10 +105,10 @@ Each item must include:
 | Text navigation | `src/ui/navigationHub.ts` | Grouped destination UI and fallback behavior | UI systems |
 | 3D navigation | `src/scene/links.ts` | In-world label generation and interaction targets | Scene systems |
 | Experience mode state | `src/ui/experienceState.ts` | Persisted mode machine + consent flags | Interaction systems |
-| Mode controls | `src/ui/experienceControls.ts` | User-facing mode toggle and help entrypoint | UI systems |
+| Mode controls | `src/ui/settingsMenu.ts` | User-facing mode toggle and help entrypoint | UI systems |
 | Onboarding | `src/ui/onboardingModal.ts` | First-run and consent UX | Interaction systems |
 | FPS controls | `src/controls/fps.ts` | Guided/Explorer/Accessibility control implementations | Input systems |
-| Quality controls | `src/effects/postprocessing.ts`, `src/ui/experienceControls.ts` | Rendering quality policy and user overrides | Rendering systems |
+| Quality controls | `src/effects/postprocessing.ts`, `src/ui/settingsMenu.ts` | Rendering quality policy and user overrides | Rendering systems |
 | Analytics events | `src/telemetry/*` | Interaction and quality observability emissions | Analytics |
 
 > Ownership labels are functional and may map to one or more engineers depending on staffing.

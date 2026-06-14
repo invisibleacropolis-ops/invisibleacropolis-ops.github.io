@@ -18,13 +18,21 @@ export type AnalyticsEventMap = {
   mode_selected: {
     mode: "guided" | "explorer" | "accessibility";
     previousMode: "guided" | "explorer" | "accessibility";
-    source: "hero-overlay" | "experience-controls";
+    source: "hero-overlay" | "settings-menu";
   };
   link_interaction: {
     url: string;
-    origin: "world-link" | "navigation-hub";
+    origin:
+      | "world-link"
+      | "world-link-aimed"
+      | "world-link-clicked"
+      | "navigation-hub"
+      | "waypoint-card";
     status: "success" | "failure";
     reason?: string;
+  };
+  hero_action: {
+    action: "enter" | "explore" | "settings";
   };
   session_depth: {
     pagesVisited: number;

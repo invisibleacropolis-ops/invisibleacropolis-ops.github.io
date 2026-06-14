@@ -1,0 +1,70 @@
+- generic [active] [ref=e1]:
+  - generic:
+    - heading "Nebula Engine v3.0" [level=1]
+    - paragraph: Advanced Fly Controls • Shake • Speed • Tracking
+  - generic [ref=e3]:
+    - button "▾ Controls" [expanded] [ref=e4] [cursor=pointer]
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - button "▾ Galaxy Structure" [expanded] [ref=e7] [cursor=pointer]
+        - generic [ref=e8]:
+          - generic [ref=e9]:
+            - generic [ref=e10]: count
+            - textbox "count" [ref=e14]: "60000"
+          - generic [ref=e15]:
+            - generic [ref=e16]: radius
+            - textbox "radius" [ref=e20]: "5"
+          - generic [ref=e21]:
+            - generic [ref=e22]: branches
+            - textbox "branches" [ref=e26]: "3"
+          - generic [ref=e27]:
+            - generic [ref=e28]: randomness
+            - textbox "randomness" [ref=e32]: "0.2"
+          - generic [ref=e33]:
+            - generic [ref=e34]: insideColor
+            - generic [ref=e35]:
+              - textbox "insideColor" [ref=e37] [cursor=pointer]: "#ff6030"
+              - textbox "insideColor" [ref=e38]: ff6030
+          - generic [ref=e39]:
+            - generic [ref=e40]: outsideColor
+            - generic [ref=e41]:
+              - textbox "outsideColor" [ref=e43] [cursor=pointer]: "#1b3984"
+              - textbox "outsideColor" [ref=e44]: 1b3984
+      - generic [ref=e45]:
+        - button "▾ Performance" [expanded] [ref=e46] [cursor=pointer]
+        - generic [ref=e48] [cursor=pointer]:
+          - generic [ref=e49]: Auto Performance
+          - checkbox "Auto Performance" [checked] [ref=e51]: ✓
+      - generic [ref=e52]:
+        - button "▾ Bloom FX" [expanded] [ref=e53] [cursor=pointer]
+        - generic [ref=e54]:
+          - generic [ref=e55]:
+            - generic [ref=e56]: Intensity
+            - textbox "Intensity" [ref=e60]: "1.5"
+          - generic [ref=e61]:
+            - generic [ref=e62]: Radius
+            - textbox "Radius" [ref=e66]: "0"
+          - generic [ref=e67]:
+            - generic [ref=e68]: Threshold
+            - textbox "Threshold" [ref=e72]: "0"
+      - generic [ref=e73]:
+        - button "▾ Cinematic Fly Thru" [expanded] [ref=e74] [cursor=pointer]
+        - generic [ref=e75]:
+          - generic [ref=e76] [cursor=pointer]:
+            - generic [ref=e77]: Enable Fly Mode
+            - checkbox "Enable Fly Mode" [ref=e79]
+          - generic [ref=e80]:
+            - generic [ref=e81]: Fly Speed
+            - textbox "Fly Speed" [ref=e85]: "0.2"
+          - generic [ref=e86]:
+            - generic [ref=e87]: Orbit Distance
+            - textbox "Orbit Distance" [ref=e91]: "6"
+          - generic [ref=e92]:
+            - generic [ref=e93]: Camera Shake
+            - textbox "Camera Shake" [ref=e97]: "0.2"
+          - generic [ref=e98]:
+            - generic [ref=e99]: Focus Drift
+            - textbox "Focus Drift" [ref=e103]: "1"
+          - generic [ref=e104]:
+            - generic [ref=e105]: Galaxy Spin
+            - textbox "Galaxy Spin" [ref=e109]: "0.05"

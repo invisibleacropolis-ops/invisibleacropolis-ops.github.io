@@ -1,6 +1,7 @@
 import { NAV_GROUPS, loadPages, type NavGroup, type PageEntry } from "../data/pages.ts";
 
 export type NavigationHubController = {
+  open: () => void;
   dispose: () => void;
 };
 
@@ -78,9 +79,12 @@ const createGroupSection = (
 
 export const createNavigationHub = ({
   root,
+  triggerHost,
   onLinkClick,
 }: {
   root: HTMLElement;
+  /** Where the trigger button is appended; defaults to root. */
+  triggerHost?: HTMLElement;
   onLinkClick?: (page: PageEntry) => void;
 }): NavigationHubController => {
   const trigger = createElement("button", "nav-hub__trigger ui-button", "Destinations");
@@ -109,7 +113,8 @@ export const createNavigationHub = ({
   header.append(title, closeButton);
   panel.append(header, content);
   backdrop.append(panel);
-  root.append(trigger, backdrop);
+  (triggerHost ?? root).append(trigger);
+  root.append(backdrop);
 
   let isOpen = false;
   let restoreFocus: HTMLElement | null = null;
@@ -228,6 +233,7 @@ export const createNavigationHub = ({
   void hydrate();
 
   return {
+    open: openPanel,
     dispose: () => {
       trigger.removeEventListener("click", onTriggerClick);
       trigger.removeEventListener("keydown", onTriggerKeydown);

@@ -4,12 +4,91 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Invisible Acropolis</title>
+    <meta
+      name="description"
+      content="A navigable WebGL world. Fly through a wireframe valley where every monument is a doorway to another experiment."
+    />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 4 L28 26 L4 26 Z' fill='none' stroke='%23ffc857' stroke-width='2'/%3E%3Ccircle cx='16' cy='18' r='3' fill='%236fe1ff'/%3E%3C/svg%3E"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Spectral:ital,wght@0,300;0,400;1,300&family=IBM+Plex+Mono:wght@400;500&display=swap"
+    />
     <link rel="stylesheet" href="/src/ui/styles/tokens.css" />
     <link rel="stylesheet" href="/src/ui/styles/components.css" />
   </head>
   <body>
     <canvas id="scene" aria-label="Three.js scene"></canvas>
-    <div class="ui"></div>
+
+    <div class="ui">
+      <!-- Loading veil: fades out once the world has generated -->
+      <div class="loading-veil" data-loading-veil>
+        <p class="loading-veil__eyebrow">Initialising world</p>
+        <h1 class="loading-veil__title">Invisible&nbsp;Acropolis</h1>
+        <div class="loading-veil__bar"><span></span></div>
+      </div>
+
+      <!-- Hero overlay: first-contact introduction -->
+      <div class="hero-overlay is-hidden" data-hero-overlay>
+        <div class="hero-content">
+          <section class="hero-intro">
+            <p class="hero-eyebrow">A navigable index</p>
+            <h1>Invisible Acropolis</h1>
+            <p>
+              This is not a homepage. It is a valley. Every monument of light on
+              the horizon is a doorway into a different experiment — fly toward
+              one and step through.
+            </p>
+            <div class="hero-actions">
+              <button type="button" class="hero-button primary" data-overlay-action="enter">
+                Enter the valley
+              </button>
+              <button type="button" class="hero-button secondary" data-overlay-action="explore">
+                Browse destinations
+              </button>
+              <button type="button" class="hero-button secondary" data-overlay-action="settings">
+                Settings
+              </button>
+            </div>
+          </section>
+          <ul class="hero-navigation">
+            <li>
+              <div>
+                <h2>Fly</h2>
+                <p>Move the mouse to look. Hold <kbd>W</kbd> to surge forward, <kbd>S</kbd> to drift, <kbd>A</kbd>/<kbd>D</kbd> to strafe, <kbd>Space</kbd>/<kbd>Shift</kbd> to climb or dive.</p>
+              </div>
+            </li>
+            <li>
+              <div>
+                <h2>Approach</h2>
+                <p>Follow the compass at the top of your view — every pip is a doorway. Near a monument, its waypoint card rises from the bottom.</p>
+              </div>
+            </li>
+            <li>
+              <div>
+                <h2>Step through</h2>
+                <p>Press <kbd>E</kbd> — or click the card — to travel to that page. <kbd>Esc</kbd> frees the cursor.</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <p class="hero-affordance" data-overlay-affordance>Click anywhere to begin</p>
+      </div>
+
+      <!-- Top-right HUD actions: Settings + Destinations triggers mount here -->
+      <div class="hud-bar" data-hud-bar></div>
+
+      <!-- Aiming reticle, visible while pointer-locked -->
+      <div class="reticle" data-reticle aria-hidden="true">
+        <span class="reticle__ring"></span>
+        <span class="reticle__dot"></span>
+      </div>
+    </div>
+
     <script type="module" src="/src/index.ts"></script>
   </body>
 </html>

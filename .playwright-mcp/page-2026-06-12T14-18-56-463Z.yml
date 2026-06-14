@@ -1,0 +1,43 @@
+- generic:
+  - generic "Three.js scene" [ref=e1] [cursor=pointer]
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - paragraph: A navigable index
+          - heading "Invisible Acropolis" [level=1]
+          - paragraph: This is not a homepage. It is a valley. Every monument of light on the horizon is a doorway into a different experiment — fly toward one and step through.
+          - generic:
+            - button "Enter the valley" [active]
+            - button "Browse destinations"
+            - button "Settings"
+        - list:
+          - listitem:
+            - generic:
+              - heading "Fly" [level=2]
+              - paragraph:
+                - text: Move the mouse to look. Hold
+                - generic: W
+                - text: to surge forward,
+                - generic: S
+                - text: to drift,
+                - generic: A
+                - text: /
+                - generic: D
+                - text: to strafe.
+          - listitem:
+            - generic:
+              - heading "Approach" [level=2]
+              - paragraph: Near a monument, its waypoint card rises from the bottom of the screen.
+          - listitem:
+            - generic:
+              - heading "Step through" [level=2]
+              - paragraph:
+                - text: Press
+                - generic: E
+                - text: — or click the card — to travel to that page.
+                - generic: Esc
+                - text: frees the cursor.
+    - generic [ref=e2] [cursor=pointer]:
+      - button "Settings" [ref=e3]
+      - button "Destinations" [ref=e4]

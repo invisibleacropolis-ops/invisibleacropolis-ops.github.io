@@ -46,7 +46,7 @@ The application entry point is **`src/index.ts`**. This module orchestrates the 
 Quality policy is centralized across:
 - **`src/effects/postprocessing.ts`** for declarative `QUALITY_PRESETS` and post-process knobs.
 - **`src/index.ts`** for hardware-based default selection, user override handling, and runtime degradation/recovery.
-- **`src/ui/experienceControls.ts`** for the user-facing quality selector.
+- **`src/ui/settingsMenu.ts`** for the user-facing quality selector.
 
 ### Control Loop Responsibilities
 

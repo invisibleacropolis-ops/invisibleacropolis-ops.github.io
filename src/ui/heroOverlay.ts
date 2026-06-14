@@ -1,4 +1,4 @@
-export type HeroOverlayAction = "enter" | "explore";
+export type HeroOverlayAction = "enter" | "explore" | "settings";
 
 export type HeroOverlayOptions = {
   root: HTMLElement;

@@ -75,7 +75,7 @@ Payload:
 
 - `mode: "guided" | "explorer" | "accessibility"`
 - `previousMode: "guided" | "explorer" | "accessibility"`
-- `source: "hero-overlay" | "experience-controls"`
+- `source: "hero-overlay" | "settings-menu"`
 
 ### 5) `link_interaction`
 
@@ -111,7 +111,7 @@ Payload:
   - Integrates session depth tracker and records page visits.
 - `src/ui/heroOverlay.ts`
   - Adds CTA impression callback fired once per CTA when shown.
-- `src/ui/experienceControls.ts`
+- `src/ui/settingsMenu.ts`
   - Includes mode change source for attribution.
 - `src/ui/navigationHub.ts`
   - Exposes link click callback with page metadata for analytics.

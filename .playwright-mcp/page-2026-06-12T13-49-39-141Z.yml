@@ -1,0 +1,21 @@
+- generic [active]:
+  - generic "Three.js scene" [ref=e1]
+  - generic:
+    - generic [ref=e2]:
+      - paragraph [ref=e3]: Initialising world
+      - heading "Invisible Acropolis" [level=1] [ref=e4]
+    - button "Destinations" [ref=e7] [cursor=pointer]
+    - generic [ref=e8]:
+      - paragraph [ref=e9]: Interaction mode
+      - generic [ref=e10]:
+        - button "Explorer" [pressed] [ref=e11] [cursor=pointer]
+        - button "Accessibility" [ref=e12] [cursor=pointer]
+      - generic [ref=e13]: Rendering quality
+      - generic [ref=e14]:
+        - combobox "Rendering quality" [ref=e15] [cursor=pointer]:
+          - option "Low"
+          - option "Medium"
+          - option "High"
+          - option "Ultra" [selected]
+        - generic [ref=e16]: Auto-selected for this device
+      - paragraph [ref=e17]: Pointer lock active. Click in canvas to lock camera.

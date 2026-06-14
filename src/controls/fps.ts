@@ -8,14 +8,17 @@ export type FlyControlsOptions = {
   baseSpeed?: number;
   swaySpeed?: number;
   swayAmount?: number;
+  /** Return false to suppress pointer lock for this click (e.g. the click hit a link). */
+  shouldLock?: (event: MouseEvent) => boolean;
 };
 
 export const createFlyControls = ({
   camera,
   domElement,
-  baseSpeed = 30,
+  baseSpeed = 48,
   swaySpeed = 0.5,
   swayAmount = 0.5,
+  shouldLock,
 }: FlyControlsOptions) => {
   const controls = new PointerLockControls(camera, domElement);
 
@@ -29,7 +32,7 @@ export const createFlyControls = ({
     current: baseSpeed,
     target: baseSpeed,
     min: baseSpeed * 0.1,
-    max: baseSpeed * 5.0,
+    max: baseSpeed * 6.5,
     base: baseSpeed,
     accessibility: baseSpeed * 0.45,
   };
@@ -43,6 +46,8 @@ export const createFlyControls = ({
     decelerate: false,
     strafeLeft: false,
     strafeRight: false,
+    climb: false,
+    dive: false,
     turnLeft: false,
     turnRight: false,
   };
@@ -53,6 +58,9 @@ export const createFlyControls = ({
       case "KeyS": input.decelerate = true; break;
       case "KeyA": input.strafeLeft = true; break;
       case "KeyD": input.strafeRight = true; break;
+      case "Space": input.climb = true; break;
+      case "ShiftLeft":
+      case "ShiftRight": input.dive = true; break;
       case "ArrowLeft": input.turnLeft = true; break;
       case "ArrowRight": input.turnRight = true; break;
     }
@@ -64,13 +72,19 @@ export const createFlyControls = ({
       case "KeyS": input.decelerate = false; break;
       case "KeyA": input.strafeLeft = false; break;
       case "KeyD": input.strafeRight = false; break;
+      case "Space": input.climb = false; break;
+      case "ShiftLeft":
+      case "ShiftRight": input.dive = false; break;
       case "ArrowLeft": input.turnLeft = false; break;
       case "ArrowRight": input.turnRight = false; break;
     }
   };
 
-  const onClick = () => {
+  const onClick = (event: MouseEvent) => {
     if (mode === "explorer" && pointerLockAllowed && !controls.isLocked) {
+      if (shouldLock && !shouldLock(event)) {
+        return;
+      }
       controls.lock();
     }
   };
@@ -104,9 +118,12 @@ export const createFlyControls = ({
     camera.getWorldDirection(camForward);
     camRight.crossVectors(camForward, camera.up).normalize();
 
+    const lift = (input.climb ? 1 : 0) - (input.dive ? 1 : 0);
+
     moveVector.set(0, 0, 0);
     moveVector.addScaledVector(camForward, direction.z * speeds.current * delta);
     moveVector.addScaledVector(camRight, direction.x * speeds.current * delta);
+    moveVector.addScaledVector(camera.up, lift * speeds.current * 0.85 * delta);
     camera.position.add(moveVector);
 
     if (mode === "accessibility") {
@@ -139,6 +156,9 @@ export const createFlyControls = ({
     controls,
     update,
     setMode,
+    /** 0 at cruise, 1 at full boost — drives the camera's speed FOV kick. */
+    getBoost: () =>
+      THREE.MathUtils.clamp((speeds.current - speeds.base) / (speeds.max - speeds.base), 0, 1),
     setPointerLockAllowed: (allowed: boolean) => {
       pointerLockAllowed = allowed;
       if (!allowed && controls.isLocked) controls.unlock();

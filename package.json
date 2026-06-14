@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run generate:pages && vite build",
+    "build": "npm run generate:pages && vite build && npm run copy:pages",
+    "copy:pages": "node scripts/copy-static-pages.cjs",
     "preview": "vite preview",
     "generate:pages": "node scripts/generate-pages-json.cjs"
   },
