@@ -5,6 +5,7 @@ import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry.js";
 import { loadPages, sortPagesByPriority, type PageEntry } from "../data/pages.ts";
 import { WORLD_PALETTE } from "./palette.ts";
 import { createRng } from "./random.ts";
+import { createSculptureForPage, type Sculpture } from "./sculptures.ts";
 
 const FONT_URL = "/helvetiker_regular.typeface.json";
 
@@ -39,7 +40,7 @@ export type LinksScene = {
   pageForObject: (object: THREE.Object3D | null) => PageEntry | null;
 };
 
-export type PlacementShape = "ring" | "square" | "random";
+export type PlacementShape = "ring" | "square" | "random" | "spread";
 
 export type LinksOptions = {
   radius?: number; // Unused
@@ -55,6 +56,8 @@ export type LinksOptions = {
   size?: number;
   placementShape?: PlacementShape;
   placementRadius?: number;
+  /** Keep-out radius around the valley center (the temple stands there). */
+  centerClearance?: number;
 };
 
 const loadFont = async () => {
@@ -86,7 +89,7 @@ const createLabelMesh = (font: Font, title: string, color: string) => {
     geometry.translate(-center.x, -center.y, -center.z);
   }
 
-  const material = new THREE.MeshBasicMaterial({ color, wireframe: true });
+  const material = new THREE.MeshBasicMaterial({ color, wireframe: true, transparent: true });
   const mesh = new THREE.Mesh(geometry, material);
   mesh.castShadow = false;
   mesh.receiveShadow = false;
@@ -129,7 +132,7 @@ const createBeaconParts = (accent: THREE.Color) => {
   parts.add(outerRing);
 
   // Volumetric-looking light pillar — doubles as a generous click target
-  const pillarGeo = new THREE.CylinderGeometry(0.55, 1.1, 6.5, 18, 1, true);
+  const pillarGeo = new THREE.CylinderGeometry(0.55, 1.1, 8.5, 18, 1, true);
   const pillarMat = new THREE.MeshBasicMaterial({
     color: accent,
     transparent: true,
@@ -139,10 +142,58 @@ const createBeaconParts = (accent: THREE.Color) => {
     depthWrite: false,
   });
   const pillar = new THREE.Mesh(pillarGeo, pillarMat);
-  pillar.position.y = 3.25;
+  pillar.position.y = 4.25;
   parts.add(pillar);
 
   return { parts, ring, outerRing, pillar, ringMat, outerMat, pillarMat };
+};
+
+/**
+ * Best-candidate (Mitchell) sampling: each monument tries many random spots
+ * and keeps the one farthest from everything already placed, so the valley
+ * fills evenly with roughly equal breathing room between monuments.
+ */
+const computeSpreadPositions = (
+  total: number,
+  radius: number,
+  centerClearance: number,
+  rng: () => number
+): Array<{ x: number; z: number }> => {
+  const positions: Array<{ x: number; z: number }> = [];
+  const candidatesPerPoint = 48;
+  const minRadius = Math.min(centerClearance, radius * 0.9);
+
+  for (let i = 0; i < total; i += 1) {
+    let best: { x: number; z: number } | null = null;
+    let bestScore = -Infinity;
+
+    for (let c = 0; c < candidatesPerPoint; c += 1) {
+      const angle = rng() * Math.PI * 2;
+      const r = minRadius + Math.sqrt(rng()) * Math.max(1, radius - minRadius);
+      const candidate = { x: Math.cos(angle) * r, z: Math.sin(angle) * r };
+
+      // Score = distance to the nearest already-placed monument
+      let score = Infinity;
+      for (const placed of positions) {
+        const dx = candidate.x - placed.x;
+        const dz = candidate.z - placed.z;
+        score = Math.min(score, Math.hypot(dx, dz));
+      }
+      if (positions.length === 0) {
+        // First monument: prefer the outer band so the rest can spread inward
+        score = r;
+      }
+
+      if (score > bestScore) {
+        bestScore = score;
+        best = candidate;
+      }
+    }
+
+    positions.push(best ?? { x: 0, z: minRadius });
+  }
+
+  return positions;
 };
 
 const getPlacementPosition = (
@@ -199,6 +250,7 @@ export const createLinks = async ({
   size = 5.0,
   placementShape = "ring",
   placementRadius = 2000,
+  centerClearance = 950,
 }: LinksOptions): Promise<LinksScene> => {
   const font = await loadFont();
   const pages = await loadPages().catch((error) => {
@@ -228,16 +280,26 @@ export const createLinks = async ({
     ring: THREE.Mesh;
     outerRing: THREE.Mesh;
     pillarMat: THREE.MeshBasicMaterial;
+    sculpture: Sculpture;
     textBaseY: number;
     phase: number;
     /** 0 close → 1 far; far pillars burn brighter so doorways read across the valley. */
     distanceFactor: number;
+    /** Tighter 0→1 ramp used to fade the title itself. */
+    textFade: number;
   };
   const animated: AnimatedBeacon[] = [];
   const pageByObjectId = new Map<number, PageEntry>();
 
+  const spreadPositions =
+    placementShape === "spread"
+      ? computeSpreadPositions(prioritizedPages.length, placementRadius, centerClearance, rng)
+      : null;
+
   prioritizedPages.forEach((page, index) => {
-    const pos = getPlacementPosition(index, prioritizedPages.length, placementShape, placementRadius, rng);
+    const pos = spreadPositions
+      ? spreadPositions[index]
+      : getPlacementPosition(index, prioritizedPages.length, placementShape, placementRadius, rng);
 
     // Get Terrain Height
     const y = heightAt ? heightAt(pos.x, pos.z) : 0;
@@ -249,8 +311,12 @@ export const createLinks = async ({
     monument.position.set(pos.x, y, pos.z);
     monument.scale.setScalar(size);
 
-    // Text floats above the ring; offsets are in unit space (pre-scale)
-    const textBaseY = 0.85 + elevation / size;
+    // The destination's sculpture stands on the ring; the title floats
+    // above it like a nameplate (offsets are in unit space, pre-scale)
+    const sculpture = createSculptureForPage(page.url, index, accent);
+    monument.add(sculpture.group);
+
+    const textBaseY = 3.6 + elevation / size;
     const mesh = createLabelMesh(font, page.title, accentColor);
     mesh.position.y = textBaseY;
     monument.add(mesh);
@@ -279,9 +345,11 @@ export const createLinks = async ({
       ring: beacon.ring,
       outerRing: beacon.outerRing,
       pillarMat: beacon.pillarMat,
+      sculpture,
       textBaseY,
       phase: index * 1.13,
       distanceFactor: 0,
+      textFade: 0,
     });
   });
 
@@ -298,10 +366,26 @@ export const createLinks = async ({
     });
   };
 
+  const textWorldPos = new THREE.Vector3();
+
   const update = (time: number, camera?: THREE.Camera) => {
     for (const beacon of animated) {
       // Gentle levitation of the title
       beacon.textMesh.position.y = beacon.textBaseY + Math.sin(time * 0.8 + beacon.phase) * 0.07;
+
+      // The title yaws to face the visitor (Y-axis billboard) so it reads
+      // from any approach direction; the sculpture below stays grounded.
+      if (camera) {
+        beacon.textMesh.getWorldPosition(textWorldPos);
+        const worldYaw = Math.atan2(
+          camera.position.x - textWorldPos.x,
+          camera.position.z - textWorldPos.z
+        );
+        const targetLocalYaw = worldYaw - beacon.monument.rotation.y;
+        let delta = targetLocalYaw - beacon.textMesh.rotation.y;
+        delta = Math.atan2(Math.sin(delta), Math.cos(delta));
+        beacon.textMesh.rotation.y += delta * 0.06;
+      }
       // Counter-rotating base rings
       beacon.ring.rotation.z = time * 0.25 + beacon.phase;
       beacon.outerRing.rotation.z = -time * 0.12 + beacon.phase;
@@ -309,11 +393,27 @@ export const createLinks = async ({
       if (camera) {
         const distance = camera.position.distanceTo(beacon.monument.position);
         beacon.distanceFactor = THREE.MathUtils.clamp((distance - 800) / 3200, 0, 1);
+
+        // Text fades on a much tighter ramp than the pillar so titles never
+        // stack across the valley — only the monument you're visiting speaks.
+        const monumentScale = beacon.monument.scale.x || 1;
+        beacon.textFade = THREE.MathUtils.clamp(
+          (distance - monumentScale * 9) / (monumentScale * 12),
+          0,
+          1
+        );
       }
 
       // Breathing light pillar; nearly invisible up close, a bright doorway from afar
       const baseOpacity = THREE.MathUtils.lerp(0.05, 0.2, beacon.distanceFactor);
       beacon.pillarMat.opacity = baseOpacity + Math.sin(time * 1.4 + beacon.phase) * 0.025;
+
+      // Titles ghost out with distance so they never stack across the valley
+      // (the pillar takes over as the far-away signpost)
+      const textMat = beacon.textMesh.material as THREE.MeshBasicMaterial;
+      textMat.opacity = THREE.MathUtils.lerp(1, 0.08, beacon.textFade);
+
+      beacon.sculpture.update(time, beacon.phase);
     }
   };
 

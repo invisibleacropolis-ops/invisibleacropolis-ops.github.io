@@ -1,0 +1,15 @@
+- generic [active]:
+  - generic "Three.js scene" [ref=f14e1]
+  - generic:
+    - generic [ref=f14e7]:
+      - button "Settings" [ref=f14e8] [cursor=pointer]
+      - button "Destinations" [ref=f14e9] [cursor=pointer]
+    - status [ref=f14e10]:
+      - generic [ref=f14e11]: 🌌
+      - generic [ref=f14e12]:
+        - paragraph [ref=f14e13]: Start here · Showcase · Featured
+        - heading "Interactive 3D Nebula Galaxy" [level=2] [ref=f14e14]
+        - paragraph [ref=f14e15]: Interactive 3D galaxy scene with cinematic controls.
+      - button "E Enter" [ref=f14e16] [cursor=pointer]:
+        - generic [ref=f14e17]: E
+        - generic [ref=f14e18]: Enter

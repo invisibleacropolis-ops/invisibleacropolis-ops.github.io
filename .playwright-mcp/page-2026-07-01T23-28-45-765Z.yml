@@ -1,0 +1,9 @@
+- generic [active]:
+  - generic "Three.js scene" [ref=f39e1]
+  - generic:
+    - generic:
+      - paragraph: Initialising world
+      - heading "Invisible Acropolis" [level=1]
+    - generic [ref=f39e2]:
+      - button "Settings" [ref=f39e3] [cursor=pointer]
+      - button "Destinations" [ref=f39e4] [cursor=pointer]

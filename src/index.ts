@@ -14,6 +14,9 @@ import { createProximityEffect } from "./effects/proximityEffect.ts";
 import { createLinks } from "./scene/links.ts";
 
 import { createPropsManager } from "./scene/props.ts";
+import { createTemple, type Temple } from "./scene/temple.ts";
+import { createLightRoads, type LightRoads } from "./scene/lightRoads.ts";
+import { createAsciiCloudDeck, type AsciiCloudDeck } from "./scene/asciiCloudDeck.ts";
 import { createAsciiCloudField } from "./scene/asciiClouds.ts";
 import { createSky } from "./scene/sky.ts";
 import { createTerrainMeshFromHeightmap } from "./scene/terrain-heightmap.ts";
@@ -174,7 +177,7 @@ renderer.toneMappingExposure = 1.2;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x050505);
-scene.fog = new THREE.FogExp2(0x050505, 0.00015);
+scene.fog = new THREE.FogExp2(0x050505, 0.00006);
 
 const camera = new THREE.PerspectiveCamera(
   60,
@@ -383,17 +386,23 @@ let sky: ReturnType<typeof createSky> | null = null;
 let asciiCloudField: Awaited<ReturnType<typeof createAsciiCloudField>> | null = null;
 let linksScene: Awaited<ReturnType<typeof createLinks>> | null = null;
 let proximityEffect: ReturnType<typeof createProximityEffect> | null = null;
+let temple: Temple | null = null;
+let lightRoads: LightRoads | null = null;
+let cloudDeck: AsciiCloudDeck | null = null;
 
 // Effects
 let weather: ReturnType<typeof createWeatherEffects> | null = null;
 
 
 // Persistent Settings
-const SETTINGS_KEY = "invisible_acropolis_dev_settings";
+// v2: world scaled up 7000 → 18000; bump the key so stale saved settings
+// don't pin visitors to the old, smaller valley
+const SETTINGS_KEY = "invisible_acropolis_dev_settings_v2";
 
 const defaultSettings: DevSettings = {
   props: {
-    totalDensity: 1,
+    // Scaled with the 18000-unit world so the valley doesn't feel empty
+    totalDensity: 3,
     treeDensity: 1,
     rockDensity: 1,
     clusteringFactor: 1,
@@ -404,9 +413,9 @@ const defaultSettings: DevSettings = {
     threshold: 0.35,
   },
   terrain: {
-    size: 7000,
-    segments: 120,
-    height: 500,
+    size: 18000,
+    segments: 200,
+    height: 850,
     colorLow: "#00008b",
     colorHigh: "#a8c4ff",
     gradientStart: 0.0,
@@ -415,8 +424,8 @@ const defaultSettings: DevSettings = {
   },
   links: {
     size: 150.0,
-    placementRadius: 2000,
-    placementShape: "ring",
+    placementRadius: 7200,
+    placementShape: "spread",
   }
 };
 
@@ -462,6 +471,9 @@ const generateWorld = async (config: TerrainConfig, propsConfig?: any, linksConf
   if (linksScene) {
     linksScene.group.removeFromParent();
   }
+  if (temple) {
+    temple.group.removeFromParent();
+  }
 
   // 2. Create Terrain
   terrain = await createTerrainMeshFromHeightmap({
@@ -493,7 +505,15 @@ const generateWorld = async (config: TerrainConfig, propsConfig?: any, linksConf
   enableBloom(propsManager.group);
   world.add(propsManager.group);
 
-  // 4. Create Links
+  // 4. The acropolis itself — the landmark every light road radiates from
+  temple = createTemple({
+    position: new THREE.Vector3(0, terrain.heightAt(0, 0), 0),
+    scale: (linksConfig?.size || 150.0) * 1.15,
+  });
+  enableBloom(temple.group);
+  world.add(temple.group);
+
+  // 5. Create Links
   await generateLinks(linksConfig);
 };
 
@@ -512,8 +532,9 @@ const generateLinks = async (linksConfig?: any) => {
     elevation: 6,
     palette: WORLD_PALETTE,
     size: linksConfig?.size || 150.0,
-    placementRadius: linksConfig?.placementRadius ?? 2000,
-    placementShape: linksConfig?.placementShape ?? "ring",
+    placementRadius: linksConfig?.placementRadius ?? 7200,
+    placementShape: linksConfig?.placementShape ?? "spread",
+    centerClearance: temple ? temple.footprintRadius + 250 : 1000,
   });
   enableBloom(linksScene.group);
   world.add(linksScene.group);
@@ -532,6 +553,28 @@ const generateLinks = async (linksConfig?: any) => {
       url: page.url,
     }))
   );
+
+  // Light roads: terrain-hugging guide lines from the temple to each monument
+  if (lightRoads) {
+    lightRoads.dispose();
+    lightRoads = null;
+  }
+  if (temple && terrain) {
+    lightRoads = createLightRoads({
+      origin: temple.group.position.clone(),
+      originClearance: temple.footprintRadius + 60,
+      targets: linksScene.labels.map(({ monument, accentColor }) => ({
+        position: monument.position.clone(),
+        accentColor,
+      })),
+      heightAt: terrain.heightAt,
+      hover: 22,
+      packetsPerRoad: 44,
+      packetSize: 36,
+    });
+    enableBloom(lightRoads.group);
+    world.add(lightRoads.group);
+  }
 
   // Reset Proximity
   proximityEffect = createProximityEffect({
@@ -559,13 +602,14 @@ scene.add(world);
 type FlightPhase = "orbit" | "glide" | "free";
 let flightPhase: FlightPhase = "orbit";
 
-const ORBIT_RADIUS = 2700;
-const ORBIT_HEIGHT = 640;
+const ORBIT_RADIUS = 5400;
+const ORBIT_HEIGHT = 1500;
 const ORBIT_SPEED = 0.02; // radians per second
 let orbitAngle = 0;
-const orbitLook = new THREE.Vector3(0, 140, 0);
+// The orbit gazes at the temple that now crowns the valley center
+const orbitLook = new THREE.Vector3(0, 420, 0);
 
-const GLIDE_SECONDS = 1.6;
+const GLIDE_SECONDS = 2.6;
 let glideElapsed = 0;
 const glideFrom = new THREE.Vector3();
 const glideFromQuat = new THREE.Quaternion();
@@ -573,7 +617,6 @@ const glideToQuat = new THREE.Quaternion();
 
 const spawnPosition = new THREE.Vector3(0, 300, 800);
 const spawnLook = new THREE.Vector3(0, 0, 0);
-const poseHelper = new THREE.Object3D();
 
 /** Frame the highest-priority monument from just inside the ring. */
 const computeSpawnPose = () => {
@@ -581,18 +624,22 @@ const computeSpawnPose = () => {
     const first = linksScene.labels[0];
     const monumentPos = first.monument.position;
     const linkSize = loadSettings().links?.size ?? 150;
-    const textHeight = linkSize * 0.85;
+    // Aim between the sculpture and its floating title (title sits at ~3.6 units)
+    const lookHeight = linkSize * 2.2;
+    // Stand outside the monument looking inward, so the title reads face-on
+    // with the temple and the rest of the valley layered behind it
     const toCenter = new THREE.Vector3(-monumentPos.x, 0, -monumentPos.z).normalize();
-    const camX = monumentPos.x + toCenter.x * linkSize * 7;
-    const camZ = monumentPos.z + toCenter.z * linkSize * 7;
+    const camX = monumentPos.x - toCenter.x * linkSize * 8;
+    const camZ = monumentPos.z - toCenter.z * linkSize * 8;
     const groundY = terrain ? terrain.heightAt(camX, camZ) : 0;
-    const camY = Math.max(monumentPos.y + textHeight + linkSize * 1.1, groundY + linkSize * 1.6);
+    const camY = Math.max(monumentPos.y + lookHeight + linkSize * 1.4, groundY + linkSize * 1.6);
     spawnPosition.set(camX, camY, camZ);
-    spawnLook.set(monumentPos.x, monumentPos.y + textHeight, monumentPos.z);
+    spawnLook.set(monumentPos.x, monumentPos.y + lookHeight, monumentPos.z);
   }
-  poseHelper.position.copy(spawnPosition);
-  poseHelper.lookAt(spawnLook);
-  glideToQuat.copy(poseHelper.quaternion);
+  // Matrix4.lookAt uses camera convention (-Z toward target); a plain
+  // Object3D.lookAt would face the glide exactly the wrong way.
+  const lookMatrix = new THREE.Matrix4().lookAt(spawnPosition, spawnLook, new THREE.Vector3(0, 1, 0));
+  glideToQuat.setFromRotationMatrix(lookMatrix);
   // Start the orbit just behind the spawn azimuth so the glide-in stays short
   orbitAngle = Math.atan2(spawnPosition.z, spawnPosition.x) - 0.25;
 };
@@ -738,9 +785,9 @@ const animate = () => {
       const minY = terrain.heightAt(camera.position.x, camera.position.z) + MIN_ALTITUDE_ABOVE_GROUND;
       if (camera.position.y < minY) camera.position.y = minY;
     }
-    camera.position.x = THREE.MathUtils.clamp(camera.position.x, -5000, 5000);
-    camera.position.z = THREE.MathUtils.clamp(camera.position.z, -5000, 5000);
-    camera.position.y = Math.min(camera.position.y, 4200);
+    camera.position.x = THREE.MathUtils.clamp(camera.position.x, -9800, 9800);
+    camera.position.z = THREE.MathUtils.clamp(camera.position.z, -9800, 9800);
+    camera.position.y = Math.min(camera.position.y, 7200);
 
     // Speed-reactive FOV: widen at full boost for a real sense of velocity
     const targetFov = BASE_FOV + controls.getBoost() * BOOST_FOV_KICK;
@@ -754,6 +801,7 @@ const animate = () => {
 
   if (sky) sky.update(time);
   if (asciiCloudField) asciiCloudField.update(time, frameDeltaSeconds, camera);
+  if (cloudDeck) cloudDeck.update(time, frameDeltaSeconds);
 
   atmosphereGroup.children.forEach((child, index) => {
     if (child instanceof THREE.Mesh && child.geometry instanceof THREE.SphereGeometry) {
@@ -771,6 +819,8 @@ const animate = () => {
     linksScene.updateVisibility(camera);
     linksScene.update(time, camera);
   }
+  if (temple) temple.update(time);
+  if (lightRoads) lightRoads.update(time);
   if (proximityEffect) proximityEffect.update(camera);
   updateWaypoint();
 
@@ -885,7 +935,7 @@ const initialize = async () => {
   // Create Sky
   // Deepened versions of the world palette so the horizon doesn't sear
   sky = createSky({
-    radius: 10000,
+    radius: 24000,
     topColor: "#123764",
     bottomColor: "#b84b96",
     dayDuration: 320,
@@ -894,9 +944,20 @@ const initialize = async () => {
   // The sky owns a night-time starfield that fades in with its day cycle
   world.add(sky.stars);
 
+  // The atmospheric ASCII cloud deck: the weather layer of the dimension
+  cloudDeck = createAsciiCloudDeck({
+    seed: WORLD_SEED + 311,
+    worldSize: settings.terrain!.size,
+    baseAltitude: 2500,
+    cirrusAltitude: 3700,
+    cumulusCount: 34,
+    cirrusCount: 8,
+  });
+  world.add(cloudDeck.group);
+
   const cloudStructure: AsciiCloudStructure = {
     layerCount: 4,
-    sigilsPerLayer: 4,
+    sigilsPerLayer: 5,
     glyphsPerSigil: 35,
   };
 
@@ -911,14 +972,14 @@ const initialize = async () => {
       glyphsPerSigil: structure.glyphsPerSigil,
       terrainWidth: settings.terrain!.size,
       terrainDepth: settings.terrain!.size,
-      baseAltitude: 350,
-      verticalSpacing: 120,
-      sigilScaleMin: 80,
-      sigilScaleMax: 180,
-      glyphSizeMin: 10,
-      glyphSizeMax: 32,
-      extrudeDepth: 2.5,
-      cullDistance: 5000,
+      baseAltitude: 1250,
+      verticalSpacing: 220,
+      sigilScaleMin: 140,
+      sigilScaleMax: 320,
+      glyphSizeMin: 16,
+      glyphSizeMax: 46,
+      extrudeDepth: 3.5,
+      cullDistance: 11000,
     });
     enableBloom(asciiCloudField.group);
     world.add(asciiCloudField.group);
@@ -929,7 +990,7 @@ const initialize = async () => {
   // Effects
   weather = createWeatherEffects({
     scene,
-    fogDensity: 0.00025
+    fogDensity: 0.00009
   });
   if (weather) {
     weather.group.visible = rainEnabled;

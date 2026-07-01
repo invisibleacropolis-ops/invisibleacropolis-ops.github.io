@@ -17,7 +17,7 @@ export type TerrainConfig = {
 export type LinksConfig = {
     size: number;
     placementRadius: number;
-    placementShape: "ring" | "square" | "random";
+    placementShape: "ring" | "square" | "random" | "spread";
 };
 
 export type AsciiCloudStructure = {
@@ -91,8 +91,8 @@ export const createDevPanel = ({
         },
         links: linksConfig ? { ...linksConfig } : {
             size: 150.0,
-            placementRadius: 2000,
-            placementShape: "ring",
+            placementRadius: 2800,
+            placementShape: "spread",
         },
     };
 
@@ -144,12 +144,12 @@ export const createDevPanel = ({
 
         if (onLinkLayoutChange) {
             linksFolder
-                .add(settings.links, "placementRadius", 500, 3500, 100)
+                .add(settings.links, "placementRadius", 500, 9000, 100)
                 .name("Placement Radius")
                 .onFinishChange(() => onLinkLayoutChange(settings.links!));
 
             linksFolder
-                .add(settings.links, "placementShape", ["ring", "square", "random"])
+                .add(settings.links, "placementShape", ["spread", "ring", "square", "random"])
                 .name("Shape")
                 .onFinishChange(() => onLinkLayoutChange(settings.links!));
         }

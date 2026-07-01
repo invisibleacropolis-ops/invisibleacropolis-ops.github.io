@@ -15,7 +15,7 @@ export type FlyControlsOptions = {
 export const createFlyControls = ({
   camera,
   domElement,
-  baseSpeed = 48,
+  baseSpeed = 130,
   swaySpeed = 0.5,
   swayAmount = 0.5,
   shouldLock,
