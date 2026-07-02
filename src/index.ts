@@ -17,6 +17,7 @@ import { createPropsManager } from "./scene/props.ts";
 import { createTemple, type Temple } from "./scene/temple.ts";
 import { createLightRoads, type LightRoads } from "./scene/lightRoads.ts";
 import { createAsciiCloudDeck, type AsciiCloudDeck } from "./scene/asciiCloudDeck.ts";
+import { createCreatureLayer, type CreatureLayer } from "./scene/creatures.ts";
 import { createAsciiCloudField } from "./scene/asciiClouds.ts";
 import { createSky } from "./scene/sky.ts";
 import { createTerrainMeshFromHeightmap } from "./scene/terrain-heightmap.ts";
@@ -389,6 +390,7 @@ let proximityEffect: ReturnType<typeof createProximityEffect> | null = null;
 let temple: Temple | null = null;
 let lightRoads: LightRoads | null = null;
 let cloudDeck: AsciiCloudDeck | null = null;
+let creatureLayer: CreatureLayer | null = null;
 
 // Effects
 let weather: ReturnType<typeof createWeatherEffects> | null = null;
@@ -802,6 +804,7 @@ const animate = () => {
   if (sky) sky.update(time);
   if (asciiCloudField) asciiCloudField.update(time, frameDeltaSeconds, camera);
   if (cloudDeck) cloudDeck.update(time, frameDeltaSeconds);
+  if (creatureLayer) creatureLayer.update(time, frameDeltaSeconds);
 
   atmosphereGroup.children.forEach((child, index) => {
     if (child instanceof THREE.Mesh && child.geometry instanceof THREE.SphereGeometry) {
@@ -943,6 +946,36 @@ const initialize = async () => {
   world.add(sky.mesh);
   // The sky owns a night-time starfield that fades in with its day cycle
   world.add(sky.stars);
+
+  // The bestiary: mythological spirit-creatures crossing the valley
+  creatureLayer = createCreatureLayer({
+    seed: WORLD_SEED + 555,
+    worldSize: settings.terrain!.size,
+    // Closure so creatures keep tracking the terrain even after regeneration
+    heightAt: (x, z) => terrain?.heightAt(x, z) ?? 0,
+    maxActive: 5,
+  });
+  enableBloom(creatureLayer.group);
+  world.add(creatureLayer.group);
+  if (debugEnabled) {
+    const debugWindow = window as Window & {
+      __IA_CREATURES__?: () => unknown;
+      __IA_SUMMON__?: (name?: string) => string | undefined;
+    };
+    debugWindow.__IA_CREATURES__ = () =>
+      creatureLayer?.getActive().map(({ name, position }) => ({
+        name,
+        x: Math.round(position.x),
+        y: Math.round(position.y),
+        z: Math.round(position.z),
+      }));
+    debugWindow.__IA_SUMMON__ = (name?: string) => {
+      const forward = new THREE.Vector3();
+      camera.getWorldDirection(forward);
+      const through = camera.position.clone().addScaledVector(forward, 1600);
+      return creatureLayer?.summon(through, name);
+    };
+  }
 
   // The atmospheric ASCII cloud deck: the weather layer of the dimension
   cloudDeck = createAsciiCloudDeck({
