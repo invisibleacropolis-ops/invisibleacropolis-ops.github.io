@@ -403,8 +403,8 @@ const SETTINGS_KEY = "invisible_acropolis_dev_settings_v2";
 
 const defaultSettings: DevSettings = {
   props: {
-    // Scaled with the 18000-unit world so the valley doesn't feel empty
-    totalDensity: 3,
+    // Counts now derive from world area inside props.ts, so 1 = calibrated look
+    totalDensity: 1,
     treeDensity: 1,
     rockDensity: 1,
     clusteringFactor: 1,

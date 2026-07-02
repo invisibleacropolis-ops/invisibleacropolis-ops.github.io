@@ -1,6 +1,7 @@
 import * as THREE from "three";
 
 import { createRng } from "./random.ts";
+import { fbm2D } from "./noise.ts";
 import { WORLD_PALETTE } from "./palette.ts";
 
 export type PropsConfig = {
@@ -66,41 +67,16 @@ const sampleSlope = (x: number, z: number, heightAt: (x: number, z: number) => n
   return Math.sqrt(dx * dx + dz * dz);
 };
 
-const generateClusterCenters = (
-  rng: () => number,
-  width: number,
-  depth: number,
-  count: number,
-  minDistance: number,
-) => {
-  const centers: { x: number; z: number; radius: number }[] = [];
-  const maxAttempts = count * 30;
-
-  for (let attempt = 0; attempt < maxAttempts && centers.length < count; attempt++) {
-    const x = (rng() - 0.5) * width * 0.85;
-    const z = (rng() - 0.5) * depth * 0.85;
-
-    let tooClose = false;
-    for (const center of centers) {
-      const dist = Math.sqrt((x - center.x) ** 2 + (z - center.z) ** 2);
-      if (dist < minDistance) {
-        tooClose = true;
-        break;
-      }
-    }
-
-    if (!tooClose) {
-      centers.push({
-        x,
-        z,
-        radius: 80 + rng() * 150
-      });
-    }
-  }
-
-  return centers;
-};
-
+/**
+ * Naturalistic tree distribution via a noise "forest mask".
+ *
+ * Instead of stamping circular clusters, a low-frequency fbm field defines
+ * organic woodland regions with irregular coastline-like edges. Density
+ * rises toward each forest's core, a second noise field carves glade
+ * clearings, species follow elevation zones (oak valleys → mixed slopes →
+ * pine highlands), and size grows from fringe saplings to core elders —
+ * the same rules real forests follow.
+ */
 const sampleTrees = (
   rng: () => number,
   width: number,
@@ -112,88 +88,72 @@ const sampleTrees = (
   const density = config.totalDensity * config.treeDensity;
   const clustering = config.clusteringFactor;
 
-  // Forest clusters - count scaled by density, spacing by clustering
-  const forestCount = Math.round(15 * density);
-  const forestSpacing = width * (0.1 / clustering);
-  const forestCenters = generateClusterCenters(rng, width, depth, forestCount, forestSpacing);
+  // Candidate budget scales with world area; instancing keeps thousands cheap
+  const candidates = Math.min(90000, Math.round((width * depth) / 4200 * density));
 
-  for (const center of forestCenters) {
-    // Trees per forest scaled by density and clustering
-    const treesInForest = Math.floor((24 + rng() * 22) * density * clustering);
+  const MASK_SEED = 4271;
+  const GLADE_SEED = 9917;
+  const SPECIES_SEED = 5531;
+  const maskFreq = 2.6 / width;
+  const gladeFreq = 9 / width;
+  const speciesFreq = 5 / width;
 
-    for (let i = 0; i < treesInForest; i++) {
-      const angle = rng() * Math.PI * 2;
-      // Spread controlled by clustering (higher = tighter)
-      const distance = Math.sqrt(rng()) * center.radius / clustering;
+  // Higher clustering = tighter, denser woods with sharper edges
+  const threshold = 0.56 + (clustering - 1) * 0.06;
 
-      const x = center.x + Math.cos(angle) * distance;
-      const z = center.z + Math.sin(angle) * distance;
+  for (let i = 0; i < candidates; i += 1) {
+    const x = (rng() - 0.5) * width * 0.94;
+    const z = (rng() - 0.5) * depth * 0.94;
 
-      if (Math.abs(x) > width * 0.48 || Math.abs(z) > depth * 0.48) continue;
+    const mask = fbm2D(x * maskFreq, z * maskFreq, MASK_SEED, 4);
+    // 0 at the forest edge → 1 deep in the core
+    const forestness = (mask - threshold) / Math.max(0.12, 0.86 - threshold);
 
-      const y = heightAt(x, z);
-      const slope = sampleSlope(x, z, heightAt);
-
-      if (slope > 0.5 || y < 5) continue;
-
-      const typeRoll = rng();
-      let type: TreeType;
-      if (typeRoll < 0.4) type = "pine";
-      else if (typeRoll < 0.7) type = "oak";
-      else if (typeRoll < 0.9) type = "birch";
-      else type = "shrub";
-
-      samples.push({
-        x, y, z, slope,
-        type,
-        scale: 0.8 + rng() * 0.5,
-        rotation: rng() * Math.PI * 2,
-      });
+    let acceptP: number;
+    let isLone = false;
+    if (forestness <= 0) {
+      // Rare lone sentinels out on the open plains
+      acceptP = 0.012;
+      isLone = true;
+    } else {
+      // Glades carve organic clearings inside the woods
+      const glade = fbm2D(x * gladeFreq, z * gladeFreq, GLADE_SEED, 3);
+      if (glade > 0.62 && forestness < 0.85) continue;
+      acceptP = 0.25 + Math.min(1, forestness) * 0.75;
     }
-  }
+    if (rng() > acceptP) continue;
 
-  // Small groups
-  const groupCount = Math.round(9 * density);
-  for (let g = 0; g < groupCount; g++) {
-    const cx = (rng() - 0.5) * width * 0.7;
-    const cz = (rng() - 0.5) * depth * 0.7;
-    const groupSize = Math.floor((3 + rng() * 5) * clustering);
-    const groupType = ["pine", "oak", "birch", "shrub"][Math.floor(rng() * 4)] as TreeType;
-
-    for (let i = 0; i < groupSize; i++) {
-      const spread = 30 / clustering;
-      const x = cx + (rng() - 0.5) * spread;
-      const z = cz + (rng() - 0.5) * spread;
-      const y = heightAt(x, z);
-      const slope = sampleSlope(x, z, heightAt);
-
-      if (slope > 0.5 || y < 3) continue;
-
-      samples.push({
-        x, y, z, slope,
-        type: groupType,
-        scale: 0.7 + rng() * 0.5,
-        rotation: rng() * Math.PI * 2,
-      });
-    }
-  }
-
-  // Single trees (inversely affected by clustering)
-  const singleCount = Math.round(18 * density / clustering);
-  for (let i = 0; i < singleCount; i++) {
-    const x = (rng() - 0.5) * width * 0.8;
-    const z = (rng() - 0.5) * depth * 0.8;
     const y = heightAt(x, z);
     const slope = sampleSlope(x, z, heightAt);
+    if (slope > 0.62 || y < 4) continue;
 
-    if (slope > 0.4 || y < 2) continue;
+    // Species: elevation zones blended by a species-noise so groves mix
+    const speciesNoise = fbm2D(x * speciesFreq, z * speciesFreq, SPECIES_SEED, 3);
+    const altNorm = Math.min(1, y / 620);
+    let type: TreeType;
+    if (!isLone && forestness > 0 && forestness < 0.18) {
+      type = rng() < 0.6 ? "shrub" : "birch"; // scrubby fringe
+    } else if (altNorm > 0.55 + (speciesNoise - 0.5) * 0.3) {
+      type = "pine"; // highlands
+    } else if (altNorm < 0.22 + (speciesNoise - 0.5) * 0.2) {
+      type = "oak"; // valley floors
+    } else {
+      type = speciesNoise > 0.55 ? "birch" : rng() < 0.5 ? "pine" : "oak";
+    }
 
-    const type = ["pine", "oak", "birch", "shrub"][Math.floor(rng() * 4)] as TreeType;
+    // Elders in the deep core, saplings at the fringe, heavy-tailed spread.
+    // The multiplier keys tree height to the 18000-unit world so forests
+    // read as landscape features, not sub-pixel specks.
+    const TREE_SCALE = 3.6;
+    const core = THREE.MathUtils.clamp(forestness, 0, 1);
+    const scale = (isLone
+      ? 1.4 + rng() * 1.2 // lone trees read as landmarks
+      : 0.45 + core * 0.9 + Math.pow(rng(), 1.6) * 1.35) * TREE_SCALE;
 
     samples.push({
       x, y, z, slope,
       type,
-      scale: 1.0 + rng() * 0.4,
+      scale,
       rotation: rng() * Math.PI * 2,
     });
   }
@@ -201,6 +161,11 @@ const sampleTrees = (
   return samples;
 };
 
+/**
+ * Rocks follow geology instead of dice: steep slopes shed talus, a noise
+ * field defines boulder-strewn badlands, and sizes are heavy-tailed —
+ * plenty of stones, the occasional monolith, and rare standing stones.
+ */
 const sampleRocks = (
   rng: () => number,
   width: number,
@@ -212,42 +177,42 @@ const sampleRocks = (
   const density = config.totalDensity * config.rockDensity;
   const clustering = config.clusteringFactor;
 
-  const clusterCount = Math.round(12 * density);
+  const candidates = Math.min(24000, Math.round((width * depth) / 28000 * density));
+  const FIELD_SEED = 7723;
+  const fieldFreq = 4.5 / width;
+  const fieldThreshold = 0.58 - (clustering - 1) * 0.04;
 
-  for (let c = 0; c < clusterCount; c++) {
-    const cx = (rng() - 0.5) * width * 0.8;
-    const cz = (rng() - 0.5) * depth * 0.8;
-    const cy = heightAt(cx, cz);
-    const slope = sampleSlope(cx, cz, heightAt);
+  for (let i = 0; i < candidates; i += 1) {
+    const x = (rng() - 0.5) * width * 0.94;
+    const z = (rng() - 0.5) * depth * 0.94;
+    const y = heightAt(x, z);
+    if (y < 1) continue;
 
-    if (cy < 50 && slope < 0.2) {
-      if (rng() > 0.4) continue;
-    }
+    const slope = sampleSlope(x, z, heightAt);
+    const field = fbm2D(x * fieldFreq, z * fieldFreq, FIELD_SEED, 3);
 
-    const rocksInCluster = Math.floor((3 + rng() * 4) * clustering);
+    // Talus loves steep ground; boulder fields follow the noise patches
+    const talus = THREE.MathUtils.clamp((slope - 0.18) / 0.5, 0, 1);
+    const fieldMask = Math.max(0, (field - fieldThreshold) / 0.28);
+    const acceptP = Math.min(0.85, talus * 0.55 + fieldMask * 0.5);
+    if (rng() > acceptP) continue;
 
-    for (let i = 0; i < rocksInCluster; i++) {
-      const spread = 20 / clustering;
-      const x = cx + (rng() - 0.5) * spread;
-      const z = cz + (rng() - 0.5) * spread;
-      const y = heightAt(x, z);
+    // Heavy-tailed sizes: pebbles common, monoliths rare (scaled to world)
+    const baseScale = (0.5 + Math.pow(rng(), 2.6) * 6.5) * 2.8;
 
-      if (y < 0) continue;
+    // Occasionally a standing stone rises from a boulder field
+    const isMenhir = fieldMask > 0.4 && rng() < 0.05;
 
-      const baseScale = 0.5 + rng() * 2.5;
-
-      samples.push({
-        x, y, z,
-        slope: sampleSlope(x, z, heightAt),
-        scale: baseScale,
-        scaleX: 0.6 + rng() * 0.8,
-        scaleY: 0.5 + rng() * 0.7,
-        scaleZ: 0.6 + rng() * 0.8,
-        rotX: rng() * Math.PI,
-        rotY: rng() * Math.PI * 2,
-        rotZ: rng() * Math.PI,
-      });
-    }
+    samples.push({
+      x, y, z, slope,
+      scale: baseScale,
+      scaleX: isMenhir ? 0.35 + rng() * 0.2 : 0.6 + rng() * 0.9,
+      scaleY: isMenhir ? 2.2 + rng() * 1.6 : 0.45 + rng() * 0.85,
+      scaleZ: isMenhir ? 0.35 + rng() * 0.2 : 0.6 + rng() * 0.9,
+      rotX: isMenhir ? (rng() - 0.5) * 0.2 : rng() * Math.PI,
+      rotY: rng() * Math.PI * 2,
+      rotZ: isMenhir ? (rng() - 0.5) * 0.2 : rng() * Math.PI,
+    });
   }
 
   return samples;
@@ -278,6 +243,52 @@ const createTreeGeometries = () => {
   };
 };
 
+/**
+ * Procedurally deformed rock geometry. Each variant starts from a subdivided
+ * polyhedron and displaces every vertex radially by a hash of its position —
+ * deterministic, so vertices shared between faces move together and the
+ * mesh stays watertight while turning craggy and asymmetric. A baked squash
+ * per variant adds slabs, eggs, and shards to the mix.
+ */
+const createRockGeometryVariants = (count: number): THREE.BufferGeometry[] => {
+  const variants: THREE.BufferGeometry[] = [];
+
+  const displacementFor = (x: number, y: number, z: number, seed: number) => {
+    // Quantize so duplicated vertices hash identically despite float noise
+    const qx = Math.round(x * 100);
+    const qy = Math.round(y * 100);
+    const qz = Math.round(z * 100);
+    const s = Math.sin(qx * 12.9898 + qy * 78.233 + qz * 37.719 + seed * 917.331) * 43758.5453;
+    return s - Math.floor(s);
+  };
+
+  for (let v = 0; v < count; v += 1) {
+    const base =
+      v % 2 === 0 ? new THREE.IcosahedronGeometry(2, 1) : new THREE.DodecahedronGeometry(2, 1);
+
+    // Per-variant character: how craggy, and which way it's squashed
+    const roughness = 0.35 + displacementFor(v, 7, 3, 11) * 0.5;
+    const squashX = 0.75 + displacementFor(v, 1, 0, 23) * 0.55;
+    const squashY = 0.6 + displacementFor(v, 2, 0, 31) * 0.7;
+    const squashZ = 0.75 + displacementFor(v, 3, 0, 47) * 0.55;
+
+    const positions = base.getAttribute("position") as THREE.BufferAttribute;
+    const vertex = new THREE.Vector3();
+    for (let i = 0; i < positions.count; i += 1) {
+      vertex.fromBufferAttribute(positions, i);
+      const n = displacementFor(vertex.x, vertex.y, vertex.z, v);
+      const radial = 1 + (n - 0.5) * roughness;
+      vertex.multiplyScalar(radial);
+      positions.setXYZ(i, vertex.x * squashX, vertex.y * squashY, vertex.z * squashZ);
+    }
+    positions.needsUpdate = true;
+    base.computeBoundingSphere();
+    variants.push(base);
+  }
+
+  return variants;
+};
+
 const buildPropsGroup = (
   treeSamples: TreeSample[],
   rockSamples: RockSample[],
@@ -297,9 +308,15 @@ const buildPropsGroup = (
   }
 
   const treeGeoms = createTreeGeometries();
-  const trunkMaterial = new THREE.MeshBasicMaterial({ color: "#806040", wireframe: true });
-  const canopyMaterial = new THREE.MeshBasicMaterial({ color: palette[3], wireframe: true });
-  const rockMaterial = new THREE.MeshBasicMaterial({ color: palette[1], wireframe: true });
+  const trunkMaterial = new THREE.MeshBasicMaterial({ color: "#9a7a5a", wireframe: true });
+  // Each species gets its own shade so groves read as texture, not repetition
+  const canopyMaterials: Record<TreeType, THREE.MeshBasicMaterial> = {
+    pine: new THREE.MeshBasicMaterial({ color: palette[3] ?? "#7cffc4", wireframe: true }),
+    oak: new THREE.MeshBasicMaterial({ color: "#a3e86f", wireframe: true }),
+    birch: new THREE.MeshBasicMaterial({ color: "#c9f2ff", wireframe: true }),
+    shrub: new THREE.MeshBasicMaterial({ color: "#6fbf9a", wireframe: true }),
+  };
+  const rockMaterial = new THREE.MeshBasicMaterial({ color: "#8fa8d8", wireframe: true });
 
   const dummy = new THREE.Object3D();
 
@@ -308,7 +325,7 @@ const buildPropsGroup = (
 
     const geoms = treeGeoms[type];
     const trunks = new THREE.InstancedMesh(geoms.trunk, trunkMaterial, samples.length);
-    const canopies = new THREE.InstancedMesh(geoms.canopy, canopyMaterial, samples.length);
+    const canopies = new THREE.InstancedMesh(geoms.canopy, canopyMaterials[type], samples.length);
 
     samples.forEach((sample, index) => {
       const scale = sample.scale;
@@ -334,26 +351,34 @@ const buildPropsGroup = (
     group.add(trunks, canopies);
   }
 
-  const rockGeometry = new THREE.IcosahedronGeometry(2, 0);
+  // Procedural craggy boulders: a pool of deformed variants, alternated,
+  // so no two neighboring rocks share a silhouette
+  const rockGeometries = createRockGeometryVariants(8);
 
   if (rockSamples.length > 0) {
-    const rocks = new THREE.InstancedMesh(rockGeometry, rockMaterial, rockSamples.length);
+    rockGeometries.forEach((rockGeometry, variant) => {
+      const variantSamples = rockSamples.filter((_, i) => i % rockGeometries.length === variant);
+      if (variantSamples.length === 0) return;
 
-    rockSamples.forEach((sample, index) => {
-      dummy.position.set(sample.x, sample.y + sample.scale * 0.5, sample.z);
-      dummy.rotation.set(sample.rotX, sample.rotY, sample.rotZ);
-      dummy.scale.set(
-        sample.scale * sample.scaleX,
-        sample.scale * sample.scaleY,
-        sample.scale * sample.scaleZ
-      );
-      dummy.updateMatrix();
-      rocks.setMatrixAt(index, dummy.matrix);
+      const rocks = new THREE.InstancedMesh(rockGeometry, rockMaterial, variantSamples.length);
+
+      variantSamples.forEach((sample, index) => {
+        // Sit rocks into the ground a little so they read as bedded, not dropped
+        dummy.position.set(sample.x, sample.y + sample.scale * sample.scaleY * 0.7, sample.z);
+        dummy.rotation.set(sample.rotX, sample.rotY, sample.rotZ);
+        dummy.scale.set(
+          sample.scale * sample.scaleX,
+          sample.scale * sample.scaleY,
+          sample.scale * sample.scaleZ
+        );
+        dummy.updateMatrix();
+        rocks.setMatrixAt(index, dummy.matrix);
+      });
+
+      rocks.instanceMatrix.needsUpdate = true;
+      rocks.frustumCulled = true;
+      group.add(rocks);
     });
-
-    rocks.instanceMatrix.needsUpdate = true;
-    rocks.frustumCulled = true;
-    group.add(rocks);
   }
 
   return group;

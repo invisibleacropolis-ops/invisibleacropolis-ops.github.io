@@ -643,6 +643,24 @@ type ActiveCreature = {
   duration: number;
   animSeed: number;
   scale: number;
+  /** Low-pass-filtered terrain height under the creature (null until first frame). */
+  groundSmooth: number | null;
+};
+
+/**
+ * Universal height-snapping softener. The raw heightmap is faceted, so
+ * following it directly makes every creature twitch with the terrain.
+ * Each mode gets its own tracking rates (per second), asymmetric so
+ * creatures step up onto rises quickly but glide down off them slowly.
+ */
+const GROUND_TRACKING: Record<MotionMode, { up: number; down: number }> = {
+  ground: { up: 6.5, down: 2.6 },
+  skim: { up: 5.0, down: 2.2 },
+  porpoise: { up: 3.5, down: 2.0 },
+  fly: { up: 1.4, down: 0.7 },
+  soar: { up: 1.0, down: 0.5 },
+  drift: { up: 0.8, down: 0.4 },
+  roll: { up: 1.4, down: 0.7 },
 };
 
 export const createCreatureLayer = ({
@@ -715,6 +733,7 @@ export const createCreatureLayer = ({
       duration: start.distanceTo(end) / speed,
       animSeed: rng() * Math.PI * 2,
       scale,
+      groundSmooth: null,
     };
     active.push(creature);
   };
@@ -746,8 +765,7 @@ export const createCreatureLayer = ({
   const pos = new THREE.Vector3();
   const ahead = new THREE.Vector3();
 
-  const elevationFor = (c: ActiveCreature, u: number, x: number, z: number): number => {
-    const groundY = ground(x, z);
+  const elevationFor = (c: ActiveCreature, u: number, groundY: number): number => {
     const s = c.scale;
     switch (c.kind.mode) {
       case "ground":
@@ -787,10 +805,24 @@ export const createCreatureLayer = ({
       }
 
       pathPoint(c, u, pos);
-      pos.y = elevationFor(c, u, pos.x, pos.z);
 
-      pathPoint(c, Math.min(1, u + 0.004), ahead);
-      ahead.y = elevationFor(c, Math.min(1, u + 0.004), ahead.x, ahead.z);
+      // Smooth the terrain sample before any mode formula sees it, so the
+      // faceted heightmap can't jerk the creature around frame to frame.
+      const rawGround = ground(pos.x, pos.z);
+      if (c.groundSmooth === null) {
+        c.groundSmooth = rawGround;
+      } else {
+        const rates = GROUND_TRACKING[c.kind.mode];
+        const rate = rawGround > c.groundSmooth ? rates.up : rates.down;
+        c.groundSmooth += (rawGround - c.groundSmooth) * Math.min(1, dt * rate);
+      }
+      pos.y = elevationFor(c, u, c.groundSmooth);
+
+      // Orientation reuses the same smoothed ground: intentional pitch from
+      // arcs (porpoise/skim sines) survives, terrain-follow twitch does not.
+      const aheadU = Math.min(1, u + 0.004);
+      pathPoint(c, aheadU, ahead);
+      ahead.y = elevationFor(c, aheadU, c.groundSmooth);
 
       c.travel.position.copy(pos);
       // Ground creatures stay level; flyers pitch gently along their arcs
