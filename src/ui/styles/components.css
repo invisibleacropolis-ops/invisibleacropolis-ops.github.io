@@ -986,6 +986,98 @@ kbd {
   }
 }
 
+/* ---------------------------------------------------------------------------
+   Kakuriyo intro (the hidden-world scene)
+--------------------------------------------------------------------------- */
+
+.yokai-hud {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 20;
+  pointer-events: auto;
+}
+
+.yokai-intro {
+  position: absolute;
+  left: 50%;
+  top: 12%;
+  transform: translateX(-50%);
+  display: grid;
+  justify-items: center;
+  gap: 0.4rem;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1400ms var(--easing-out), transform 900ms var(--easing-out);
+  text-shadow: 0 2px 22px rgba(30, 20, 10, 0.45);
+}
+
+.yokai-intro.is-visible {
+  opacity: 1;
+}
+
+.yokai-intro.is-dismissed {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-18px);
+}
+
+.yokai-intro__kana {
+  margin: 0;
+  font-family: "Shippori Mincho", serif;
+  font-size: clamp(1.4rem, 3vw, 2.1rem);
+  letter-spacing: 0.5em;
+  color: #fff6e8;
+}
+
+.yokai-intro__title {
+  margin: 0;
+  font-family: "Shippori Mincho", "Cinzel", serif;
+  font-weight: 700;
+  font-size: clamp(2.6rem, 7vw, 5rem);
+  letter-spacing: 0.14em;
+  color: #fffaf0;
+}
+
+.yokai-intro__sub {
+  margin: 0;
+  font-family: var(--font-body);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 1.05rem;
+  color: #ffeed8;
+}
+
+.yokai-intro__hint {
+  margin: 1.1rem 0 0;
+  font-family: var(--font-hud);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 246, 232, 0.85);
+}
+
+.yokai-intro__hint kbd {
+  color: #ffe3b0;
+}
+
+.yokai-intro__classic {
+  margin-top: 0.5rem;
+  pointer-events: auto;
+  font-family: var(--font-hud);
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 240, 220, 0.6);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255, 240, 220, 0.35);
+  transition: color var(--motion-fast) var(--easing-standard);
+}
+
+.yokai-intro__classic:hover {
+  color: #fff3dd;
+}
+
 @media (prefers-contrast: more) {
   :root {
     --color-border-subtle: rgba(255, 255, 255, 0.24);
