@@ -14,6 +14,11 @@ import { createCastle } from "./castle.ts";
 import { createVillage } from "./village.ts";
 import { createSpirits } from "./spirits.ts";
 import { createYokaiUi } from "./ui.ts";
+import { createStoryOverlay } from "./story/overlay.ts";
+import { createStoryPlayer, type Story } from "./story/engine.ts";
+import type { StoryWorld } from "./story/mood.ts";
+import { createFoxStarStory } from "./story/foxStar.ts";
+import { createTanukiMoonStory } from "./story/tanukiMoon.ts";
 
 /**
  * Kakuriyo (隠り世) — the hidden world. A mystical vision of Japan from
@@ -94,14 +99,63 @@ const hubTrigger = uiRoot.querySelector(".nav-hub__trigger");
 if (hubTrigger) hudCorner.append(hubTrigger);
 
 /* ── Camera: a slow spirit-drift until the visitor takes the reins ── */
-const controls = createFlyControls({ camera, domElement: canvas, baseSpeed: 85 });
+const controls = createFlyControls({
+  camera,
+  domElement: canvas,
+  baseSpeed: 85,
+  // While a tale owns the camera, clicks must not grab the pointer
+  shouldLock: () => !storyPlayer.isActive(),
+});
 
 let freeFlight = false;
 let driftAngle = Math.PI * 0.7;
 const lookTarget = new THREE.Vector3(TEMPLE_CENTER.x, 320, TEMPLE_CENTER.y);
 
+/* ── Tales of Kakuriyo ── */
+const storyOverlay = createStoryOverlay(uiRoot);
+const storyPlayer = createStoryPlayer({
+  camera,
+  overlay: storyOverlay,
+  onFinished: () => {
+    // The tale releases the camera; the spirit-drift resumes
+    freeFlight = false;
+    ui.showIntro();
+  },
+});
+
+const storyWorld: StoryWorld = {
+  scene,
+  sky,
+  sun,
+  skyFill,
+  warmAmbient,
+  fog: scene.fog as THREE.Fog,
+  toriiPath: architecture.toriiPath,
+};
+
+// The library of tales, each on its own key from the splash screen
+const TALES: Record<string, (world: StoryWorld) => Story> = {
+  Digit1: createFoxStarStory,
+  Digit2: createTanukiMoonStory,
+};
+
+const beginTale = (factory: (world: StoryWorld) => Story) => {
+  if (storyPlayer.isActive()) return;
+  freeFlight = false;
+  document.exitPointerLock();
+  ui.dismissIntro();
+  storyPlayer.play(factory(storyWorld));
+};
+
+window.addEventListener("keydown", (event) => {
+  const factory = TALES[event.code];
+  if (factory && !storyPlayer.isActive()) {
+    beginTale(factory);
+  }
+});
+
 document.addEventListener("pointerlockchange", () => {
-  if (document.pointerLockElement === canvas) {
+  if (document.pointerLockElement === canvas && !storyPlayer.isActive()) {
     freeFlight = true;
     ui.dismissIntro();
   }
@@ -113,7 +167,11 @@ const animate = () => {
   const dt = Math.min(0.05, clock.getDelta());
   const t = clock.elapsedTime;
 
-  if (freeFlight) {
+  if (storyPlayer.isActive()) {
+    // Debug hook: lets tests fast-forward a tale (unset = real time)
+    const speed = (window as Window & { __STORY_SPEED__?: number }).__STORY_SPEED__ ?? 1;
+    storyPlayer.update(t, dt * speed);
+  } else if (freeFlight) {
     controls.update(dt);
     // Stay above the land and inside the painting
     const minY = heightAt(camera.position.x, camera.position.z) + 10;

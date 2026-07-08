@@ -1078,6 +1078,111 @@ kbd {
   color: #fff3dd;
 }
 
+/* ---------------------------------------------------------------------------
+   Story mode (tales of Kakuriyo)
+--------------------------------------------------------------------------- */
+
+.story-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 30;
+}
+
+.story-title {
+  position: absolute;
+  left: 50%;
+  top: 16%;
+  transform: translateX(-50%);
+  text-align: center;
+  opacity: 0;
+  transition: opacity 1800ms var(--easing-out);
+  text-shadow: 0 2px 26px rgba(10, 12, 26, 0.55);
+}
+
+.story-title.is-visible {
+  opacity: 1;
+}
+
+.story-title__main {
+  margin: 0;
+  font-family: "Shippori Mincho", serif;
+  font-weight: 700;
+  font-size: clamp(1.9rem, 4.6vw, 3.4rem);
+  letter-spacing: 0.1em;
+  color: #fdf7ea;
+}
+
+.story-title__sub {
+  margin: 0.4rem 0 0;
+  font-family: var(--font-body);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 1rem;
+  color: rgba(253, 244, 224, 0.85);
+}
+
+.story-lines {
+  position: absolute;
+  left: 50%;
+  bottom: 9%;
+  transform: translateX(-50%);
+  width: min(760px, calc(100vw - 3rem));
+  display: grid;
+  gap: 0.45rem;
+  text-align: center;
+}
+
+.story-line {
+  margin: 0;
+  font-family: "Shippori Mincho", "Spectral", serif;
+  font-size: clamp(1rem, 2vw, 1.32rem);
+  font-weight: 500;
+  line-height: 1.5;
+  color: #fbf4e4;
+  text-shadow: 0 2px 18px rgba(8, 10, 22, 0.75), 0 0 4px rgba(8, 10, 22, 0.5);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 1600ms var(--easing-out), transform 1600ms var(--easing-out);
+}
+
+.story-line.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.story-hint {
+  position: absolute;
+  right: 1.2rem;
+  bottom: 1rem;
+  margin: 0;
+  font-family: var(--font-hud);
+  font-size: 0.64rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(250, 242, 226, 0.55);
+  opacity: 0;
+  transition: opacity 900ms var(--easing-out);
+}
+
+.story-hint.is-visible {
+  opacity: 1;
+}
+
+.yokai-intro__story {
+  margin: 0.4rem 0 0;
+  font-family: var(--font-hud);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #ffe9c4;
+}
+
+.yokai-intro__story em {
+  font-style: normal;
+  color: #fff6e4;
+}
+
 @media (prefers-contrast: more) {
   :root {
     --color-border-subtle: rgba(255, 255, 255, 0.24);

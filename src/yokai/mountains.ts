@@ -11,6 +11,12 @@ import { WORLD_SIZE } from "./terrain.ts";
 
 export const SACRED_PEAK = new THREE.Vector3(-2100, 0, -2700);
 
+/**
+ * A ledge on the sacred peak's valley-facing flank, where a small hokora
+ * shrine keeps watch. Stories climb to it; the world simply has it.
+ */
+export const PEAK_LEDGE = new THREE.Vector3(-1494, 905, -1922);
+
 const jaggedCone = (
   rng: () => number,
   radius: number,
@@ -65,6 +71,29 @@ export const createMountains = (): THREE.Group => {
       group.add(m);
     }
   });
+
+  /* ── The hokora ledge: a resting place partway up the sacred peak ── */
+  const stoneMat = toon("#a8a89e", { flatShading: true });
+  const roofMat = toon("#46586e", { flatShading: true });
+
+  const platform = new THREE.Mesh(new THREE.CylinderGeometry(78, 96, 26, 9), stoneMat);
+  platform.position.set(PEAK_LEDGE.x, PEAK_LEDGE.y - 13, PEAK_LEDGE.z);
+  group.add(platform);
+
+  const hokora = new THREE.Group();
+  const hBase = new THREE.Mesh(new THREE.BoxGeometry(26, 10, 22), stoneMat);
+  hBase.position.y = 5;
+  const hBody = new THREE.Mesh(new THREE.BoxGeometry(20, 22, 16), stoneMat);
+  hBody.position.y = 21;
+  const hHollow = new THREE.Mesh(new THREE.BoxGeometry(10, 12, 4), toon("#2e2c28"));
+  hHollow.position.set(0, 21, 8.4);
+  const hRoof = new THREE.Mesh(new THREE.ConeGeometry(22, 14, 4), roofMat);
+  hRoof.rotation.y = Math.PI / 4;
+  hRoof.position.y = 38;
+  hokora.add(hBase, hBody, hHollow, hRoof);
+  hokora.position.set(PEAK_LEDGE.x - 30, PEAK_LEDGE.y, PEAK_LEDGE.z - 30);
+  hokora.lookAt(PEAK_LEDGE.x + 200, PEAK_LEDGE.y, PEAK_LEDGE.z + 260);
+  group.add(hokora);
 
   return group;
 };

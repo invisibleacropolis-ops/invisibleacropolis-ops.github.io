@@ -3,6 +3,8 @@ export type YokaiUi = {
   reveal: () => void;
   /** Hide the intro card (first pointer lock / first interaction). */
   dismissIntro: () => void;
+  /** Bring the intro card back (after a tale ends). */
+  showIntro: () => void;
   dispose: () => void;
 };
 
@@ -22,6 +24,9 @@ export const createYokaiUi = (root: HTMLElement): YokaiUi => {
     <p class="yokai-intro__hint">
       click to wander &mdash; <kbd>W</kbd> glide &middot; <kbd>Space</kbd>/<kbd>Shift</kbd> rise &amp; fall &middot; <kbd>Esc</kbd> rest
     </p>
+    <p class="yokai-intro__story">
+      tales: <kbd>1</kbd> <em>the fox and the fallen star</em> &middot; <kbd>2</kbd> <em>the tanuki and the moon-offering</em>
+    </p>
     <a class="yokai-intro__classic" href="/?classic">return to the previous dimension</a>
   `;
   root.append(intro);
@@ -37,6 +42,10 @@ export const createYokaiUi = (root: HTMLElement): YokaiUi => {
       if (dismissed) return;
       dismissed = true;
       intro.classList.add("is-dismissed");
+    },
+    showIntro: () => {
+      dismissed = false;
+      intro.classList.remove("is-dismissed");
     },
     dispose: () => {
       intro.remove();

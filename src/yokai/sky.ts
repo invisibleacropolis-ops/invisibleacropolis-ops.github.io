@@ -47,6 +47,12 @@ const fragmentShader = /* glsl */ `
 export type KakuriyoSky = {
   mesh: THREE.Mesh;
   update: (t: number) => void;
+  /** Live color uniforms, so stories can dim the world to night and back. */
+  uniforms: {
+    zenithColor: { value: THREE.Color };
+    horizonColor: { value: THREE.Color };
+    sunColor: { value: THREE.Color };
+  };
 };
 
 export const createSky = (radius = 9000): KakuriyoSky => {
@@ -74,5 +80,6 @@ export const createSky = (radius = 9000): KakuriyoSky => {
     update: (t) => {
       uniforms.time.value = t;
     },
+    uniforms,
   };
 };

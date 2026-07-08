@@ -28,7 +28,7 @@ export type SpiritLayer = {
   update: (t: number, dt: number) => void;
 };
 
-type SpiritBuild = {
+export type SpiritBuild = {
   group: THREE.Group;
   /** moving01: 0 idle → 1 walking, already smoothed by the AI. */
   animate: (t: number, phase: number, moving01: number) => void;
@@ -49,7 +49,7 @@ const limb = (mat: THREE.Material, r: number, len: number, x: number, y: number,
 
 /* ═══ Builders ════════════════════════════════════════════════ */
 
-const buildKitsune = (): SpiritBuild => {
+export const buildKitsune = (): SpiritBuild => {
   const white = toon(KAKURIYO.spiritWhite);
   const red = toon(KAKURIYO.foxRed);
   const group = new THREE.Group();
@@ -108,7 +108,7 @@ const buildKitsune = (): SpiritBuild => {
   };
 };
 
-const buildTanuki = (): SpiritBuild => {
+export const buildTanuki = (): SpiritBuild => {
   const brown = toon(KAKURIYO.tanukiBrown);
   const cream = toon("#e8d7b8");
   const dark = toon("#4a3826");
@@ -155,7 +155,7 @@ const buildTanuki = (): SpiritBuild => {
   };
 };
 
-const buildKappa = (): SpiritBuild => {
+export const buildKappa = (): SpiritBuild => {
   const green = toon(KAKURIYO.kappaGreen);
   const shellMat = toon("#5a7a42");
   const dishMat = toon("#d9e8c4");
@@ -587,7 +587,7 @@ const buildYukiOnna = (): SpiritBuild => {
   };
 };
 
-const buildChochin = (): SpiritBuild => {
+export const buildChochin = (): SpiritBuild => {
   const paper = toon("#f2d9a4");
   const rim = toon("#7d4230");
   const dark = new THREE.MeshBasicMaterial({ color: "#2a2320" });
