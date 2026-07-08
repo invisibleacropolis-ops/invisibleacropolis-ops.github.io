@@ -48,10 +48,15 @@ export const createStoryPlayer = ({
   camera,
   overlay,
   onFinished,
+  groundY,
+  cameraClearance = 26,
 }: {
   camera: THREE.PerspectiveCamera;
   overlay: StoryOverlay;
   onFinished: () => void;
+  /** World surface function; when set, the camera never dips beneath it. */
+  groundY?: (x: number, z: number) => number;
+  cameraClearance?: number;
 }): StoryPlayer => {
   let story: Story | null = null;
   let shotIndex = 0;
@@ -161,6 +166,16 @@ export const createStoryPlayer = ({
       }
 
       runRig(shot.rig, shotT01, dt);
+
+      // Collision guard: whatever the rig wanted, stay above the world.
+      // (Lift the eye but keep its aim, so framing survives the clamp.)
+      if (groundY) {
+        const minY = groundY(camera.position.x, camera.position.z) + cameraClearance;
+        if (camera.position.y < minY) {
+          camera.position.y = minY;
+        }
+      }
+
       shot.onUpdate?.(shotT01, dt, shotTime);
 
       if (shotTime >= shot.duration) {

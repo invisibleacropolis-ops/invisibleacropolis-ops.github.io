@@ -14,9 +14,11 @@ import { createCastle } from "./castle.ts";
 import { createVillage } from "./village.ts";
 import { createSpirits } from "./spirits.ts";
 import { createYokaiUi } from "./ui.ts";
+import { windTime } from "./shaders.ts";
 import { createStoryOverlay } from "./story/overlay.ts";
 import { createStoryPlayer, type Story } from "./story/engine.ts";
 import type { StoryWorld } from "./story/mood.ts";
+import { worldGroundY } from "./story/motion.ts";
 import { createFoxStarStory } from "./story/foxStar.ts";
 import { createTanukiMoonStory } from "./story/tanukiMoon.ts";
 
@@ -63,9 +65,8 @@ scene.add(createMountains());
 const clouds = createClouds();
 scene.add(clouds.group);
 
-const flora = createFlora();
-scene.add(flora.group);
-
+// Structures claim their ground in the occupancy register first;
+// only then does the flora scatter around them.
 const water = createWaterFeature();
 scene.add(water.group);
 
@@ -77,6 +78,9 @@ scene.add(castle.group);
 
 const village = createVillage();
 scene.add(village.group);
+
+const flora = createFlora();
+scene.add(flora.group);
 
 const spirits = createSpirits({
   sakuraSpots: flora.sakuraSpots,
@@ -116,6 +120,7 @@ const storyOverlay = createStoryOverlay(uiRoot);
 const storyPlayer = createStoryPlayer({
   camera,
   overlay: storyOverlay,
+  groundY: worldGroundY,
   onFinished: () => {
     // The tale releases the camera; the spirit-drift resumes
     freeFlight = false;
@@ -191,6 +196,7 @@ const animate = () => {
     camera.lookAt(lookTarget);
   }
 
+  windTime.value = t;
   sky.update(t);
   clouds.update(t, dt);
   flora.update(t, dt);

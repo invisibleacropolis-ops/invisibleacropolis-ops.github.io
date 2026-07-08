@@ -2,7 +2,8 @@ import * as THREE from "three";
 import { createRng } from "../scene/random.ts";
 import { KAKURIYO, getToonGradient, toon } from "./palette.ts";
 import { TEMPLE_CENTER, heightAt } from "./terrain.ts";
-import { roofTexture, shojiTexture, stoneWallTexture, woodTexture } from "./textures.ts";
+import { getGlowTexture, roofTexture, shojiTexture, stoneWallTexture, woodTexture } from "./textures.ts";
+import { reserve } from "./occupancy.ts";
 
 /**
  * Sacred architecture on the shrine plateau: a five-storied pagoda, a
@@ -133,7 +134,21 @@ const createLantern = (): THREE.Group => {
   glow.name = "lantern-glow";
   const cap = new THREE.Mesh(new THREE.ConeGeometry(15, 12, 6), stoneMat);
   cap.position.y = 59;
-  lantern.add(base, stem, housing, glow, cap);
+  // A soft additive halo breathes around the flame
+  const halo = new THREE.Sprite(
+    new THREE.SpriteMaterial({
+      map: getGlowTexture(),
+      color: "#ffd98a",
+      transparent: true,
+      opacity: 0.4,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    })
+  );
+  halo.scale.set(58, 58, 1);
+  halo.position.y = 46;
+  halo.name = "lantern-halo";
+  lantern.add(base, stem, housing, glow, cap, halo);
   return lantern;
 };
 
@@ -163,6 +178,7 @@ export const createArchitecture = (): Architecture => {
   const group = new THREE.Group();
   const rng = createRng(0x70a1);
   const lanternGlows: THREE.Mesh[] = [];
+  const lanternHalos: THREE.Sprite[] = [];
 
   const templeY = heightAt(TEMPLE_CENTER.x, TEMPLE_CENTER.y);
 
@@ -171,6 +187,7 @@ export const createArchitecture = (): Architecture => {
   pagoda.position.set(TEMPLE_CENTER.x, templeY, TEMPLE_CENTER.y);
   pagoda.rotation.y = -0.35;
   group.add(pagoda);
+  reserve(TEMPLE_CENTER.x, TEMPLE_CENTER.y, 230);
   const pagodaTop = new THREE.Vector3(TEMPLE_CENTER.x, templeY + 320, TEMPLE_CENTER.y);
 
   // A small honden hall beside it
@@ -185,6 +202,7 @@ export const createArchitecture = (): Architecture => {
   honden.position.set(TEMPLE_CENTER.x - 240, templeY, TEMPLE_CENTER.y + 160);
   honden.rotation.y = 0.5;
   group.add(honden);
+  reserve(TEMPLE_CENTER.x - 240, TEMPLE_CENTER.y + 160, 170);
 
   // Komainu pair guarding the approach
   const approachAngle = Math.PI * 0.62; // path heads south-ish
@@ -195,6 +213,7 @@ export const createArchitecture = (): Architecture => {
     guardian.position.set(gx, heightAt(gx, gz), gz);
     guardian.lookAt(gx + Math.cos(approachAngle), guardian.position.y, gz + Math.sin(approachAngle));
     group.add(guardian);
+    reserve(gx, gz, 50);
   }
 
   // The torii procession descending the southern slope
@@ -213,6 +232,7 @@ export const createArchitecture = (): Architecture => {
     torii.lookAt(nx, y, nz);
     group.add(torii);
     toriiPath.push(new THREE.Vector3(x, y, z));
+    reserve(x, z, 105);
   }
 
   // Stone lanterns scattered along the way and around the plateau
@@ -232,8 +252,11 @@ export const createArchitecture = (): Architecture => {
     }
     lantern.position.set(x, heightAt(x, z), z);
     lantern.rotation.y = rng() * Math.PI * 2;
+    reserve(x, z, 36);
     const glow = lantern.getObjectByName("lantern-glow") as THREE.Mesh;
     if (glow) lanternGlows.push(glow);
+    const halo = lantern.getObjectByName("lantern-halo") as THREE.Sprite;
+    if (halo) lanternHalos.push(halo);
     group.add(lantern);
   }
 
@@ -242,6 +265,10 @@ export const createArchitecture = (): Architecture => {
       const mat = glow.material as THREE.MeshBasicMaterial;
       mat.color.setScalar(0.9 + Math.sin(t * 2.2 + i * 1.7) * 0.1);
       mat.color.lerp(new THREE.Color("#ffdf9a"), 0.9);
+    });
+    lanternHalos.forEach((halo, i) => {
+      const mat = halo.material as THREE.SpriteMaterial;
+      mat.opacity = 0.32 + Math.sin(t * 2.2 + i * 1.7) * 0.1;
     });
   };
 

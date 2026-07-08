@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { getToonGradient } from "./palette.ts";
 import { CASTLE_CENTER, heightAt } from "./terrain.ts";
 import { plasterTexture, roofTexture, stoneWallTexture, woodTexture } from "./textures.ts";
+import { reserve } from "./occupancy.ts";
 
 /**
  * The white castle — a Himeji-spirited tenshu on its own hill: sloped
@@ -62,6 +63,7 @@ export const createCastle = (): Castle => {
   keep.position.set(CASTLE_CENTER.x, baseY, CASTLE_CENTER.y);
   keep.rotation.y = 0.4;
   group.add(keep);
+  reserve(CASTLE_CENTER.x, CASTLE_CENTER.y, 330);
 
   /* ── Ishigaki: the sloped stone foundation ── */
   const foundation = new THREE.Mesh(new THREE.CylinderGeometry(150, 235, 150, 4, 3), stoneMat);
@@ -134,6 +136,7 @@ export const createCastle = (): Castle => {
     wallBase.rotation.y = yaw;
     cap.rotation.y = yaw;
     group.add(wall, wallBase, cap);
+    reserve(mx, mz, length / 2 + 26);
   }
 
   // Corner yagura watchtowers
@@ -152,6 +155,7 @@ export const createCastle = (): Castle => {
     tower.add(base, cabin, roof);
     tower.position.set(tx, ty, tz);
     group.add(tower);
+    reserve(tx, tz, 85);
   }
 
   // The gate: timber posts + tiled lintel at the wall gap
@@ -173,6 +177,7 @@ export const createCastle = (): Castle => {
   gate.position.set(gx, gy, gz);
   gate.rotation.y = -gateAngle + Math.PI / 2;
   group.add(gate);
+  reserve(gx, gz, 110);
 
   return {
     group,

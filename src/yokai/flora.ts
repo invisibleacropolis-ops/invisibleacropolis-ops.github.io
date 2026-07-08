@@ -3,6 +3,8 @@ import { createRng } from "../scene/random.ts";
 import { fbm2D } from "../scene/noise.ts";
 import { KAKURIYO, toon } from "./palette.ts";
 import { WORLD_SIZE, TEMPLE_CENTER, POND_CENTER, heightAt, slopeAt } from "./terrain.ts";
+import { isFree } from "./occupancy.ts";
+import { applyWindSway } from "./shaders.ts";
 
 /**
  * The living green of Kakuriyo: sakura in perpetual bloom around the
@@ -37,17 +39,25 @@ export const createFlora = (): Flora => {
   const pineMat = toon(KAKURIYO.pine);
   const bambooMat = toon(KAKURIYO.bamboo);
 
+  // The breeze: canopies rustle gently, bamboo swings with real intent
+  applyWindSway(sakuraMat, 2.6, 1.0);
+  applyWindSway(sakuraDeepMat, 2.6, 1.0);
+  applyWindSway(pineMat, 1.6, 0.8);
+  applyWindSway(bambooMat, 4.2, 1.35);
+
   /* ── Gather placements ── */
   const sakura: Placement[] = [];
   const pine: Placement[] = [];
   const bamboo: Placement[] = [];
   const sakuraSpots: THREE.Vector3[] = [];
 
-  const tryPlace = (x: number, z: number): { y: number } | null => {
+  const tryPlace = (x: number, z: number, margin = 30): { y: number } | null => {
     if (Math.hypot(x, z) > WORLD_SIZE * 0.46) return null;
     const y = heightAt(x, z);
     if (y < 24) return null; // keep out of the pond
     if (slopeAt(x, z) > 0.85) return null;
+    // Structures claimed their ground first; respect the register
+    if (!isFree(x, z, margin)) return null;
     return { y };
   };
 
@@ -84,7 +94,7 @@ export const createFlora = (): Flora => {
   for (let i = 0; i < 420; i += 1) {
     const x = -300 + (rng() - 0.5) * 1500;
     const z = 1750 + (rng() - 0.5) * 1300;
-    const spot = tryPlace(x, z);
+    const spot = tryPlace(x, z, 14); // culms are slim; they may crowd closer
     if (!spot || spot.y > 170) continue;
     bamboo.push({ x, y: spot.y, z, scale: 0.8 + rng() * 0.8, rotation: rng() * Math.PI * 2 });
   }

@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { Story } from "./engine.ts";
 import { createMoodController, MOODS, type StoryWorld } from "./mood.ts";
 import { createPoofFx, createRippleFx } from "./fx.ts";
+import { createActorMover, worldGroundY } from "./motion.ts";
 import { buildChochin, buildTanuki } from "../spirits.ts";
 import { getToonGradient, toon } from "../palette.ts";
 import { VILLAGE_CENTER, heightAt } from "../terrain.ts";
@@ -145,12 +146,7 @@ export const createTanukiMoonStory = (world: StoryWorld): Story => {
     new THREE.Vector3(STAND_POS.x - 60, squareY, STAND_POS.z + 50),
   ]);
 
-  const actorOnPath = (travel: THREE.Group, curve: THREE.CatmullRomCurve3, t01: number) => {
-    const p = curve.getPoint(t01);
-    travel.position.copy(p);
-    const ahead = curve.getPoint(Math.min(1, t01 + 0.01));
-    travel.rotation.y = Math.atan2(ahead.x - p.x, ahead.z - p.z);
-  };
+  const tanukiMover = createActorMover(tanukiTravel);
 
   const faceTarget = (travel: THREE.Group, target: THREE.Vector3, dt: number, rate = 5) => {
     const yaw = Math.atan2(target.x - travel.position.x, target.z - travel.position.z);
@@ -196,7 +192,7 @@ export const createTanukiMoonStory = (world: StoryWorld): Story => {
         { at: 6.4, text: "The sky, being patient, had not yet come down for them." },
       ],
       onEnter: () => {
-        tanukiTravel.position.copy(pathArrive.getPoint(0));
+        tanukiMover.place(pathArrive.getPoint(0), pathArrive.getPoint(0.1));
         chochinTravel.position.copy(CHOCHIN_POST);
       },
       onUpdate: (k, dt) => {
@@ -225,7 +221,7 @@ export const createTanukiMoonStory = (world: StoryWorld): Story => {
       onUpdate: (k, dt) => {
         tick(dt);
         moodCtl.apply(dusk, 0.25 + k * 0.1);
-        actorOnPath(tanukiTravel, pathArrive, k);
+        tanukiMover.onCurve(pathArrive, k, dt);
         chochinTravel.position.y = CHOCHIN_POST.y + Math.sin(storyTime * 0.9) * 8;
       },
     },
@@ -245,8 +241,7 @@ export const createTanukiMoonStory = (world: StoryWorld): Story => {
       ],
       onEnter: () => {
         tanukiMovingTarget = 0;
-        tanukiTravel.position.copy(HIDE_SPOT);
-        faceTarget(tanukiTravel, STAND_POS, 1, 100);
+        tanukiMover.place(HIDE_SPOT, STAND_POS);
       },
       onUpdate: (k, dt) => {
         tick(dt);
@@ -362,7 +357,7 @@ export const createTanukiMoonStory = (world: StoryWorld): Story => {
         poof.burst(disguise.position.clone().add(new THREE.Vector3(0, 30, 0)));
         disguise.visible = false;
         tanukiTravel.visible = true;
-        tanukiTravel.position.copy(pathFlee.getPoint(0));
+        tanukiMover.place(pathFlee.getPoint(0), pathFlee.getPoint(0.06));
         tanukiMovingTarget = 1;
         // The dango rides in his mouth
         scene.attach(topDango);
@@ -371,11 +366,12 @@ export const createTanukiMoonStory = (world: StoryWorld): Story => {
       },
       onUpdate: (k, dt) => {
         tick(dt);
-        actorOnPath(tanukiTravel, pathFlee, k);
+        tanukiMover.onCurve(pathFlee, k, dt);
         // The ghost gives chase, always a little behind
         const chaseT = Math.max(0, k - 0.14);
         const ghostPoint = pathFlee.getPoint(chaseT);
-        ghostPoint.y += 74;
+        // Hover clearance over whatever the ground is really doing
+        ghostPoint.y = Math.max(ghostPoint.y, worldGroundY(ghostPoint.x, ghostPoint.z)) + 74;
         chochinTravel.position.lerp(ghostPoint, Math.min(1, dt * 4));
         faceTarget(chochinTravel, tanukiTravel.position, dt, 6);
         // Splash rings when he tears through the paddy
@@ -433,7 +429,7 @@ export const createTanukiMoonStory = (world: StoryWorld): Story => {
       onUpdate: (k, dt, s) => {
         tick(dt);
         const walkT = Math.min(1, s / 5.5);
-        actorOnPath(tanukiTravel, pathReturn, walkT);
+        tanukiMover.onCurve(pathReturn, walkT, dt);
         if (walkT >= 1) {
           tanukiMovingTarget = 0;
           faceTarget(tanukiTravel, STAND_POS, dt, 4);

@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { Story } from "./engine.ts";
 import { createMoodController, MOODS, type StoryWorld } from "./mood.ts";
+import { createActorMover } from "./motion.ts";
 import { buildKappa, buildKitsune } from "../spirits.ts";
 import { heightAt, WATER_LEVEL } from "../terrain.ts";
 import { PEAK_LEDGE } from "../mountains.ts";
@@ -167,13 +168,10 @@ export const createFoxStarStory = (world: StoryWorld): Story => {
     new THREE.Vector3(PEAK_LEDGE.x + 100, PEAK_LEDGE.y + 3000, PEAK_LEDGE.z + 100),
   ]);
 
-  const foxOnPath = (curve: THREE.CatmullRomCurve3, t01: number) => {
-    const p = curve.getPoint(t01);
-    foxTravel.position.copy(p);
-    const ahead = curve.getPoint(Math.min(1, t01 + 0.008));
-    const yaw = Math.atan2(ahead.x - p.x, ahead.z - p.z);
-    foxTravel.rotation.y = yaw;
-  };
+  // Ground-sticking + movement-derived heading: the fox hugs the real
+  // surface (terrain AND the sacred peak's cone) and always faces the
+  // direction she is actually travelling.
+  const foxMover = createActorMover(foxTravel);
 
   /* ── Shared per-frame tick ── */
   let storyTime = 0;
@@ -204,7 +202,7 @@ export const createFoxStarStory = (world: StoryWorld): Story => {
       },
       lines: [{ at: 3.2, text: "When the sun slipped behind the mountains, Kakuriyo held its breath." }],
       onEnter: () => {
-        foxOnPath(pathRoad, 0);
+        foxMover.place(pathRoad.getPoint(0), pathRoad.getPoint(0.1));
         foxMovingTarget = 0;
       },
       onUpdate: (k, dt) => {
@@ -267,7 +265,7 @@ export const createFoxStarStory = (world: StoryWorld): Story => {
       },
       onUpdate: (k, dt) => {
         tick(dt);
-        foxOnPath(pathRoad, k);
+        foxMover.onCurve(pathRoad, k, dt);
       },
     },
 
@@ -288,7 +286,7 @@ export const createFoxStarStory = (world: StoryWorld): Story => {
       ],
       onUpdate: (k, dt) => {
         tick(dt);
-        foxOnPath(pathJourney, k);
+        foxMover.onCurve(pathJourney, k, dt);
       },
     },
 
@@ -307,8 +305,7 @@ export const createFoxStarStory = (world: StoryWorld): Story => {
       ],
       onEnter: () => {
         foxMovingTarget = 0;
-        foxTravel.position.set(SHORE.x, heightAt(SHORE.x, SHORE.z), SHORE.z);
-        foxTravel.lookAt(STAR_REST.x, foxTravel.position.y, STAR_REST.z);
+        foxMover.place(new THREE.Vector3(SHORE.x, heightAt(SHORE.x, SHORE.z), SHORE.z), STAR_REST);
       },
       onUpdate: (k, dt, s) => {
         tick(dt);
@@ -367,7 +364,7 @@ export const createFoxStarStory = (world: StoryWorld): Story => {
       },
       onUpdate: (k, dt) => {
         tick(dt);
-        foxOnPath(pathClimb, k);
+        foxMover.onCurve(pathClimb, k, dt);
         starfieldMat.opacity = 0.5 + k * 0.25;
       },
     },
@@ -386,7 +383,7 @@ export const createFoxStarStory = (world: StoryWorld): Story => {
       ],
       onEnter: () => {
         foxMovingTarget = 0;
-        foxTravel.position.set(PEAK_LEDGE.x + 30, PEAK_LEDGE.y, PEAK_LEDGE.z + 30);
+        foxMover.place(new THREE.Vector3(PEAK_LEDGE.x + 30, PEAK_LEDGE.y, PEAK_LEDGE.z + 30));
         foxTravel.rotation.y = Math.PI * 0.15;
         // Free the star for its flight
         scene.attach(star);

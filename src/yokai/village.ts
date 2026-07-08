@@ -3,6 +3,7 @@ import { createRng } from "../scene/random.ts";
 import { KAKURIYO, getToonGradient, toon } from "./palette.ts";
 import { POND_CENTER, VILLAGE_CENTER, VILLAGE_HEIGHT, heightAt } from "./terrain.ts";
 import { paddyTexture, plasterTexture, thatchTexture, woodTexture } from "./textures.ts";
+import { reserve, reserveLine } from "./occupancy.ts";
 
 /**
  * The farm hamlet: steep-roofed thatched minka gathered on their shelf of
@@ -95,6 +96,7 @@ export const createVillage = (): Village => {
     house.position.set(x, heightAt(x, z) - 1, z);
     house.rotation.y = -angle + Math.PI / 2 + (rng() - 0.5) * 0.4;
     group.add(house);
+    reserve(x, z, 130);
   }
 
   /* ── Rice terraces stepping down the southern slope ── */
@@ -110,6 +112,7 @@ export const createVillage = (): Village => {
     water.rotation.x = -Math.PI / 2;
     water.position.set(px, py, pz);
     group.add(water);
+    reserveLine(px - w / 2 + 40, pz, px + w / 2 - 40, pz, d / 2 + 30);
 
     // Bund walls around each terrace
     const bundH = 16;
@@ -161,6 +164,7 @@ export const createVillage = (): Village => {
   }
   const bridgeY = heightAt(bridgeCenter.x, bridgeCenter.y);
   bridge.position.set(bridgeCenter.x, bridgeY + 8, bridgeCenter.y);
+  reserve(bridgeCenter.x, bridgeCenter.y, 190);
   bridge.rotation.y = Math.atan2(
     VILLAGE_CENTER.y - POND_CENTER.y,
     VILLAGE_CENTER.x - POND_CENTER.x
@@ -183,6 +187,7 @@ export const createVillage = (): Village => {
   const wy = heightAt(VILLAGE_CENTER.x, VILLAGE_CENTER.y);
   well.position.set(VILLAGE_CENTER.x, wy, VILLAGE_CENTER.y);
   group.add(well);
+  reserve(VILLAGE_CENTER.x, VILLAGE_CENTER.y, 80);
 
   return {
     group,
