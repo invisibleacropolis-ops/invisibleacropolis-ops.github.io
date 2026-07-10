@@ -136,6 +136,7 @@ const storyWorld: StoryWorld = {
   warmAmbient,
   fog: scene.fog as THREE.Fog,
   toriiPath: architecture.toriiPath,
+  spirits,
 };
 
 // The library of tales, each on its own key from the splash screen

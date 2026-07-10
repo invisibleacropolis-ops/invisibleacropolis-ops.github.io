@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { KakuriyoSky } from "../sky.ts";
+import type { SpiritLayer } from "../spirits.ts";
 
 /**
  * Shared mood machinery: every tale wants to repaint the world's light —
@@ -16,6 +17,8 @@ export type StoryWorld = {
   warmAmbient: THREE.AmbientLight;
   fog: THREE.Fog;
   toriiPath: THREE.Vector3[];
+  /** The ambient population, so tales can step their leads offstage. */
+  spirits?: SpiritLayer;
 };
 
 export type Mood = {

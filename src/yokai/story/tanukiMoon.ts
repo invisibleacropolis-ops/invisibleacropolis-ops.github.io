@@ -495,9 +495,15 @@ export const createTanukiMoonStory = (world: StoryWorld): Story => {
     onStart: () => {
       scene.add(props);
       moodCtl.apply(dusk, 0);
+      // The tale casts the tanuki and the lantern-ghost; their ambient
+      // doubles step offstage for the duration
+      world.spirits?.setHidden("tanuki", true);
+      world.spirits?.setHidden("chochin", true);
     },
     onEnd: () => {
       moodCtl.restore();
+      world.spirits?.setHidden("tanuki", false);
+      world.spirits?.setHidden("chochin", false);
       poof.dispose();
       drumRipples.dispose();
       props.traverse((child) => {

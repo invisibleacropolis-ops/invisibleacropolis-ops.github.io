@@ -17,27 +17,89 @@ export const SACRED_PEAK = new THREE.Vector3(-2100, 0, -2700);
  */
 export const PEAK_LEDGE = new THREE.Vector3(-1494, 905, -1922);
 
+/** Shared material: all peaks use vertex colors under one toon shader. */
+let peakMaterial: THREE.MeshToonMaterial | null = null;
+const getPeakMaterial = () => {
+  if (!peakMaterial) {
+    peakMaterial = toon("#ffffff", { flatShading: true });
+    peakMaterial.vertexColors = true;
+  }
+  return peakMaterial;
+};
+
+type PeakOptions = {
+  /** Rock tone at the crest; the base always melts into the valley haze. */
+  tone: string;
+  /** 0–1: fraction of the height where snow begins (0 = no snow). */
+  snowLine?: number;
+  jag?: number;
+};
+
+/**
+ * A stylized peak: jagged low-poly cone whose vertex colors carry the
+ * whole read — haze-soft base grading into rock, shadowed gullies from
+ * the displacement, and a wind-torn snowline near the summit.
+ */
 const jaggedCone = (
   rng: () => number,
   radius: number,
   height: number,
-  color: string,
-  jag = 0.16
+  { tone, snowLine = 0, jag = 0.16 }: PeakOptions
 ): THREE.Mesh => {
-  const geometry = new THREE.ConeGeometry(radius, height, 9, 4);
+  const geometry = new THREE.ConeGeometry(radius, height, 10, 5);
   const positions = geometry.getAttribute("position") as THREE.BufferAttribute;
   const v = new THREE.Vector3();
+
+  // Displace first, so shading follows the new silhouette
+  const wobbles: number[] = [];
   for (let i = 0; i < positions.count; i += 1) {
     v.fromBufferAttribute(positions, i);
+    let wobble = 1;
     if (Math.abs(v.y) < height * 0.49) {
-      const wobble = 1 + (rng() - 0.5) * jag;
+      wobble = 1 + (rng() - 0.5) * jag;
       positions.setX(i, v.x * wobble);
       positions.setZ(i, v.z * wobble);
     }
+    wobbles.push(wobble);
   }
+
+  // Vertex colors: haze base → rock body → lit crest → torn snow
+  const haze = new THREE.Color(KAKURIYO.hazeColor);
+  const rock = new THREE.Color(tone);
+  const crest = rock.clone().lerp(new THREE.Color("#ffffff"), 0.28);
+  const snow = new THREE.Color(KAKURIYO.snow);
+  const shadowRock = rock.clone().lerp(new THREE.Color("#2c3450"), 0.3);
+  const colors = new Float32Array(positions.count * 3);
+  const tint = new THREE.Color();
+
+  for (let i = 0; i < positions.count; i += 1) {
+    v.fromBufferAttribute(positions, i);
+    const h = THREE.MathUtils.clamp(v.y / height + 0.5, 0, 1);
+
+    // Ground the base in the valley's air, brighten toward the crest
+    tint.copy(haze).lerp(rock, THREE.MathUtils.smoothstep(h, 0.02, 0.42));
+    tint.lerp(crest, THREE.MathUtils.smoothstep(h, 0.55, 0.95) * 0.8);
+
+    // Bulging faces read lit, recessed gullies read shadowed
+    const relief = (wobbles[i]! - 1) / (jag * 0.5 + 1e-5);
+    if (relief < -0.15) tint.lerp(shadowRock, Math.min(1, -relief) * 0.5);
+
+    // Snowline, torn by the same wobble so it never sits ruler-straight
+    if (snowLine > 0) {
+      const line = snowLine + (wobbles[i]! - 1) * 0.55;
+      if (h > line) {
+        tint.lerp(snow, THREE.MathUtils.smoothstep(h, line, line + 0.1));
+      }
+    }
+
+    colors[i * 3] = tint.r;
+    colors[i * 3 + 1] = tint.g;
+    colors[i * 3 + 2] = tint.b;
+  }
+  geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
   geometry.computeVertexNormals();
-  const mesh = new THREE.Mesh(geometry, toon(color, { flatShading: true }));
-  return mesh;
+
+  return new THREE.Mesh(geometry, getPeakMaterial());
 };
 
 export const createMountains = (): THREE.Group => {

@@ -26,6 +26,8 @@ import { SACRED_PEAK } from "./mountains.ts";
 export type SpiritLayer = {
   group: THREE.Group;
   update: (t: number, dt: number) => void;
+  /** Stories cast the leads; the ambient double steps offstage meanwhile. */
+  setHidden: (name: string, hidden: boolean) => void;
 };
 
 export type SpiritBuild = {
@@ -778,15 +780,19 @@ export const createSpirits = ({ sakuraSpots, toriiPath, pagodaTop, castleGate, v
 
   const pathMid = toriiPath[Math.floor(toriiPath.length / 2)] ?? new THREE.Vector3(TEMPLE_CENTER.x, 0, TEMPLE_CENTER.y);
 
+  const namedActors = new Map<string, THREE.Object3D>();
+
   const addWanderer = (
     build: SpiritBuild,
     home: THREE.Vector2,
     range: number,
     speed: number,
     scale: number,
-    yOffset = 0
+    yOffset = 0,
+    name?: string
   ) => {
     const travel = new THREE.Group();
+    if (name) namedActors.set(name, travel);
     travel.scale.setScalar(scale);
     travel.add(build.group);
     group.add(travel);
@@ -808,9 +814,9 @@ export const createSpirits = ({ sakuraSpots, toriiPath, pagodaTop, castleGate, v
   };
 
   // The ground-dwellers, each with a territory that suits their nature
-  addWanderer(buildKitsune(), new THREE.Vector2(pathMid.x, pathMid.z), 900, 62, 1.5);
-  addWanderer(buildTanuki(), new THREE.Vector2(-500, 1900), 700, 34, 1.4);
-  addWanderer(buildKappa(), new THREE.Vector2(POND_CENTER.x + 350, POND_CENTER.y + 260), 420, 40, 1.3);
+  addWanderer(buildKitsune(), new THREE.Vector2(pathMid.x, pathMid.z), 900, 62, 1.5, 0, "kitsune");
+  addWanderer(buildTanuki(), new THREE.Vector2(-500, 1900), 700, 34, 1.4, 0, "tanuki");
+  addWanderer(buildKappa(), new THREE.Vector2(POND_CENTER.x + 350, POND_CENTER.y + 260), 420, 40, 1.3, 0, "kappa");
   addWanderer(buildShika(), new THREE.Vector2(1500, 1900), 1100, 48, 1.6);
   addWanderer(buildShika(), new THREE.Vector2(1900, 1500), 900, 44, 1.3);
   addWanderer(buildKarakasa(), new THREE.Vector2(toriiPath[4]?.x ?? 900, toriiPath[4]?.z ?? 1500), 640, 46, 1.4);
@@ -829,6 +835,7 @@ export const createSpirits = ({ sakuraSpots, toriiPath, pagodaTop, castleGate, v
     const chochin = buildChochin();
     chochin.group.scale.setScalar(1.4);
     group.add(chochin.group);
+    namedActors.set("chochin", chochin.group);
     const anchor = villageSquare.clone();
     anchor.y = heightAt(anchor.x, anchor.z) + 58;
     hoverers.push({ build: chochin, anchor, drift: 150, phase: rng() * Math.PI * 2 });
@@ -971,5 +978,12 @@ export const createSpirits = ({ sakuraSpots, toriiPath, pagodaTop, castleGate, v
     }
   };
 
-  return { group, update };
+  return {
+    group,
+    update,
+    setHidden: (name, hidden) => {
+      const actor = namedActors.get(name);
+      if (actor) actor.visible = !hidden;
+    },
+  };
 };

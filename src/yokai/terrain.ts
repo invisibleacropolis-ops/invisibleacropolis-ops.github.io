@@ -1,7 +1,6 @@
 import * as THREE from "three";
 import { fbm2D } from "../scene/noise.ts";
 import { KAKURIYO, getToonGradient } from "./palette.ts";
-import { grassTexture } from "./textures.ts";
 
 /**
  * The valley floor of Kakuriyo: lush rolling hills built from smooth fbm,
@@ -114,11 +113,11 @@ export const createTerrain = (): THREE.Mesh => {
   geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
   geometry.computeVertexNormals();
 
+  // Clean painterly ground: smooth vertex-color washes. Grass detail comes
+  // from the instanced blade field layered on top, not a tiled pattern.
   const material = new THREE.MeshToonMaterial({
     vertexColors: true,
     gradientMap: getToonGradient(),
-    // A soft mottle multiplied over the vertex colors: grass, not paint fill
-    map: grassTexture(),
   });
 
   const mesh = new THREE.Mesh(geometry, material);

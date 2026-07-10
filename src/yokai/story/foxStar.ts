@@ -448,9 +448,14 @@ export const createFoxStarStory = (world: StoryWorld): Story => {
     onStart: () => {
       scene.add(props);
       applyMood(0);
+      // The tale casts the fox and the kappa; their ambient doubles rest
+      world.spirits?.setHidden("kitsune", true);
+      world.spirits?.setHidden("kappa", true);
     },
     onEnd: () => {
       applyMood(0);
+      world.spirits?.setHidden("kitsune", false);
+      world.spirits?.setHidden("kappa", false);
       props.traverse((child) => {
         if (child instanceof THREE.Mesh || child instanceof THREE.Points) {
           child.geometry.dispose();
