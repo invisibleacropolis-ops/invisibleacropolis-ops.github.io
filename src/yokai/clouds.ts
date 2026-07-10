@@ -16,11 +16,13 @@ const cloudVertexShader = /* glsl */ `
   #include <fog_pars_vertex>
   varying vec3 vWorldNormal;
   varying vec3 vViewDir;
+  varying vec3 vCloudPosition;
 
   void main() {
     vec4 worldPosition = modelMatrix * vec4(position, 1.0);
     vWorldNormal = normalize(mat3(modelMatrix) * normal);
     vViewDir = normalize(cameraPosition - worldPosition.xyz);
+    vCloudPosition = worldPosition.xyz;
     vec4 mvPosition = viewMatrix * worldPosition;
     gl_Position = projectionMatrix * mvPosition;
     #include <fog_vertex>
@@ -34,11 +36,43 @@ const cloudFragmentShader = /* glsl */ `
   uniform vec3 uRimColor;
   varying vec3 vWorldNormal;
   varying vec3 vViewDir;
+  varying vec3 vCloudPosition;
+
+  float hash(vec3 p) {
+    p = fract(p * 0.1031);
+    p += dot(p, p.yzx + 33.33);
+    return fract((p.x + p.y) * p.z);
+  }
+
+  float cloudNoise(vec3 p) {
+    vec3 i = floor(p);
+    vec3 f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+    return mix(
+      mix(mix(hash(i), hash(i + vec3(1.0,0.0,0.0)), f.x),
+          mix(hash(i + vec3(0.0,1.0,0.0)), hash(i + vec3(1.0,1.0,0.0)), f.x), f.y),
+      mix(mix(hash(i + vec3(0.0,0.0,1.0)), hash(i + vec3(1.0,0.0,1.0)), f.x),
+          mix(hash(i + vec3(0.0,1.0,1.0)), hash(i + vec3(1.0,1.0,1.0)), f.x), f.y),
+      f.z
+    );
+  }
 
   void main() {
     vec3 n = normalize(vWorldNormal);
     float up = smoothstep(-0.55, 0.75, n.y);
-    vec3 color = mix(uBellyColor, uCrownColor, up);
+    float cloudBand = step(0.48, up);
+    vec3 color = mix(uBellyColor, uCrownColor, cloudBand);
+
+    // Broad tonal islands merge the individual spheres into one painted mass.
+    float textureA = cloudNoise(vCloudPosition * 0.0035);
+    float textureB = cloudNoise(vCloudPosition * 0.008 + vec3(7.1));
+    float textureMix = textureA * 0.72 + textureB * 0.28;
+    color *= 0.94 + textureMix * 0.1;
+
+    // A low warm key shapes the cloud instead of leaving every puff white.
+    vec3 lightDir = normalize(vec3(-0.55, 0.28, -0.62));
+    float keyLight = smoothstep(-0.25, 0.8, dot(n, lightDir));
+    color = mix(color * vec3(0.86, 0.89, 0.97), color * vec3(1.03, 1.0, 0.95), keyLight * 0.42);
 
     // The low sun catching the cloud's silhouette
     float fresnel = pow(1.0 - abs(dot(n, normalize(vViewDir))), 2.4);
@@ -68,8 +102,8 @@ export const createClouds = (count = 13): CloudField => {
 
   const cloudMaterial = new THREE.ShaderMaterial({
     uniforms: {
-      uCrownColor: { value: new THREE.Color("#ffffff") },
-      uBellyColor: { value: new THREE.Color("#cbd2e2") },
+      uCrownColor: { value: new THREE.Color("#f5f0e7") },
+      uBellyColor: { value: new THREE.Color("#aeb8cb") },
       uRimColor: { value: new THREE.Color("#ffdfae") },
       ...THREE.UniformsUtils.clone(THREE.UniformsLib.fog),
     },

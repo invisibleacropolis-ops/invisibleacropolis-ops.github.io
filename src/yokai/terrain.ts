@@ -19,6 +19,17 @@ export const CASTLE_PLATEAU_HEIGHT = 290;
 export const VILLAGE_CENTER = new THREE.Vector2(-450, 2350);
 export const VILLAGE_HEIGHT = 70;
 
+/** Shared organic pond contour used by sand, stones, and grass exclusion. */
+export const pondShoreRadiiAt = (angle: number): { inner: number; outer: number } => {
+  const inner = 418 + Math.sin(angle * 5.0 + 0.8) * 9 + Math.sin(angle * 9.0) * 5;
+  const outer =
+    555 +
+    Math.sin(angle * 3.0 + 0.4) * 40 +
+    Math.sin(angle * 7.0 - 1.1) * 23 +
+    Math.sin(angle * 11.0 + 0.3) * 9;
+  return { inner, outer };
+};
+
 const HEIGHT_SEED = 6120;
 
 const smooth = (t: number) => t * t * (3 - 2 * t);
@@ -92,8 +103,12 @@ export const createTerrain = (): THREE.Mesh => {
 
     if (pondDist < 470) {
       tint.copy(sand); // shoreline
-    } else if (slope > 0.75) {
-      tint.copy(cliff);
+    } else if (slope > 0.55) {
+      // The terrain is only the painted underlayer here. Dimensional talus is
+      // scattered over steep pond slopes by groundDetail.ts, so avoid a single
+      // flat grey placeholder patch beneath it.
+      const stoneMix = THREE.MathUtils.smoothstep(slope, 0.55, 1.35) * 0.58;
+      tint.copy(hillside).lerp(cliff, stoneMix);
     } else if (h > 320) {
       tint.copy(forest).lerp(cliff, Math.min(1, (h - 320) / 260));
     } else {

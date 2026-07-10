@@ -7,23 +7,23 @@ import * as THREE from "three";
  */
 export const KAKURIYO = {
   // Sky
-  skyZenith: "#7fa8d9",
-  skyHorizon: "#ffd9ae",
-  sunColor: "#ffe9c4",
-  hazeColor: "#dbe4ee",
+  skyZenith: "#6685b4",
+  skyHorizon: "#efb995",
+  sunColor: "#ffe4b5",
+  hazeColor: "#b9c5d0",
 
   // Land
-  meadow: "#8ec96b",
-  hillside: "#5da05f",
-  forestFloor: "#3e7d4f",
-  cliff: "#8d97a8",
-  sand: "#e8d9b0",
+  meadow: "#789f5c",
+  hillside: "#4d774d",
+  forestFloor: "#315741",
+  cliff: "#737d8c",
+  sand: "#c9b991",
 
   // Mountains (near → far, fading into the mist)
-  mountainNear: "#7a8fb5",
-  mountainMid: "#93a6c6",
-  mountainFar: "#aebfd8",
-  snow: "#f7f4ec",
+  mountainNear: "#64738c",
+  mountainMid: "#7e8ba1",
+  mountainFar: "#9da8b8",
+  snow: "#e7e1d5",
 
   // Water
   water: "#7fc3d4",
@@ -39,10 +39,10 @@ export const KAKURIYO = {
   gold: "#e0b354",
 
   // Flora
-  sakura: "#ffc4d6",
-  sakuraDeep: "#f79bb8",
-  pine: "#2f6e4f",
-  bamboo: "#71b25c",
+  sakura: "#e8abc0",
+  sakuraDeep: "#bd7898",
+  pine: "#315a46",
+  bamboo: "#659252",
   trunk: "#6b4a38",
 
   // Spirits
@@ -53,13 +53,22 @@ export const KAKURIYO = {
   kappaGreen: "#6da85c",
 } as const;
 
-/** Shared 3-step toon gradient so every material cel-shades consistently. */
+/**
+ * Shared two-band ramp. Fewer, clearly separated bands are essential here:
+ * MeshToonMaterial samples this 1D texture with nearest filtering, so each
+ * texel becomes a deliberate cel-lighting plane rather than a smooth gradient.
+ */
 let gradientMap: THREE.DataTexture | null = null;
 
 export const getToonGradient = (): THREE.DataTexture => {
   if (!gradientMap) {
-    const data = new Uint8Array([110, 190, 255]);
-    gradientMap = new THREE.DataTexture(data, 3, 1, THREE.RedFormat);
+    // The shadow stays colorful at ~69% brightness rather than collapsing to
+    // black; the sharp jump into the light plane supplies the graphic anime read.
+    // Three repeated shadow texels move the hard light break toward the
+    // sun-facing end of N·L. This creates broad colored shadow planes with a
+    // narrow, graphic key-light shape—the familiar hand-painted cel pattern.
+    const data = new Uint8Array([190, 190, 190, 255]);
+    gradientMap = new THREE.DataTexture(data, 4, 1, THREE.RedFormat);
     gradientMap.minFilter = THREE.NearestFilter;
     gradientMap.magFilter = THREE.NearestFilter;
     gradientMap.needsUpdate = true;

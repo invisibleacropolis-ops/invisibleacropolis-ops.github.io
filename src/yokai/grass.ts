@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { createRng } from "../scene/random.ts";
-import { POND_CENTER, heightAt, slopeAt } from "./terrain.ts";
+import { POND_CENTER, heightAt, pondShoreRadiiAt, slopeAt } from "./terrain.ts";
 import { isFree } from "./occupancy.ts";
 import { windTime } from "./shaders.ts";
 
@@ -52,6 +52,7 @@ const vertexShader = /* glsl */ `
   uniform float uTime;
   varying float vHeight;
   varying vec3 vTint;
+  varying float vViewDepth;
 
   void main() {
     vHeight = uv.y;
@@ -76,6 +77,7 @@ const vertexShader = /* glsl */ `
     #endif
 
     vec4 mvPosition = viewMatrix * vec4(transformed, 1.0);
+    vViewDepth = -mvPosition.z;
     gl_Position = projectionMatrix * mvPosition;
     #include <fog_vertex>
   }
@@ -88,11 +90,21 @@ const fragmentShader = /* glsl */ `
   uniform vec3 uTipColor;
   varying float vHeight;
   varying vec3 vTint;
+  varying float vViewDepth;
+
+  float screenHash(vec2 p) {
+    return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+  }
 
   void main() {
-    // Dark at the root (self-shadowed turf), bright at the sunlit tip
-    vec3 color = mix(uRootColor, uTipColor, pow(vHeight, 0.85));
+    // Two painted blade tones instead of a smooth CG gradient.
+    float heightBand = step(0.58, vHeight);
+    vec3 color = mix(uRootColor, uTipColor, heightBand);
     color *= vTint;
+    // Dither out sub-pixel blades before they become glitter at landscape
+    // distance. Close flight still sees the full quad field and wind motion.
+    float distanceFade = 1.0 - smoothstep(1050.0, 2550.0, vViewDepth);
+    if (screenHash(gl_FragCoord.xy) > distanceFade) discard;
     gl_FragColor = vec4(color, 1.0);
     #include <fog_fragment>
   }
@@ -118,8 +130,8 @@ export const createGrassField = ({
   const material = new THREE.ShaderMaterial({
     uniforms: {
       uTime: windTime,
-      uRootColor: { value: new THREE.Color("#3f7a3e") },
-      uTipColor: { value: new THREE.Color("#a9d878") },
+      uRootColor: { value: new THREE.Color("#35623b") },
+      uTipColor: { value: new THREE.Color("#76a55a") },
       ...THREE.UniformsUtils.clone(THREE.UniformsLib.fog),
     },
     vertexShader,
@@ -152,7 +164,11 @@ export const createGrassField = ({
     const y = heightAt(x, z);
     if (y < 24 || y > 460) continue; // meadow band only
     if (slopeAt(x, z) > 0.8) continue;
-    if (Math.hypot(x - POND_CENTER.x, z - POND_CENTER.y) < 500) continue; // shore sand
+    const pondDx = x - POND_CENTER.x;
+    const pondDz = z - POND_CENTER.y;
+    const pondDistance = Math.hypot(pondDx, pondDz);
+    const shoreRadius = pondShoreRadiiAt(Math.atan2(pondDz, pondDx)).outer;
+    if (pondDistance < shoreRadius + 14) continue; // organic shore sand
     if (!isFree(x, z, 2)) continue; // not inside buildings or bridges
 
     dummy.position.set(x, y - 0.5, z);

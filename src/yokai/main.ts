@@ -8,13 +8,15 @@ import { createSky, SUN_DIRECTION } from "./sky.ts";
 import { createMountains } from "./mountains.ts";
 import { createClouds } from "./clouds.ts";
 import { createFlora } from "./flora.ts";
+import { createGroundDetail } from "./groundDetail.ts";
 import { createWaterFeature } from "./water.ts";
 import { createArchitecture } from "./architecture.ts";
 import { createCastle } from "./castle.ts";
 import { createVillage } from "./village.ts";
 import { createSpirits } from "./spirits.ts";
 import { createYokaiUi } from "./ui.ts";
-import { windTime } from "./shaders.ts";
+import { configureCelOutlines, windTime } from "./shaders.ts";
+import { createCinematicRenderer } from "./cinematic.ts";
 import { createStoryOverlay } from "./story/overlay.ts";
 import { createStoryPlayer, type Story } from "./story/engine.ts";
 import type { StoryWorld } from "./story/mood.ts";
@@ -37,21 +39,44 @@ const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPrefere
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.05;
+renderer.toneMappingExposure = 1.08;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(new THREE.Color(KAKURIYO.hazeColor), 1500, 8600);
 
-const camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 1, 24000);
+const camera = new THREE.PerspectiveCamera(51, window.innerWidth / window.innerHeight, 1, 24000);
 
 /* ── Light of the eternal golden hour ── */
-const sun = new THREE.DirectionalLight(KAKURIYO.sunColor, 2.1);
+const sun = new THREE.DirectionalLight(KAKURIYO.sunColor, 2.2);
 sun.position.copy(SUN_DIRECTION).multiplyScalar(6000);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.left = -3200;
+sun.shadow.camera.right = 3200;
+sun.shadow.camera.top = 3200;
+sun.shadow.camera.bottom = -3200;
+sun.shadow.camera.near = 500;
+sun.shadow.camera.far = 11000;
+sun.shadow.bias = -0.00035;
+sun.shadow.normalBias = 1.4;
+sun.shadow.radius = 3.2;
 scene.add(sun);
-const skyFill = new THREE.HemisphereLight("#bcd4ee", "#5d7a52", 0.85);
+sun.target.position.set(TEMPLE_CENTER.x, 0, TEMPLE_CENTER.y);
+scene.add(sun.target);
+
+const skyFill = new THREE.HemisphereLight("#c7d9ec", "#526b55", 0.66);
 scene.add(skyFill);
-const warmAmbient = new THREE.AmbientLight("#ffe4c2", 0.32);
+const warmAmbient = new THREE.AmbientLight("#ffe7c9", 0.17);
 scene.add(warmAmbient);
+
+// A cool, shadowless edge light separates silhouettes from the mist and gives
+// characters the polished two-light treatment common to modern anime games.
+const spiritRim = new THREE.DirectionalLight("#9ec9ff", 0.48);
+spiritRim.position.set(3600, 2100, 4200);
+scene.add(spiritRim);
 
 /* ── The world ── */
 const sky = createSky();
@@ -60,7 +85,8 @@ scene.add(sky.mesh);
 const terrain = createTerrain();
 scene.add(terrain);
 
-scene.add(createMountains());
+const mountains = createMountains();
+scene.add(mountains);
 
 const clouds = createClouds();
 scene.add(clouds.group);
@@ -79,6 +105,9 @@ scene.add(castle.group);
 const village = createVillage();
 scene.add(village.group);
 
+const groundDetail = createGroundDetail();
+scene.add(groundDetail.group);
+
 const flora = createFlora();
 scene.add(flora.group);
 
@@ -90,6 +119,27 @@ const spirits = createSpirits({
   villageSquare: village.square,
 });
 scene.add(spirits.group);
+
+// Opaque authored geometry participates in the new shadow pipeline. Shader
+// surfaces (sky, water, clouds, grass) keep their specialized depth behavior.
+scene.traverse((object) => {
+  if (!(object instanceof THREE.Mesh)) return;
+  const materials = Array.isArray(object.material) ? object.material : [object.material];
+  const opaqueLitSurface = materials.some(
+    (material) => !material.transparent && !(material instanceof THREE.ShaderMaterial),
+  );
+  if (!opaqueLitSurface) return;
+  object.receiveShadow = true;
+  // Local authored forms keep grounding shadows; vast mountain hulls and the
+  // instanced forest no longer paint hard graphic bars across the whole valley.
+  object.castShadow = object !== terrain && !(object instanceof THREE.InstancedMesh);
+});
+mountains.traverse((object) => {
+  if (object instanceof THREE.Mesh) object.castShadow = false;
+});
+configureCelOutlines(scene);
+
+const cinematic = createCinematicRenderer(renderer, scene, camera);
 
 /* ── UI ── */
 const ui = createYokaiUi(uiRoot);
@@ -113,7 +163,7 @@ const controls = createFlyControls({
 
 let freeFlight = false;
 let driftAngle = Math.PI * 0.7;
-const lookTarget = new THREE.Vector3(TEMPLE_CENTER.x, 320, TEMPLE_CENTER.y);
+const lookTarget = new THREE.Vector3(TEMPLE_CENTER.x, 190, TEMPLE_CENTER.y);
 
 /* ── Tales of Kakuriyo ── */
 const storyOverlay = createStoryOverlay(uiRoot);
@@ -189,11 +239,11 @@ const animate = () => {
   } else {
     // The kami's-eye drift: a slow circle of the valley, watching the shrine
     driftAngle += dt * 0.016;
-    const r = 1850;
+    const r = 2350;
     const x = TEMPLE_CENTER.x + Math.cos(driftAngle) * r;
     const z = TEMPLE_CENTER.y + Math.sin(driftAngle) * r;
     const groundY = heightAt(x, z);
-    camera.position.set(x, Math.max(380, groundY + 240), z);
+    camera.position.set(x, Math.max(560, groundY + 440), z);
     camera.lookAt(lookTarget);
   }
 
@@ -205,7 +255,7 @@ const animate = () => {
   architecture.update(t);
   spirits.update(t, dt);
 
-  renderer.render(scene, camera);
+  cinematic.render(t);
   requestAnimationFrame(animate);
 };
 
@@ -213,10 +263,12 @@ window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  cinematic.resize(window.innerWidth, window.innerHeight);
 });
 
 window.addEventListener("beforeunload", () => {
   navigationHub.dispose();
+  groundDetail.dispose();
   ui.dispose();
   controls.dispose();
 });

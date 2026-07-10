@@ -28,11 +28,17 @@ const fragmentShader = /* glsl */ `
   void main() {
     vec3 dir = normalize(vWorldPosition);
     float height = clamp(dir.y * 0.5 + 0.5, 0.0, 1.0);
-    vec3 sky = mix(horizonColor, zenithColor, smoothstep(0.42, 0.85, height));
+    vec3 sky = mix(horizonColor, zenithColor, smoothstep(0.34, 0.88, height));
+
+    // A pale aerial-perspective shelf seats the mountains in the atmosphere.
+    float horizonVeil = exp(-pow((height - 0.5) * 9.0, 2.0));
+    sky = mix(sky, horizonColor * 1.06, horizonVeil * 0.28);
 
     // Brushstroke bands, barely-there, drifting imperceptibly
-    float band = sin(dir.y * 26.0 + time * 0.01) * 0.5 + 0.5;
-    sky += vec3(0.02, 0.015, 0.01) * band * (1.0 - height);
+    float band = sin(dir.y * 31.0 + time * 0.01 + sin(dir.x * 5.0) * 0.7) * 0.5 + 0.5;
+    float fineBand = sin(dir.y * 79.0 - dir.z * 3.0) * 0.5 + 0.5;
+    sky += vec3(0.018, 0.012, 0.008) * band * (1.0 - height);
+    sky -= vec3(0.008, 0.006, 0.002) * fineBand * horizonVeil;
 
     // The great sun and its halo
     float sunDot = max(0.0, dot(dir, sunDirection));

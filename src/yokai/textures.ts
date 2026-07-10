@@ -436,3 +436,26 @@ export const getGlowTexture = (): THREE.CanvasTexture => {
   }
   return glowTexture;
 };
+
+/** A small painted petal mask; avoids the square PointsMaterial default. */
+let petalTexture: THREE.CanvasTexture | null = null;
+export const getPetalTexture = (): THREE.CanvasTexture => {
+  if (!petalTexture) {
+    petalTexture = makeTexture(64, (ctx, s) => {
+      ctx.clearRect(0, 0, s, s);
+      ctx.save();
+      ctx.translate(s / 2, s / 2);
+      ctx.rotate(-0.55);
+      const g = ctx.createRadialGradient(-6, -8, 1, 0, 0, s * 0.38);
+      g.addColorStop(0, "rgba(255,255,255,1)");
+      g.addColorStop(0.72, "rgba(255,245,248,0.95)");
+      g.addColorStop(1, "rgba(255,245,248,0)");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, s * 0.19, s * 0.34, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    });
+  }
+  return petalTexture;
+};

@@ -5,6 +5,7 @@ import { KAKURIYO, toon } from "./palette.ts";
 import { WORLD_SIZE, TEMPLE_CENTER, POND_CENTER, heightAt, slopeAt } from "./terrain.ts";
 import { isFree } from "./occupancy.ts";
 import { applyWindSway } from "./shaders.ts";
+import { getPetalTexture } from "./textures.ts";
 
 /**
  * The living green of Kakuriyo: sakura in perpetual bloom around the
@@ -106,6 +107,9 @@ export const createFlora = (): Flora => {
     const trunks = new THREE.InstancedMesh(trunkGeo, trunkMat, sakura.length);
     const crowns = new THREE.InstancedMesh(puffGeo, sakuraMat, sakura.length);
     const underCrowns = new THREE.InstancedMesh(puffGeo, sakuraDeepMat, sakura.length);
+    trunks.name = "sakura-trunks";
+    crowns.name = "sakura-crowns";
+    underCrowns.name = "sakura-crowns";
 
     sakura.forEach((p, i) => {
       placeMatrix(dummy, p, 21);
@@ -132,6 +136,10 @@ export const createFlora = (): Flora => {
       new THREE.InstancedMesh(tierGeo, pineMat, pine.length),
       new THREE.InstancedMesh(tierGeo, pineMat, pine.length),
     ];
+    trunks.name = "pine-trunks";
+    tiers.forEach((tier, index) => {
+      tier.name = `pine-canopy-${index}`;
+    });
 
     pine.forEach((p, i) => {
       placeMatrix(dummy, p, 29);
@@ -186,7 +194,9 @@ export const createFlora = (): Flora => {
   petalGeo.setAttribute("position", new THREE.BufferAttribute(petalPositions, 3));
   const petalMat = new THREE.PointsMaterial({
     color: KAKURIYO.sakura,
-    size: 7,
+    map: getPetalTexture(),
+    alphaTest: 0.08,
+    size: 8,
     sizeAttenuation: true,
     transparent: true,
     opacity: 0.9,

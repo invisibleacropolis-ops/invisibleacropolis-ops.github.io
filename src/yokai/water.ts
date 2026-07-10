@@ -1,8 +1,9 @@
 import * as THREE from "three";
 import { createRng } from "../scene/random.ts";
 import { KAKURIYO, toon } from "./palette.ts";
-import { POND_CENTER, WATER_LEVEL, heightAt } from "./terrain.ts";
+import { POND_CENTER, WATER_LEVEL } from "./terrain.ts";
 import { reserve } from "./occupancy.ts";
+import { getGlowTexture } from "./textures.ts";
 
 /**
  * The spirit pond and its waterfall. A rocky bluff rises at the pond's
@@ -15,8 +16,8 @@ export type WaterFeature = {
   update: (t: number) => void;
 };
 
-const FALLS_HEIGHT = 260;
-const FALLS_WIDTH = 150;
+const FALLS_HEIGHT = 230;
+const FALLS_WIDTH = 108;
 
 const pondVertex = /* glsl */ `
   varying vec2 vUv;
@@ -130,15 +131,17 @@ const fallsFragment = /* glsl */ `
     float spray = noise(vec2(vUv.x * 26.0, vUv.y * 9.0 + time * 2.4));
     streak = clamp(streak + (spray - 0.5) * 0.35, 0.0, 1.0);
 
-    vec3 color = mix(waterColor, foamColor, streak * 0.85);
+    vec3 color = mix(waterColor, foamColor, streak * 0.34);
     // Whiter churn at top lip and bottom impact, boiling with noise
-    float churnTop = smoothstep(0.82, 1.0, vUv.y) * (0.55 + spray * 0.4);
-    float churnBase = smoothstep(0.2, 0.0, vUv.y) * (0.6 + noise(vec2(vUv.x * 18.0, time * 3.0)) * 0.4);
-    color = mix(color, foamColor, clamp(churnTop + churnBase, 0.0, 1.0));
+    float churnTop = smoothstep(0.9, 1.0, vUv.y) * (0.34 + spray * 0.28);
+    float churnBase = smoothstep(0.12, 0.0, vUv.y) * (0.4 + noise(vec2(vUv.x * 18.0, time * 3.0)) * 0.28);
+    color = mix(color, foamColor, clamp(churnTop + churnBase, 0.0, 0.72));
 
     // Soft ragged side edges instead of a hard rectangle
-    float edge = smoothstep(0.0, 0.08, vUv.x) * smoothstep(1.0, 0.92, vUv.x);
-    float alpha = (0.8 + streak * 0.18) * edge;
+    float edgeNoise = (noise(vec2(vUv.y * 11.0, time * 0.15)) - 0.5) * 0.055;
+    float edge = smoothstep(0.035 + edgeNoise, 0.14, vUv.x) *
+                 smoothstep(0.965 - edgeNoise, 0.86, vUv.x);
+    float alpha = (0.62 + streak * 0.24) * edge;
     gl_FragColor = vec4(color, alpha);
   }
 `;
@@ -156,25 +159,59 @@ export const createWaterFeature = (): WaterFeature => {
   );
   reserve(bluffBase.x, bluffBase.y, 320);
 
-  /* ── The bluff: a stack of craggy toon slabs ── */
+  /* ── The bluff: one tight, angular escarpment framing the water channel ── */
   const rockMat = toon(KAKURIYO.cliff, { flatShading: true });
+  const deepRockMat = toon("#566473", { flatShading: true });
   const mossMat = toon(KAKURIYO.forestFloor, { flatShading: true });
-  for (let i = 0; i < 7; i += 1) {
-    const w = 340 - i * 26 + rng() * 60;
-    const h = 60 + rng() * 40;
-    const slab = new THREE.Mesh(new THREE.BoxGeometry(w, h, 220 + rng() * 80), i % 3 === 2 ? mossMat : rockMat);
-    slab.position.set(
-      bluffBase.x + (rng() - 0.5) * 40,
-      i * (FALLS_HEIGHT / 7) + h * 0.35,
-      bluffBase.y + (rng() - 0.5) * 40
+  // Each stone already has strong cel facets. Individual inverted-hull lines
+  // would overlap into black knots; the escarpment reads as one mass instead.
+  rockMat.userData.outlineParameters = { visible: false };
+  deepRockMat.userData.outlineParameters = { visible: false };
+  mossMat.userData.outlineParameters = { visible: false };
+  const boulderGeo = new THREE.IcosahedronGeometry(1, 0);
+  const tangent = new THREE.Vector2(-bluffDir.y, bluffDir.x);
+  for (let row = 0; row < 5; row += 1) {
+    for (let column = -2; column <= 2; column += 1) {
+      const isMossCap = row === 4 && rng() < 0.68;
+      const isChannelRock = Math.abs(column) <= 1 && row < 4;
+      const boulder = new THREE.Mesh(
+        boulderGeo,
+        isMossCap ? mossMat : isChannelRock ? deepRockMat : rockMat,
+      );
+      const lateral = column * 66 + (row % 2) * 22 + (rng() - 0.5) * 20;
+      const depth = (rng() - 0.5) * 30 + row * 3;
+      boulder.position.set(
+        bluffBase.x + tangent.x * lateral + bluffDir.x * depth,
+        WATER_LEVEL + 30 + row * 48 + rng() * 8,
+        bluffBase.y + tangent.y * lateral + bluffDir.y * depth,
+      );
+      boulder.scale.set(
+        60 + rng() * 18,
+        42 + rng() * 13,
+        52 + rng() * 17,
+      );
+      boulder.rotation.set(rng() * 0.28, bluffAngle + rng() * 1.2, rng() * 0.22);
+      group.add(boulder);
+    }
+  }
+
+  // A few fallen stones soften the join between the vertical face and shore.
+  for (let i = 0; i < 5; i += 1) {
+    const lateral = (rng() - 0.5) * 360;
+    const shoreRock = new THREE.Mesh(boulderGeo, rng() < 0.3 ? mossMat : rockMat);
+    shoreRock.position.set(
+      bluffBase.x + tangent.x * lateral - bluffDir.x * (75 + rng() * 75),
+      WATER_LEVEL + 8 + rng() * 12,
+      bluffBase.y + tangent.y * lateral - bluffDir.y * (75 + rng() * 75),
     );
-    slab.rotation.y = bluffAngle + Math.PI / 2 + (rng() - 0.5) * 0.25;
-    group.add(slab);
+    shoreRock.scale.set(18 + rng() * 24, 12 + rng() * 15, 20 + rng() * 25);
+    shoreRock.rotation.set(rng(), rng() * Math.PI, rng());
+    group.add(shoreRock);
   }
 
   /* ── The falls ── */
   const fallsUniforms = {
-    waterColor: { value: new THREE.Color(KAKURIYO.water) },
+    waterColor: { value: new THREE.Color("#559eb6") },
     foamColor: { value: new THREE.Color(KAKURIYO.foam) },
     time: { value: 0 },
   };
@@ -186,11 +223,21 @@ export const createWaterFeature = (): WaterFeature => {
     side: THREE.DoubleSide,
     depthWrite: false,
   });
-  const falls = new THREE.Mesh(new THREE.PlaneGeometry(FALLS_WIDTH, FALLS_HEIGHT, 1, 8), fallsMat);
+  const fallsGeometry = new THREE.PlaneGeometry(FALLS_WIDTH, FALLS_HEIGHT, 1, 12);
+  const fallsPositions = fallsGeometry.getAttribute("position") as THREE.BufferAttribute;
+  for (let i = 0; i < fallsPositions.count; i += 1) {
+    const originalX = fallsPositions.getX(i);
+    const y01 = fallsPositions.getY(i) / FALLS_HEIGHT + 0.5;
+    const width = 0.78 + Math.sin(y01 * Math.PI * 5.0) * 0.09 + Math.sin(y01 * Math.PI * 11.0) * 0.035;
+    const meander = Math.sin(y01 * Math.PI * 3.0) * 5.5;
+    fallsPositions.setX(i, originalX * width + meander);
+  }
+  fallsGeometry.computeVertexNormals();
+  const falls = new THREE.Mesh(fallsGeometry, fallsMat);
   // Hang the sheet on the pond-facing face of the bluff
   const facePos = new THREE.Vector2(
-    bluffBase.x - bluffDir.x * 150,
-    bluffBase.y - bluffDir.y * 150
+    bluffBase.x - bluffDir.x * 68,
+    bluffBase.y - bluffDir.y * 68
   );
   falls.position.set(facePos.x, WATER_LEVEL + FALLS_HEIGHT * 0.48, facePos.y);
   falls.rotation.y = bluffAngle + Math.PI;
@@ -215,38 +262,30 @@ export const createWaterFeature = (): WaterFeature => {
   group.add(pond);
 
   /* ── Mist at the plunge pool ── */
-  const mistMat = new THREE.MeshBasicMaterial({
+  const mistMat = new THREE.SpriteMaterial({
+    map: getGlowTexture(),
     color: KAKURIYO.foam,
     transparent: true,
-    opacity: 0.32,
+    opacity: 0.16,
     depthWrite: false,
   });
-  const mistPuffs: THREE.Mesh[] = [];
-  for (let i = 0; i < 6; i += 1) {
-    const puff = new THREE.Mesh(new THREE.SphereGeometry(34 + rng() * 26, 8, 6), mistMat);
+  const mistPuffs: THREE.Sprite[] = [];
+  for (let i = 0; i < 5; i += 1) {
+    const puff = new THREE.Sprite(mistMat);
+    const width = 65 + rng() * 50;
+    const height = 30 + rng() * 24;
     puff.position.set(
-      facePos.x + (rng() - 0.5) * 160,
-      WATER_LEVEL + 16 + rng() * 30,
-      facePos.y + (rng() - 0.5) * 160
+      facePos.x + (rng() - 0.5) * 125,
+      WATER_LEVEL + 12 + rng() * 18,
+      facePos.y + (rng() - 0.5) * 90
     );
     puff.userData.phase = rng() * Math.PI * 2;
+    puff.userData.width = width;
+    puff.userData.height = height;
+    puff.userData.baseY = puff.position.y;
+    puff.scale.set(width, height, 1);
     mistPuffs.push(puff);
     group.add(puff);
-  }
-
-  /* ── Standing stones around the shore ── */
-  for (let i = 0; i < 9; i += 1) {
-    const angle = rng() * Math.PI * 2;
-    const r = 440 + rng() * 60;
-    const x = POND_CENTER.x + Math.cos(angle) * r;
-    const z = POND_CENTER.y + Math.sin(angle) * r;
-    const stone = new THREE.Mesh(
-      new THREE.DodecahedronGeometry(14 + rng() * 22, 0),
-      rockMat
-    );
-    stone.position.set(x, heightAt(x, z) + 8, z);
-    stone.rotation.set(rng() * 0.6, rng() * Math.PI, rng() * 0.6);
-    group.add(stone);
   }
 
   return {
@@ -257,8 +296,8 @@ export const createWaterFeature = (): WaterFeature => {
       for (const puff of mistPuffs) {
         const phase = Number(puff.userData.phase);
         const s = 1 + Math.sin(t * 0.9 + phase) * 0.18;
-        puff.scale.setScalar(s);
-        puff.position.y += Math.sin(t * 0.6 + phase) * 0.05;
+        puff.scale.set(Number(puff.userData.width) * s, Number(puff.userData.height) * s, 1);
+        puff.position.y = Number(puff.userData.baseY) + Math.sin(t * 0.6 + phase) * 3;
       }
     },
   };
