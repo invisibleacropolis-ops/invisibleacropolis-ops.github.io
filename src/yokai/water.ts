@@ -14,6 +14,8 @@ import { getGlowTexture } from "./textures.ts";
 export type WaterFeature = {
   group: THREE.Group;
   update: (t: number) => void;
+  /** 1 = the river runs; 0 = drought. Stories drive this. */
+  setFlow: (k: number) => void;
 };
 
 const FALLS_HEIGHT = 230;
@@ -29,6 +31,7 @@ const pondVertex = /* glsl */ `
 
 const pondFragment = /* glsl */ `
   uniform vec3 waterColor;
+  uniform float uFlow;
   uniform vec3 deepColor;
   uniform vec3 foamColor;
   uniform float time;
@@ -87,7 +90,9 @@ const pondFragment = /* glsl */ `
     float shore = smoothstep(foamEdge, 0.99, d);
     color = mix(color, foamColor, shore * 0.7);
 
-    gl_FragColor = vec4(color, 0.93);
+    // In drought the pond thins to a muddy film; in flow it is full glass
+    color = mix(color * vec3(0.82, 0.78, 0.62), color, uFlow);
+    gl_FragColor = vec4(color, mix(0.38, 0.93, uFlow));
   }
 `;
 
@@ -101,6 +106,7 @@ const fallsVertex = /* glsl */ `
 
 const fallsFragment = /* glsl */ `
   uniform vec3 waterColor;
+  uniform float uFlow;
   uniform vec3 foamColor;
   uniform float time;
   varying vec2 vUv;
@@ -141,7 +147,7 @@ const fallsFragment = /* glsl */ `
     float edgeNoise = (noise(vec2(vUv.y * 11.0, time * 0.15)) - 0.5) * 0.055;
     float edge = smoothstep(0.035 + edgeNoise, 0.14, vUv.x) *
                  smoothstep(0.965 - edgeNoise, 0.86, vUv.x);
-    float alpha = (0.62 + streak * 0.24) * edge;
+    float alpha = (0.62 + streak * 0.24) * edge * uFlow;
     gl_FragColor = vec4(color, alpha);
   }
 `;
@@ -214,6 +220,7 @@ export const createWaterFeature = (): WaterFeature => {
     waterColor: { value: new THREE.Color("#559eb6") },
     foamColor: { value: new THREE.Color(KAKURIYO.foam) },
     time: { value: 0 },
+    uFlow: { value: 1 },
   };
   const fallsMat = new THREE.ShaderMaterial({
     uniforms: fallsUniforms,
@@ -249,6 +256,7 @@ export const createWaterFeature = (): WaterFeature => {
     deepColor: { value: new THREE.Color(KAKURIYO.waterDeep) },
     foamColor: { value: new THREE.Color(KAKURIYO.foam) },
     time: { value: 0 },
+    uFlow: { value: 1 },
   };
   const pondMat = new THREE.ShaderMaterial({
     uniforms: pondUniforms,
@@ -288,8 +296,15 @@ export const createWaterFeature = (): WaterFeature => {
     group.add(puff);
   }
 
+  const MIST_BASE_OPACITY = 0.16;
+
   return {
     group,
+    setFlow: (k) => {
+      fallsUniforms.uFlow.value = k;
+      pondUniforms.uFlow.value = k;
+      mistMat.opacity = MIST_BASE_OPACITY * k;
+    },
     update: (t) => {
       fallsUniforms.time.value = t;
       pondUniforms.time.value = t;

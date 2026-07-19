@@ -50,6 +50,7 @@ export const createStoryPlayer = ({
   onFinished,
   groundY,
   cameraClearance = 26,
+  occluders,
 }: {
   camera: THREE.PerspectiveCamera;
   overlay: StoryOverlay;
@@ -57,6 +58,13 @@ export const createStoryPlayer = ({
   /** World surface function; when set, the camera never dips beneath it. */
   groundY?: (x: number, z: number) => number;
   cameraClearance?: number;
+  /**
+   * Solid scenery (terrain, mountains, buildings). Each frame a ray is
+   * cast from the shot's look-target back toward the desired camera; if
+   * scenery interrupts it, the camera booms in front of the obstruction —
+   * so it can never sit inside or slide through geometry.
+   */
+  occluders?: THREE.Object3D[];
 }): StoryPlayer => {
   let story: Story | null = null;
   let shotIndex = 0;
@@ -92,19 +100,21 @@ export const createStoryPlayer = ({
   };
   window.addEventListener("keydown", onKeyDown);
 
-  const runRig = (rig: CameraRig, shotT01: number, dt: number) => {
+  /** Runs the rig, returning the look-target it aimed the camera at. */
+  const runRig = (rig: CameraRig, shotT01: number, dt: number): THREE.Vector3 => {
     switch (rig.kind) {
       case "static": {
         camera.position.copy(resolve(rig.position));
-        camera.lookAt(resolve(rig.lookAt));
-        break;
+        const look = resolve(rig.lookAt);
+        camera.lookAt(look);
+        return look;
       }
       case "dolly": {
         const k = rig.ease === false ? shotT01 : smooth(shotT01);
         camera.position.lerpVectors(resolve(rig.from), resolve(rig.to), k);
         const look = new THREE.Vector3().lerpVectors(resolve(rig.lookFrom), resolve(rig.lookTo), k);
         camera.lookAt(look);
-        break;
+        return look;
       }
       case "follow": {
         const target = resolve(rig.target);
@@ -118,7 +128,7 @@ export const createStoryPlayer = ({
         }
         smoothedLook.lerp(lookPoint, Math.min(1, dt * 3.2));
         camera.lookAt(smoothedLook);
-        break;
+        return smoothedLook.clone();
       }
       case "orbit": {
         const center = resolve(rig.center);
@@ -129,15 +139,53 @@ export const createStoryPlayer = ({
           center.z + Math.sin(angle) * rig.radius
         );
         camera.lookAt(center);
-        break;
+        return center;
       }
     }
+  };
+
+  /* ── Camera boom: never inside scenery ──
+     A ray runs from the look-target toward the desired camera position;
+     if solid scenery interrupts it, the camera pulls in front of the
+     obstruction — instantly when blocked, easing back out when clear. */
+  const raycaster = new THREE.Raycaster();
+  // Occluder groups contain Sprites (lantern halos); Sprite.raycast
+  // requires the camera or it throws mid-frame.
+  raycaster.camera = camera;
+  const boomDir = new THREE.Vector3();
+  let boomFrac = 1;
+  let boomFresh = true;
+
+  const resolveBoom = (look: THREE.Vector3) => {
+    if (!occluders || occluders.length === 0) return;
+    boomDir.copy(camera.position).sub(look);
+    const dist = boomDir.length();
+    if (dist < 1) return;
+    boomDir.normalize();
+    raycaster.set(look, boomDir);
+    raycaster.far = dist;
+    const hits = raycaster.intersectObjects(occluders, true);
+
+    let targetFrac = 1;
+    if (hits.length > 0) {
+      targetFrac = THREE.MathUtils.clamp((hits[0]!.distance - 20) / dist, 0.05, 1);
+    }
+    if (boomFresh) {
+      boomFrac = targetFrac; // a fresh shot must not start embedded
+      boomFresh = false;
+    } else if (targetFrac < boomFrac) {
+      boomFrac = targetFrac; // snap in front of obstruction immediately
+    } else {
+      boomFrac += (targetFrac - boomFrac) * 0.06; // relax back out slowly
+    }
+    camera.position.copy(look).addScaledVector(boomDir, dist * boomFrac);
   };
 
   return {
     play: (next) => {
       story = next;
       lookInitialized = false;
+      boomFresh = true;
       overlay.showTitle(next.title, next.subtitle);
       overlay.showHint();
       next.onStart?.();
@@ -165,10 +213,10 @@ export const createStoryPlayer = ({
         }
       }
 
-      runRig(shot.rig, shotT01, dt);
+      const lookPoint = runRig(shot.rig, shotT01, dt);
 
-      // Collision guard: whatever the rig wanted, stay above the world.
-      // (Lift the eye but keep its aim, so framing survives the clamp.)
+      // Collision guards: boom in front of scenery, then stay above ground.
+      resolveBoom(lookPoint);
       if (groundY) {
         const minY = groundY(camera.position.x, camera.position.z) + cameraClearance;
         if (camera.position.y < minY) {
@@ -182,6 +230,7 @@ export const createStoryPlayer = ({
         shot.onExit?.();
         if (shotIndex + 1 < story.shots.length) {
           lookInitialized = false;
+          boomFresh = true;
           enterShot(shotIndex + 1);
         } else {
           finish();

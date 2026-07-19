@@ -201,7 +201,7 @@ export const buildKappa = (): SpiritBuild => {
   };
 };
 
-const buildShika = (): SpiritBuild => {
+export const buildShika = (): SpiritBuild => {
   const gold = toon("#d9b98a");
   const cream = toon("#f0e6cf");
   const antlerMat = toon("#e8dbc0");
@@ -349,7 +349,7 @@ const buildNekomata = (): SpiritBuild => {
   };
 };
 
-const buildRyu = (): SpiritBuild => {
+export const buildRyu = (): SpiritBuild => {
   const jade = toon("#7fc9a8");
   const cream = toon(KAKURIYO.paperWhite);
   const coral = toon(KAKURIYO.foxRed);
@@ -445,7 +445,7 @@ const buildTengu = (): SpiritBuild => {
   };
 };
 
-const buildHitodama = (): SpiritBuild => {
+export const buildHitodama = (): SpiritBuild => {
   const group = new THREE.Group();
   const flameMat = new THREE.MeshBasicMaterial({
     color: KAKURIYO.spiritGlow,
@@ -473,7 +473,7 @@ const buildHitodama = (): SpiritBuild => {
   };
 };
 
-const buildOni = (): SpiritBuild => {
+export const buildOni = (): SpiritBuild => {
   const red = toon("#c04432");
   const dark = toon("#33261f");
   const bone = toon("#f0e6d0");
@@ -689,7 +689,7 @@ const buildBaku = (): SpiritBuild => {
   };
 };
 
-const buildKodama = (): SpiritBuild => {
+export const buildKodama = (): SpiritBuild => {
   const white = toon(KAKURIYO.spiritWhite);
   const dark = new THREE.MeshBasicMaterial({ color: "#2a2f2c" });
   const group = new THREE.Group();
@@ -817,14 +817,14 @@ export const createSpirits = ({ sakuraSpots, toriiPath, pagodaTop, castleGate, v
   addWanderer(buildKitsune(), new THREE.Vector2(pathMid.x, pathMid.z), 900, 62, 1.5, 0, "kitsune");
   addWanderer(buildTanuki(), new THREE.Vector2(-500, 1900), 700, 34, 1.4, 0, "tanuki");
   addWanderer(buildKappa(), new THREE.Vector2(POND_CENTER.x + 350, POND_CENTER.y + 260), 420, 40, 1.3, 0, "kappa");
-  addWanderer(buildShika(), new THREE.Vector2(1500, 1900), 1100, 48, 1.6);
+  addWanderer(buildShika(), new THREE.Vector2(1500, 1900), 1100, 48, 1.6, 0, "shika");
   addWanderer(buildShika(), new THREE.Vector2(1900, 1500), 900, 44, 1.3);
   addWanderer(buildKarakasa(), new THREE.Vector2(toriiPath[4]?.x ?? 900, toriiPath[4]?.z ?? 1500), 640, 46, 1.4);
   addWanderer(buildNekomata(), new THREE.Vector2(TEMPLE_CENTER.x + 150, TEMPLE_CENTER.y - 120), 520, 52, 1.5);
 
   // The oni paces outside the castle gate, club dragging
   if (castleGate) {
-    addWanderer(buildOni(), new THREE.Vector2(castleGate.x - 200, castleGate.z + 200), 620, 30, 1.7);
+    addWanderer(buildOni(), new THREE.Vector2(castleGate.x - 200, castleGate.z + 200), 620, 30, 1.7, 0, "oni");
   }
   // The baku ambles the open meadow between shrine and castle, eating dreams
   addWanderer(buildBaku(), new THREE.Vector2(1450, -450), 850, 36, 1.5);
@@ -849,17 +849,19 @@ export const createSpirits = ({ sakuraSpots, toriiPath, pagodaTop, castleGate, v
     radius: number,
     angularSpeed: number,
     bobAmp: number,
-    tilt: number
+    tilt: number,
+    name?: string
   ) => {
     const travel = new THREE.Group();
     travel.scale.setScalar(scale);
     travel.add(build.group);
     group.add(travel);
+    if (name) namedActors.set(name, travel);
     circlers.push({ build, travel, center, radius, angularSpeed, bobAmp, tilt, phase: rng() * Math.PI * 2 });
   };
 
-  addCircler(buildRyu(), 2.2, new THREE.Vector3(SACRED_PEAK.x, 1750, SACRED_PEAK.z), 1900, 0.045, 160, 0.1);
-  addCircler(buildTengu(), 1.5, new THREE.Vector3(pagodaTop.x, pagodaTop.y + 90, pagodaTop.z), 420, 0.22, 40, 0.16);
+  addCircler(buildRyu(), 2.2, new THREE.Vector3(SACRED_PEAK.x, 1750, SACRED_PEAK.z), 1900, 0.045, 160, 0.1, "ryu");
+  addCircler(buildTengu(), 1.5, new THREE.Vector3(pagodaTop.x, pagodaTop.y + 90, pagodaTop.z), 420, 0.22, 40, 0.16, "tengu");
 
   // Soul-flames drifting around the shrine plateau
   for (let i = 0; i < 6; i += 1) {

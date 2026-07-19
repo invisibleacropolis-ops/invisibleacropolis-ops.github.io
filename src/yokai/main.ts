@@ -15,7 +15,7 @@ import { createCastle } from "./castle.ts";
 import { createVillage } from "./village.ts";
 import { createSpirits } from "./spirits.ts";
 import { createYokaiUi } from "./ui.ts";
-import { configureCelOutlines, windTime } from "./shaders.ts";
+import { configureCelOutlines, windStrength, windTime } from "./shaders.ts";
 import { createCinematicRenderer } from "./cinematic.ts";
 import { createStoryOverlay } from "./story/overlay.ts";
 import { createStoryPlayer, type Story } from "./story/engine.ts";
@@ -23,6 +23,8 @@ import type { StoryWorld } from "./story/mood.ts";
 import { worldGroundY } from "./story/motion.ts";
 import { createFoxStarStory } from "./story/foxStar.ts";
 import { createTanukiMoonStory } from "./story/tanukiMoon.ts";
+import { createDragonRainStory } from "./story/dragonRain.ts";
+import { createOniKodamaStory } from "./story/oniKodama.ts";
 
 /**
  * Kakuriyo (隠り世) — the hidden world. A mystical vision of Japan from
@@ -157,6 +159,8 @@ const controls = createFlyControls({
   camera,
   domElement: canvas,
   baseSpeed: 85,
+  // Truly free flight: hang still until a key is held
+  cruise: false,
   // While a tale owns the camera, clicks must not grab the pointer
   shouldLock: () => !storyPlayer.isActive(),
 });
@@ -171,6 +175,8 @@ const storyPlayer = createStoryPlayer({
   camera,
   overlay: storyOverlay,
   groundY: worldGroundY,
+  // Solid scenery only — the boom ignores soft foliage on purpose
+  occluders: [terrain, mountains, architecture.group, castle.group, village.group],
   onFinished: () => {
     // The tale releases the camera; the spirit-drift resumes
     freeFlight = false;
@@ -187,12 +193,17 @@ const storyWorld: StoryWorld = {
   fog: scene.fog as THREE.Fog,
   toriiPath: architecture.toriiPath,
   spirits,
+  water,
+  castleGate: castle.gatePoint,
+  sakuraSpots: flora.sakuraSpots,
 };
 
 // The library of tales, each on its own key from the splash screen
 const TALES: Record<string, (world: StoryWorld) => Story> = {
   Digit1: createFoxStarStory,
   Digit2: createTanukiMoonStory,
+  Digit3: createDragonRainStory,
+  Digit4: createOniKodamaStory,
 };
 
 const beginTale = (factory: (world: StoryWorld) => Story) => {
@@ -247,7 +258,7 @@ const animate = () => {
     camera.lookAt(lookTarget);
   }
 
-  windTime.value = t;
+  windTime.value += dt * windStrength.value;
   sky.update(t);
   clouds.update(t, dt);
   flora.update(t, dt);

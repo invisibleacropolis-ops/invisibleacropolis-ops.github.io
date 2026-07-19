@@ -79,6 +79,90 @@ export const createPoofFx = (color = "#cfe3a8", count = 42): PoofFx => {
   };
 };
 
+export type RainFx = {
+  group: THREE.Group;
+  /** 0 = dry sky, 1 = full downpour; fade it in as the clouds break. */
+  setIntensity: (k: number) => void;
+  update: (dt: number) => void;
+  dispose: () => void;
+};
+
+/**
+ * A curtain of rain: streaked line segments falling over a region, each
+ * wrapping back to the cloud base when it lands. Fade via intensity so a
+ * storm can arrive the way real ones do — a few drops, then everything.
+ */
+export const createRainFx = ({
+  center = new THREE.Vector3(0, 0, 0),
+  radius = 2600,
+  top = 1500,
+  drops = 1300,
+}: {
+  center?: THREE.Vector3;
+  radius?: number;
+  top?: number;
+  drops?: number;
+} = {}): RainFx => {
+  const group = new THREE.Group();
+  const geometry = new THREE.BufferGeometry();
+  const positions = new Float32Array(drops * 2 * 3);
+  const speeds = new Float32Array(drops);
+  const STREAK = 30;
+
+  for (let i = 0; i < drops; i += 1) {
+    const angle = Math.random() * Math.PI * 2;
+    const r = Math.sqrt(Math.random()) * radius;
+    const x = center.x + Math.cos(angle) * r;
+    const z = center.z + Math.sin(angle) * r;
+    const y = Math.random() * top;
+    positions[i * 6] = x;
+    positions[i * 6 + 1] = y;
+    positions[i * 6 + 2] = z;
+    positions[i * 6 + 3] = x + 4;
+    positions[i * 6 + 4] = y + STREAK;
+    positions[i * 6 + 5] = z;
+    speeds[i] = 620 + Math.random() * 340;
+  }
+  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+
+  const material = new THREE.LineBasicMaterial({
+    color: "#cfdce8",
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+  });
+  const lines = new THREE.LineSegments(geometry, material);
+  lines.frustumCulled = false;
+  group.add(lines);
+
+  let intensity = 0;
+
+  return {
+    group,
+    setIntensity: (k) => {
+      intensity = THREE.MathUtils.clamp(k, 0, 1);
+      material.opacity = intensity * 0.55;
+    },
+    update: (dt) => {
+      if (intensity <= 0) return;
+      const attr = geometry.getAttribute("position") as THREE.BufferAttribute;
+      for (let i = 0; i < drops; i += 1) {
+        const fall = speeds[i]! * dt;
+        let y = attr.getY(i * 2) - fall;
+        if (y < 0) y = top - (Math.random() * 80);
+        attr.setY(i * 2, y);
+        attr.setY(i * 2 + 1, y + STREAK);
+      }
+      attr.needsUpdate = true;
+    },
+    dispose: () => {
+      geometry.dispose();
+      material.dispose();
+      group.removeFromParent();
+    },
+  };
+};
+
 export type RippleFx = {
   group: THREE.Group;
   ring: (at: THREE.Vector3) => void;

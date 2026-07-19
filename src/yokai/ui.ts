@@ -22,10 +22,11 @@ export const createYokaiUi = (root: HTMLElement): YokaiUi => {
     <h1 class="yokai-intro__title">Kakuriyo</h1>
     <p class="yokai-intro__sub">the hidden world of the kami</p>
     <p class="yokai-intro__hint">
-      click to wander &mdash; <kbd>W</kbd> glide &middot; <kbd>Space</kbd>/<kbd>Shift</kbd> rise &amp; fall &middot; <kbd>Esc</kbd> rest
+      click to wander &mdash; <kbd>W</kbd>/<kbd>S</kbd> glide &middot; <kbd>A</kbd>/<kbd>D</kbd> drift &middot; <kbd>Space</kbd>/<kbd>Shift</kbd> rise &amp; fall &middot; <kbd>Esc</kbd> rest
     </p>
     <p class="yokai-intro__story">
-      tales: <kbd>1</kbd> <em>the fox and the fallen star</em> &middot; <kbd>2</kbd> <em>the tanuki and the moon-offering</em>
+      tales: <kbd>1</kbd> <em>the fox &amp; the fallen star</em> &middot; <kbd>2</kbd> <em>the tanuki &amp; the moon-offering</em><br />
+      <kbd>3</kbd> <em>the day the river slept</em> &middot; <kbd>4</kbd> <em>the oni who guarded the gate</em>
     </p>
     <a class="yokai-intro__classic" href="/?classic">return to the previous dimension</a>
   `;

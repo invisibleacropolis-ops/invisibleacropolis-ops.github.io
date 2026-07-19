@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { KakuriyoSky } from "../sky.ts";
 import type { SpiritLayer } from "../spirits.ts";
+import type { WaterFeature } from "../water.ts";
 
 /**
  * Shared mood machinery: every tale wants to repaint the world's light —
@@ -19,6 +20,12 @@ export type StoryWorld = {
   toriiPath: THREE.Vector3[];
   /** The ambient population, so tales can step their leads offstage. */
   spirits?: SpiritLayer;
+  /** The waterfall and pond, so tales can dry the river and bring it back. */
+  water?: WaterFeature;
+  /** The castle gate, where the oni keeps his lonely watch. */
+  castleGate?: THREE.Vector3;
+  /** Sakura positions — where kodama belong. */
+  sakuraSpots?: THREE.Vector3[];
 };
 
 export type Mood = {
@@ -49,6 +56,26 @@ export const MOODS = {
     fillI: 0.52,
     ambI: 0.16,
     fog: new THREE.Color("#4a4460"),
+  } as Mood,
+  /** Bleached, breathless heat — the sky of a valley the rain forgot. */
+  drought: {
+    zenith: new THREE.Color("#a9b6c2"),
+    horizon: new THREE.Color("#eee3c6"),
+    sunColor: new THREE.Color("#fff4da"),
+    sunI: 2.6,
+    fillI: 0.95,
+    ambI: 0.42,
+    fog: new THREE.Color("#d9dcd4"),
+  } as Mood,
+  /** Cool silver rainlight, the world seen through falling water. */
+  rainlight: {
+    zenith: new THREE.Color("#48586f"),
+    horizon: new THREE.Color("#8b97a4"),
+    sunColor: new THREE.Color("#b9c4d0"),
+    sunI: 0.85,
+    fillI: 0.7,
+    ambI: 0.2,
+    fog: new THREE.Color("#93a0ac"),
   } as Mood,
 };
 

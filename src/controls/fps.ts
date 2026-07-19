@@ -10,6 +10,12 @@ export type FlyControlsOptions = {
   swayAmount?: number;
   /** Return false to suppress pointer lock for this click (e.g. the click hit a link). */
   shouldLock?: (event: MouseEvent) => boolean;
+  /**
+   * true (default): the classic fly-forward cruise — always moving, W/S
+   * modulate speed. false: fully free flight — stationary until a key is
+   * held; W/S move forward/backward.
+   */
+  cruise?: boolean;
 };
 
 export const createFlyControls = ({
@@ -19,6 +25,7 @@ export const createFlyControls = ({
   swaySpeed = 0.5,
   swayAmount = 0.5,
   shouldLock,
+  cruise = true,
 }: FlyControlsOptions) => {
   const controls = new PointerLockControls(camera, domElement);
 
@@ -94,10 +101,14 @@ export const createFlyControls = ({
   domElement.addEventListener("click", onClick);
 
   const update = (delta: number) => {
+    const lift0 = (input.climb ? 1 : 0) - (input.dive ? 1 : 0);
+    const anyMoveInput =
+      input.accelerate || input.decelerate || input.strafeLeft || input.strafeRight || lift0 !== 0;
+
     if (mode === "accessibility") {
       if (controls.isLocked) controls.unlock();
-      speeds.target = speeds.accessibility;
-    } else {
+      speeds.target = cruise ? speeds.accessibility : anyMoveInput ? speeds.accessibility : 0;
+    } else if (cruise) {
       if (input.accelerate) {
         speeds.target = speeds.max;
       } else if (input.decelerate) {
@@ -105,12 +116,15 @@ export const createFlyControls = ({
       } else {
         speeds.target = speeds.base;
       }
+    } else {
+      // Free flight: hold a key to glide, release everything to hang still
+      speeds.target = anyMoveInput ? speeds.base * 2.8 : 0;
     }
 
-    speeds.current += (speeds.target - speeds.current) * delta * 2.0;
+    speeds.current += (speeds.target - speeds.current) * delta * (cruise ? 2.0 : 4.2);
 
     direction.set(0, 0, 0);
-    direction.z = 1;
+    direction.z = cruise ? 1 : (input.accelerate ? 1 : 0) - (input.decelerate ? 1 : 0);
     if (input.strafeLeft) direction.x = -1;
     if (input.strafeRight) direction.x = 1;
     if (direction.lengthSq() > 0) direction.normalize();

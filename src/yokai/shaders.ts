@@ -11,6 +11,12 @@ import * as THREE from "three";
 /** The one breeze every leaf listens to; advanced each frame by main. */
 export const windTime: { value: number } = { value: 0 };
 
+/**
+ * How hard that breeze blows (1 = normal). Stories may still the air for
+ * a drought or raise it before a storm; main scales the clock by this.
+ */
+export const windStrength: { value: number } = { value: 1 };
+
 export const applyWindSway = (
   material: THREE.Material,
   amplitude = 2.4,
