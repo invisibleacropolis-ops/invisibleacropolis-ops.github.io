@@ -26,7 +26,7 @@ export const createYokaiUi = (root: HTMLElement): YokaiUi => {
     </p>
     <p class="yokai-intro__story">
       tales: <kbd>1</kbd> <em>the fox &amp; the fallen star</em> &middot; <kbd>2</kbd> <em>the tanuki &amp; the moon-offering</em><br />
-      <kbd>3</kbd> <em>the day the river slept</em> &middot; <kbd>4</kbd> <em>the oni who guarded the gate</em>
+      <kbd>3</kbd> <em>the day the river slept</em> &middot; <kbd>4</kbd> <em>the oni who guarded the gate</em> &middot; <kbd>5</kbd> <em>the night of first snow</em>
     </p>
     <a class="yokai-intro__classic" href="/?classic">return to the previous dimension</a>
   `;

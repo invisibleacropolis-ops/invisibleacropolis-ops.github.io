@@ -542,7 +542,7 @@ export const buildOni = (): SpiritBuild => {
   };
 };
 
-const buildYukiOnna = (): SpiritBuild => {
+export const buildYukiOnna = (): SpiritBuild => {
   const snow = new THREE.MeshToonMaterial({
     color: "#f2f4f7",
     gradientMap: getToonGradient(),
@@ -829,7 +829,7 @@ export const createSpirits = ({ sakuraSpots, toriiPath, pagodaTop, castleGate, v
   // The baku ambles the open meadow between shrine and castle, eating dreams
   addWanderer(buildBaku(), new THREE.Vector2(1450, -450), 850, 36, 1.5);
   // Yuki-onna drifts the cold slopes near the sacred peak — she never steps
-  addWanderer(buildYukiOnna(), new THREE.Vector2(-1550, -1500), 800, 42, 1.6, 0);
+  addWanderer(buildYukiOnna(), new THREE.Vector2(-1550, -1500), 800, 42, 1.6, 0, "yukionna");
   // Chōchin-obake bobs around the hamlet square
   if (villageSquare) {
     const chochin = buildChochin();
@@ -867,6 +867,7 @@ export const createSpirits = ({ sakuraSpots, toriiPath, pagodaTop, castleGate, v
   for (let i = 0; i < 6; i += 1) {
     const wisp = buildHitodama();
     group.add(wisp.group);
+    namedActors.set(`wisp${i}`, wisp.group);
     const angle = rng() * Math.PI * 2;
     const r = 140 + rng() * 480;
     const anchor = new THREE.Vector3(

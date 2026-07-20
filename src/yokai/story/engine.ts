@@ -168,7 +168,10 @@ export const createStoryPlayer = ({
 
     let targetFrac = 1;
     if (hits.length > 0) {
-      targetFrac = THREE.MathUtils.clamp((hits[0]!.distance - 20) / dist, 0.05, 1);
+      // Never boom closer than ~140 units: a grazing terrain hit should
+      // trim the shot, not press the lens against the subject.
+      const minFrac = Math.min(1, 140 / dist);
+      targetFrac = THREE.MathUtils.clamp((hits[0]!.distance - 20) / dist, minFrac, 1);
     }
     if (boomFresh) {
       boomFrac = targetFrac; // a fresh shot must not start embedded

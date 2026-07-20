@@ -3,6 +3,7 @@ import type { Story } from "./engine.ts";
 import { createMoodController, MOODS, type StoryWorld } from "./mood.ts";
 import { createActorMover } from "./motion.ts";
 import { createPoofFx } from "./fx.ts";
+import { createDriftField, createWhirl } from "./magicFx.ts";
 import { buildHitodama, buildKitsune, buildKodama, buildOni, buildShika } from "../spirits.ts";
 import { heightAt } from "../terrain.ts";
 import { CASTLE_CENTER } from "../terrain.ts";
@@ -136,6 +137,36 @@ export const createOniKodamaStory = (world: StoryWorld): Story => {
     groundPoint(grove.x - 70, grove.z - 60),
   ]);
 
+  /* ── Magic: the grove's answer ── */
+  const blessingWhirl = createWhirl({
+    count: 380,
+    radiusBottom: 14,
+    radiusTop: 70,
+    height: 150,
+    speed: 0.42,
+    turns: 3.4,
+    size: 12,
+    colorA: "#f6d7e2",
+    colorB: "#e8abc0",
+  });
+  blessingWhirl.group.position.copy(grove);
+  props.add(blessingWhirl.group);
+  let blessingFlash = 0;
+
+  const spiritMotes = createDriftField({
+    count: 170,
+    radius: 150,
+    height: 200,
+    velocityY: 42,
+    sway: 16,
+    size: 9,
+    colorA: "#f5f2ea",
+    colorB: "#cfe8d8",
+    twinkle: 0.55,
+  });
+  spiritMotes.group.position.copy(grove);
+  props.add(spiritMotes.group);
+
   /* ── Shared tick ── */
   let storyTime = 0;
   let carrying = false;
@@ -152,6 +183,10 @@ export const createOniKodamaStory = (world: StoryWorld): Story => {
     family.forEach((spirit, i) => spirit.animate(storyTime, i * 2.3, 0));
     wisps.forEach((wisp, i) => wisp.animate(storyTime, i * 1.9, 1));
     petalBurst.update(dt);
+    blessingFlash = Math.max(0, blessingFlash - dt * 0.55);
+    blessingWhirl.setIntensity(blessingFlash);
+    blessingWhirl.update(storyTime);
+    spiritMotes.update(storyTime);
 
     if (carrying) {
       // Riding the great open palm
@@ -348,6 +383,7 @@ export const createOniKodamaStory = (world: StoryWorld): Story => {
           if (setDown >= 1 && !petalsFired) {
             petalsFired = true;
             petalBurst.burst(home.clone().add(new THREE.Vector3(0, 40, 0)));
+            blessingFlash = 1;
           }
         }
         oni.group.rotation.x = Math.sin(THREE.MathUtils.clamp(s / 3.4, 0, 1) * Math.PI) * 0.3;
@@ -376,6 +412,8 @@ export const createOniKodamaStory = (world: StoryWorld): Story => {
         });
         lostTravel.lookAt(oniTravel.position.x, lostTravel.position.y, oniTravel.position.z);
         lostKodama.group.rotation.x = bowAngle;
+        // Pale spirit-motes rise with the bow, like breath made visible
+        spiritMotes.setIntensity(bow * 0.7);
       },
     },
 
@@ -444,6 +482,8 @@ export const createOniKodamaStory = (world: StoryWorld): Story => {
       world.spirits?.setHidden("oni", false);
       world.spirits?.setHidden("kitsune", false);
       world.spirits?.setHidden("shika", false);
+      blessingWhirl.dispose();
+      spiritMotes.dispose();
       props.traverse((child) => {
         if (child instanceof THREE.Mesh || child instanceof THREE.Points) {
           child.geometry.dispose();

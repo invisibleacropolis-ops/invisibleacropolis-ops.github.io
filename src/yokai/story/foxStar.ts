@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { Story } from "./engine.ts";
 import { createMoodController, MOODS, type StoryWorld } from "./mood.ts";
 import { createActorMover } from "./motion.ts";
+import { createAurora, createWhirl } from "./magicFx.ts";
 import { buildKappa, buildKitsune } from "../spirits.ts";
 import { heightAt, WATER_LEVEL } from "../terrain.ts";
 import { PEAK_LEDGE } from "../mountains.ts";
@@ -173,6 +174,24 @@ export const createFoxStarStory = (world: StoryWorld): Story => {
   // direction she is actually travelling.
   const foxMover = createActorMover(foxTravel);
 
+  /* ── Magic: the sky's answer ── */
+  // Northern lights that bloom when the star goes home
+  const aurora = createAurora({ colorA: "#8fe8c4", colorB: "#a88fff" });
+  props.add(aurora.group);
+  // The gold updraft that carries the throw
+  const launchWhirl = createWhirl({
+    count: 520,
+    radiusBottom: 26,
+    radiusTop: 130,
+    height: 340,
+    speed: 0.3,
+    size: 13,
+    colorA: "#fff2cf",
+    colorB: "#ffc857",
+  });
+  launchWhirl.group.position.set(PEAK_LEDGE.x, PEAK_LEDGE.y, PEAK_LEDGE.z);
+  props.add(launchWhirl.group);
+
   /* ── Shared per-frame tick ── */
   let storyTime = 0;
   const tick = (dt: number) => {
@@ -184,6 +203,8 @@ export const createFoxStarStory = (world: StoryWorld): Story => {
     const breath = 1 + Math.sin(storyTime * 2.6) * 0.12;
     starHalo.scale.setScalar(breath);
     starfield.rotation.y = storyTime * 0.002;
+    aurora.update(storyTime);
+    launchWhirl.update(storyTime);
   };
 
   const foxPos = () => foxTravel.position.clone();
@@ -413,6 +434,10 @@ export const createFoxStarStory = (world: StoryWorld): Story => {
         }
         attr.needsUpdate = true;
         starfieldMat.opacity = 0.75 + throwT * 0.2;
+        // The gold updraft flares under the throw, then breathes out
+        launchWhirl.setIntensity(throwT < 0.5 ? throwT * 2 : Math.max(0, 1 - (throwT - 0.5) * 1.6));
+        // The sky answers in ribbons
+        aurora.setIntensity(Math.max(0, throwT - 0.35) * 1.1);
         if (throwT >= 1) {
           star.visible = false;
         }
@@ -437,6 +462,8 @@ export const createFoxStarStory = (world: StoryWorld): Story => {
         tick(dt);
         applyMood(1 - k);
         starfieldMat.opacity = Math.max(0, 0.95 - k * 1.2);
+        // The ribbons take their bow before the sun returns
+        aurora.setIntensity(Math.max(0, 0.7 - k * 1.1));
       },
     },
   ];
@@ -454,6 +481,8 @@ export const createFoxStarStory = (world: StoryWorld): Story => {
     },
     onEnd: () => {
       applyMood(0);
+      aurora.dispose();
+      launchWhirl.dispose();
       world.spirits?.setHidden("kitsune", false);
       world.spirits?.setHidden("kappa", false);
       props.traverse((child) => {

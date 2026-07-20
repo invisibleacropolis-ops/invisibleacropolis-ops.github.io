@@ -78,14 +78,23 @@ const instancedOutlineVertex = /* glsl */ `
 
     #ifdef USE_INSTANCING
       localPosition = instanceMatrix * localPosition;
-      localNormal = normalize(mat3(instanceMatrix) * localNormal);
+      localNormal = mat3(instanceMatrix) * localNormal;
     #endif
 
+    // Inverted hull expanded in VIEW space. The previous clip-space
+    // formulation normalized (projected - normalProjected), which goes
+    // to zero when a normal aligns with the view ray — normalize(0) is
+    // NaN, and one NaN vertex rasterizes as a screen-covering black
+    // triangle for a frame. View-space expansion has no such pole.
     vec4 mvPosition = modelViewMatrix * localPosition;
-    vec4 projected = projectionMatrix * mvPosition;
-    vec4 normalPosition = projectionMatrix * modelViewMatrix * vec4(localPosition.xyz + localNormal, 1.0);
-    vec4 clipNormal = normalize(projected - normalPosition);
-    gl_Position = projected + clipNormal * outlineThickness * projected.w;
+    vec3 viewNormal = mat3(modelViewMatrix) * localNormal;
+    float normalLength = length(viewNormal);
+    if (normalLength > 0.00001) {
+      viewNormal /= normalLength;
+      // Scale by depth so the line width stays constant on screen
+      mvPosition.xyz += viewNormal * outlineThickness * max(1.0, -mvPosition.z);
+    }
+    gl_Position = projectionMatrix * mvPosition;
 
     #include <fog_vertex>
   }

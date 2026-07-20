@@ -3,6 +3,7 @@ import type { Story } from "./engine.ts";
 import { createMoodController, MOODS, type StoryWorld } from "./mood.ts";
 import { createActorMover } from "./motion.ts";
 import { createRainFx, createRippleFx } from "./fx.ts";
+import { createWhirl } from "./magicFx.ts";
 import { windStrength } from "../shaders.ts";
 import { buildKappa, buildRyu } from "../spirits.ts";
 import { toon } from "../palette.ts";
@@ -111,6 +112,21 @@ export const createDragonRainStory = (world: StoryWorld): Story => {
     ryuTravel.lookAt(ryuAhead);
   };
 
+  /* ── Magic: the storm gathering around the climb ── */
+  const stormWhirl = createWhirl({
+    count: 1100,
+    radiusBottom: 180,
+    radiusTop: 640,
+    height: 1500,
+    turns: 2.2,
+    speed: 0.12,
+    size: 22,
+    colorA: "#dfe8f2",
+    colorB: "#8fa6c9",
+  });
+  stormWhirl.group.position.set(SACRED_PEAK.x, PEAK_LEDGE.y, SACRED_PEAK.z);
+  props.add(stormWhirl.group);
+
   /* ── Shared tick ── */
   let storyTime = 0;
   const tick = (dt: number) => {
@@ -120,6 +136,7 @@ export const createDragonRainStory = (world: StoryWorld): Story => {
     ryu.animate(storyTime, 0.2, 1);
     rain.update(dt);
     pondRipples.update(dt);
+    stormWhirl.update(storyTime);
   };
 
   const kappaPos = () => kappaTravel.position.clone();
@@ -291,6 +308,8 @@ export const createDragonRainStory = (world: StoryWorld): Story => {
         tick(dt);
         // Ascending spiral into the sky
         placeRyuOnSpiral(k, PEAK_LEDGE.y + 120, 2500, 320, 1500, 2.6);
+        // The mountain spins its own weather up around the climb
+        stormWhirl.setIntensity(Math.min(1, k * 1.6));
         moodCtl.blend(MOODS.drought, MOODS.rainlight, k);
         windStrength.value = 0.15 + k * 1.5;
         (stormVeil.material as THREE.MeshBasicMaterial).opacity = k * 0.5;
@@ -360,6 +379,7 @@ export const createDragonRainStory = (world: StoryWorld): Story => {
         // The storm eases into ordinary golden light
         moodCtl.apply(MOODS.rainlight, 1 - k);
         rain.setIntensity(1 - k);
+        stormWhirl.setIntensity(Math.max(0, 0.6 - k));
         (stormVeil.material as THREE.MeshBasicMaterial).opacity = 0.5 * (1 - k);
         windStrength.value = 1.65 - k * 0.65;
         // The dragon resumes its patient circle
@@ -385,6 +405,7 @@ export const createDragonRainStory = (world: StoryWorld): Story => {
       water?.setFlow(1);
       rain.dispose();
       pondRipples.dispose();
+      stormWhirl.dispose();
       world.spirits?.setHidden("kappa", false);
       world.spirits?.setHidden("ryu", false);
       props.traverse((child) => {

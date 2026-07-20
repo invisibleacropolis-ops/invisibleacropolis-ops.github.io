@@ -25,6 +25,7 @@ import { createFoxStarStory } from "./story/foxStar.ts";
 import { createTanukiMoonStory } from "./story/tanukiMoon.ts";
 import { createDragonRainStory } from "./story/dragonRain.ts";
 import { createOniKodamaStory } from "./story/oniKodama.ts";
+import { createYukiOnnaStory } from "./story/yukiOnna.ts";
 
 /**
  * Kakuriyo (隠り世) — the hidden world. A mystical vision of Japan from
@@ -204,6 +205,7 @@ const TALES: Record<string, (world: StoryWorld) => Story> = {
   Digit2: createTanukiMoonStory,
   Digit3: createDragonRainStory,
   Digit4: createOniKodamaStory,
+  Digit5: createYukiOnnaStory,
 };
 
 const beginTale = (factory: (world: StoryWorld) => Story) => {

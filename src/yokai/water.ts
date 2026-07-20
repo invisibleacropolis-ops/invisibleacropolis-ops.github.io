@@ -16,6 +16,8 @@ export type WaterFeature = {
   update: (t: number) => void;
   /** 1 = the river runs; 0 = drought. Stories drive this. */
   setFlow: (k: number) => void;
+  /** 0 = open water; 1 = frozen over. Stories drive this too. */
+  setIce: (k: number) => void;
 };
 
 const FALLS_HEIGHT = 230;
@@ -32,6 +34,7 @@ const pondVertex = /* glsl */ `
 const pondFragment = /* glsl */ `
   uniform vec3 waterColor;
   uniform float uFlow;
+  uniform float uIce;
   uniform vec3 deepColor;
   uniform vec3 foamColor;
   uniform float time;
@@ -92,7 +95,18 @@ const pondFragment = /* glsl */ `
 
     // In drought the pond thins to a muddy film; in flow it is full glass
     color = mix(color * vec3(0.82, 0.78, 0.62), color, uFlow);
-    gl_FragColor = vec4(color, mix(0.38, 0.93, uFlow));
+
+    // Winter's veto: veined milk-glass creeps over everything above.
+    // The freeze sweeps from the rim inward as uIce rises.
+    float freezeFront = smoothstep(uIce * 1.25, uIce * 1.25 - 0.22, d - (1.0 - uIce));
+    float frozen = uIce >= 0.999 ? 1.0 : min(uIce * freezeFront * 1.6, 1.0);
+    float veinNoise = fbm(vUv * 26.0);
+    float veins = smoothstep(0.5, 0.47, abs(veinNoise - 0.5)) * 0.35;
+    float iceGlint = step(0.986, hash(floor(vUv * 90.0))) * 0.5;
+    vec3 iceColor = vec3(0.86, 0.92, 0.96) - veins * 0.35 + iceGlint;
+    color = mix(color, iceColor, frozen);
+
+    gl_FragColor = vec4(color, mix(mix(0.38, 0.93, uFlow), 0.97, frozen));
   }
 `;
 
@@ -257,6 +271,7 @@ export const createWaterFeature = (): WaterFeature => {
     foamColor: { value: new THREE.Color(KAKURIYO.foam) },
     time: { value: 0 },
     uFlow: { value: 1 },
+    uIce: { value: 0 },
   };
   const pondMat = new THREE.ShaderMaterial({
     uniforms: pondUniforms,
@@ -300,6 +315,9 @@ export const createWaterFeature = (): WaterFeature => {
 
   return {
     group,
+    setIce: (k) => {
+      pondUniforms.uIce.value = k;
+    },
     setFlow: (k) => {
       fallsUniforms.uFlow.value = k;
       pondUniforms.uFlow.value = k;

@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { Story } from "./engine.ts";
 import { createMoodController, MOODS, type StoryWorld } from "./mood.ts";
 import { createPoofFx, createRippleFx } from "./fx.ts";
+import { createDriftField, createWhirl } from "./magicFx.ts";
 import { createActorMover, worldGroundY } from "./motion.ts";
 import { buildChochin, buildTanuki } from "../spirits.ts";
 import { getToonGradient, toon } from "../palette.ts";
@@ -155,6 +156,39 @@ export const createTanukiMoonStory = (world: StoryWorld): Story => {
     travel.rotation.y += delta * Math.min(1, dt * rate);
   };
 
+  /* ── Magic: old shapeshifter sorcery, and a festival of motes ── */
+  const hengeWhirl = createWhirl({
+    count: 420,
+    radiusBottom: 16,
+    radiusTop: 66,
+    height: 130,
+    speed: 0.55,
+    turns: 4,
+    size: 11,
+    colorA: "#e6f0b8",
+    colorB: "#cfa85e",
+  });
+  props.add(hengeWhirl.group);
+  let hengeFlash = 0;
+  const flashHenge = (at: THREE.Vector3) => {
+    hengeWhirl.group.position.copy(at);
+    hengeFlash = 1;
+  };
+
+  const festivalMotes = createDriftField({
+    count: 240,
+    radius: 260,
+    height: 260,
+    velocityY: 55,
+    sway: 22,
+    size: 10,
+    colorA: "#ffd9a0",
+    colorB: "#fff4d8",
+    twinkle: 0.5,
+  });
+  festivalMotes.group.position.set(STAND_POS.x, squareY, STAND_POS.z);
+  props.add(festivalMotes.group);
+
   /* ── Shared tick ── */
   let storyTime = 0;
   let disguiseProgress = 0; // 0 at hide spot → 1 at the stand
@@ -166,6 +200,10 @@ export const createTanukiMoonStory = (world: StoryWorld): Story => {
     chochin.animate(storyTime, 2.3, 1);
     poof.update(dt);
     drumRipples.update(dt);
+    hengeFlash = Math.max(0, hengeFlash - dt * 0.9);
+    hengeWhirl.setIntensity(hengeFlash);
+    hengeWhirl.update(storyTime);
+    festivalMotes.update(storyTime);
   };
 
   const tanukiPos = () => tanukiTravel.position.clone();
@@ -272,6 +310,7 @@ export const createTanukiMoonStory = (world: StoryWorld): Story => {
         // The poof happens at 2.2s
         if (s > 2.2 && !disguise.visible) {
           poof.burst(tanukiTravel.position.clone().add(new THREE.Vector3(0, 30, 0)));
+          flashHenge(tanukiTravel.position.clone());
           disguise.position.copy(tanukiTravel.position);
           disguise.visible = true;
           tanukiTravel.visible = false;
@@ -355,6 +394,7 @@ export const createTanukiMoonStory = (world: StoryWorld): Story => {
       onEnter: () => {
         // Poof back: the disguise bursts, the tanuki runs
         poof.burst(disguise.position.clone().add(new THREE.Vector3(0, 30, 0)));
+        flashHenge(disguise.position.clone());
         disguise.visible = false;
         tanukiTravel.visible = true;
         tanukiMover.place(pathFlee.getPoint(0), pathFlee.getPoint(0.06));
@@ -473,6 +513,8 @@ export const createTanukiMoonStory = (world: StoryWorld): Story => {
       onUpdate: (k, dt, s) => {
         tick(dt);
         moodCtl.apply(dusk, 1);
+        // Warm motes rise around the square, festival-lantern dust
+        festivalMotes.setIntensity(Math.min(0.85, k * 2));
         // The belly-drum: rhythmic bounce with sound-ripples
         const beat = Math.floor(s / 0.62);
         if (beat !== lastDrumBeat && s > 0.6) {
@@ -506,6 +548,8 @@ export const createTanukiMoonStory = (world: StoryWorld): Story => {
       world.spirits?.setHidden("chochin", false);
       poof.dispose();
       drumRipples.dispose();
+      hengeWhirl.dispose();
+      festivalMotes.dispose();
       props.traverse((child) => {
         if (child instanceof THREE.Mesh || child instanceof THREE.Points) {
           child.geometry.dispose();

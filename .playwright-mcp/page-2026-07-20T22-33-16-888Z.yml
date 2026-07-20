@@ -1,0 +1,51 @@
+- generic [active]:
+  - generic "Three.js scene" [ref=f3e1]
+  - generic:
+    - generic:
+      - paragraph: Crossing over
+      - heading "隠り世" [level=1]
+    - generic:
+      - paragraph: 隠り世
+      - heading "Kakuriyo" [level=1]
+      - paragraph: the hidden world of the kami
+      - paragraph:
+        - text: click to wander —
+        - generic: W
+        - text: /
+        - generic: S
+        - text: glide ·
+        - generic: A
+        - text: /
+        - generic: D
+        - text: drift ·
+        - generic: Space
+        - text: /
+        - generic: Shift
+        - text: rise & fall ·
+        - generic: Esc
+        - text: rest
+      - paragraph:
+        - text: "tales:"
+        - generic: "1"
+        - emphasis: the fox & the fallen star
+        - text: ·
+        - generic: "2"
+        - emphasis: the tanuki & the moon-offering
+        - generic: "3"
+        - emphasis: the day the river slept
+        - text: ·
+        - generic: "4"
+        - emphasis: the oni who guarded the gate
+        - text: ·
+        - generic: "5"
+        - emphasis: the night of first snow
+      - link "return to the previous dimension" [ref=f3e2] [cursor=pointer]:
+        - /url: /?classic
+    - button "Destinations" [ref=f3e4] [cursor=pointer]
+    - generic:
+      - generic:
+        - heading [level=2]
+        - paragraph
+      - paragraph:
+        - generic: Esc
+        - text: leave the tale
