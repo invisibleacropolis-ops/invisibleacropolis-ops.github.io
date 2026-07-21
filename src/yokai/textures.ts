@@ -421,6 +421,35 @@ export const paddyTexture = (water = "#b7d4c9", sprout = "#4e8f3e") =>
     }
   });
 
+/** Soft horizontal rock strata for mountains: near-white, multiplies over
+ *  vertex colors so the painted banding shows through as sediment lines. */
+export const strataTexture = () =>
+  makeTexture(
+    256,
+    (ctx, s) => {
+      ctx.fillStyle = "#f2f2f0";
+      ctx.fillRect(0, 0, s, s);
+      // Sediment bands: wavering horizontal strokes in two depths
+      for (let band = 0; band < 22; band += 1) {
+        const y = (band / 22) * s + rand() * 6;
+        const depth = rand();
+        ctx.strokeStyle = depth > 0.6 ? "rgba(150, 152, 160, 0.34)" : "rgba(190, 192, 198, 0.3)";
+        ctx.lineWidth = 1.4 + rand() * 2.6;
+        ctx.beginPath();
+        ctx.moveTo(-8, y);
+        ctx.bezierCurveTo(s * 0.3, y + (rand() - 0.5) * 7, s * 0.7, y + (rand() - 0.5) * 7, s + 8, y + (rand() - 0.5) * 4);
+        ctx.stroke();
+      }
+      // Grain
+      for (let i = 0; i < 900; i += 1) {
+        const v = 222 + Math.floor(rand() * 26);
+        ctx.fillStyle = `rgba(${v}, ${v}, ${v + 4}, 0.3)`;
+        ctx.fillRect(rand() * s, rand() * s, 1.6, 1.2);
+      }
+    },
+    1
+  );
+
 /** Radial glow for lantern halos and other soft lights. */
 let glowTexture: THREE.CanvasTexture | null = null;
 export const getGlowTexture = (): THREE.CanvasTexture => {
