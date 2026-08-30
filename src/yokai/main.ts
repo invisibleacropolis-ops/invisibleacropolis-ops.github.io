@@ -266,6 +266,7 @@ const animate = () => {
   flora.update(t, dt);
   water.update(t);
   architecture.update(t);
+  (mountains.userData.updateShrine as ((t: number) => void) | undefined)?.(t);
   spirits.update(t, dt);
 
   cinematic.render(t);

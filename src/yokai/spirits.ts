@@ -350,51 +350,223 @@ const buildNekomata = (): SpiritBuild => {
 };
 
 export const buildRyu = (): SpiritBuild => {
-  const jade = toon("#7fc9a8");
-  const cream = toon(KAKURIYO.paperWhite);
-  const coral = toon(KAKURIYO.foxRed);
-  const group = new THREE.Group();
+  // A Shenron-lineage river dragon: emerald serpent, ribbed cream belly
+  // edged in red, crocodilian head with antlers and flowing whiskers.
+  const bodyMat = toon("#5fae4d");
+  const bellyMat = toon("#ecdcae");
+  const redMat = toon("#c8402e");
+  const maneMat = toon("#39762f");
+  const hornMat = toon("#c2a86e");
+  const toothMat = toon("#f4efe2");
+  const eyeMat = toon("#f6f1e6");
+  const pupilMat = toon("#231d17");
+  const whiskerMat = toon("#8fc46a");
+  // The tiniest parts skip the ink outline, to keep it clean and cheap
+  const noOutline = { visible: false } as const;
+  [redMat, toothMat, pupilMat, whiskerMat, eyeMat].forEach((m) => {
+    m.userData.outlineParameters = noOutline;
+  });
 
-  const segments: THREE.Mesh[] = [];
-  for (let i = 0; i < 15; i += 1) {
-    const s = mesh(new THREE.SphereGeometry(13 - i * 0.55, 8, 6), jade);
-    s.position.z = -i * 20;
-    segments.push(s);
-    group.add(s);
-    if (i > 0 && i % 2 === 0) {
-      const spine = mesh(new THREE.ConeGeometry(3, 10, 4), cream);
-      spine.position.set(0, 11 - i * 0.4, -i * 20);
-      group.add(spine);
+  const group = new THREE.Group();
+  const SEG = 16;
+  const SPACING = 17;
+  const vertebrae: THREE.Group[] = [];
+  const radii: number[] = [];
+
+  for (let i = 0; i < SEG; i += 1) {
+    const p = i / (SEG - 1);
+    const r = 12.5 * (1 - p * 0.8) + 2.2;
+    radii.push(r);
+    const seg = new THREE.Group();
+    seg.position.z = -i * SPACING;
+
+    const bodySphere = mesh(new THREE.SphereGeometry(r, 10, 8), bodyMat);
+    bodySphere.scale.set(1.14, 0.98, 1.18);
+    seg.add(bodySphere);
+
+    // Ribbed underbelly, tucked beneath the body: a cream plate with a
+    // thin red line down each lateral edge (the Shenron belly stripe)
+    const bellyDepth = SPACING * 1.16;
+    const creamPlate = mesh(new THREE.BoxGeometry(r * 1.02, r * 0.46, bellyDepth), bellyMat);
+    creamPlate.position.y = -r * 0.62;
+    seg.add(creamPlate);
+    for (const side of [-1, 1]) {
+      const redEdge = mesh(new THREE.BoxGeometry(r * 0.14, r * 0.44, bellyDepth), redMat);
+      redEdge.position.set(side * r * 0.5, -r * 0.58, 0);
+      seg.add(redEdge);
+    }
+
+    // Dorsal ridge fin
+    if (r > 3.2) {
+      const fin = mesh(new THREE.ConeGeometry(r * 0.3, r, 5), maneMat);
+      fin.position.set(0, r * 0.9, 0);
+      fin.rotation.x = -0.45;
+      seg.add(fin);
+    }
+
+    vertebrae.push(seg);
+    group.add(seg);
+  }
+
+  // Tapering tail fin
+  const tailFin = mesh(new THREE.ConeGeometry(radii[SEG - 1]! * 2.8, 24, 5), maneMat);
+  tailFin.position.set(0, 0, -10);
+  tailFin.rotation.x = -Math.PI / 2;
+  vertebrae[SEG - 1]!.add(tailFin);
+
+  /* ── Small clawed arms on an early vertebra ── */
+  for (const side of [-1, 1]) {
+    const arm = new THREE.Group();
+    const rr = radii[4]!;
+    arm.position.set(side * rr * 1.0, -rr * 0.4, 0);
+    arm.rotation.z = side * -0.5;
+    const upper = mesh(new THREE.CylinderGeometry(1.6, 2.2, 12, 6), bodyMat);
+    upper.position.y = -6;
+    arm.add(upper);
+    const fore = mesh(new THREE.CylinderGeometry(1.2, 1.6, 9, 6), bodyMat);
+    fore.position.set(0, -13, 3);
+    fore.rotation.x = 0.8;
+    arm.add(fore);
+    for (let c = -1; c <= 1; c += 1) {
+      const claw = mesh(new THREE.ConeGeometry(0.7, 4, 4), bellyMat);
+      claw.position.set(c * 1.6, -16, 6.5);
+      claw.rotation.x = 1.4;
+      arm.add(claw);
+    }
+    vertebrae[4]!.add(arm);
+  }
+
+  /* ── Head, riding the front vertebra ── */
+  const head = new THREE.Group();
+  head.position.set(0, 1, 11);
+  vertebrae[0]!.add(head);
+
+  const cranium = mesh(new THREE.SphereGeometry(11, 10, 8), bodyMat);
+  cranium.scale.set(1.05, 1.0, 1.25);
+  cranium.position.set(0, 2, 5);
+  head.add(cranium);
+
+  const upperSnout = mesh(new THREE.BoxGeometry(12, 8, 22), bodyMat);
+  upperSnout.position.set(0, 2.5, 22);
+  head.add(upperSnout);
+  const snoutTip = mesh(new THREE.BoxGeometry(9, 6, 6), bodyMat);
+  snoutTip.position.set(0, 2, 33);
+  head.add(snoutTip);
+  const upperLip = mesh(new THREE.BoxGeometry(13, 2.4, 22), bellyMat);
+  upperLip.position.set(0, -1.4, 22);
+  head.add(upperLip);
+
+  // Nostrils
+  for (const side of [-1, 1]) {
+    const nostril = mesh(new THREE.SphereGeometry(1.5, 6, 5), bodyMat);
+    nostril.position.set(side * 3, 4.5, 35);
+    head.add(nostril);
+  }
+
+  // Hinged lower jaw + teeth
+  const jaw = new THREE.Group();
+  jaw.position.set(0, -2, 12);
+  head.add(jaw);
+  const lowerJaw = mesh(new THREE.BoxGeometry(11, 4.5, 20), bellyMat);
+  lowerJaw.position.set(0, -1.5, 10);
+  jaw.add(lowerJaw);
+  for (let i = 0; i < 5; i += 1) {
+    for (const side of [-1, 1]) {
+      const upperTooth = mesh(new THREE.ConeGeometry(0.85, 3, 4), toothMat);
+      upperTooth.position.set(side * 5, -1, 15 - i * 4);
+      upperTooth.rotation.x = Math.PI;
+      head.add(upperTooth);
+      const lowerTooth = mesh(new THREE.ConeGeometry(0.8, 2.6, 4), toothMat);
+      lowerTooth.position.set(side * 4.4, 1, 14 - i * 4);
+      jaw.add(lowerTooth);
     }
   }
-  const skull = mesh(new THREE.BoxGeometry(18, 14, 26), jade);
-  skull.position.z = 18;
-  const snout = mesh(new THREE.BoxGeometry(10, 8, 14), jade);
-  snout.position.set(0, -2, 34);
-  const mane = mesh(new THREE.SphereGeometry(14, 7, 5), cream);
-  mane.position.set(0, 4, 8);
+  // Chin beard
+  const beard = mesh(new THREE.ConeGeometry(4, 12, 5), whiskerMat);
+  beard.position.set(0, -4, 4);
+  beard.rotation.x = -0.5;
+  jaw.add(beard);
+
+  // Eyes + heavy brows
   for (const side of [-1, 1]) {
-    const horn = mesh(new THREE.CylinderGeometry(1.4, 2.4, 18, 4), cream);
-    horn.position.set(side * 6, 14, 12);
-    horn.rotation.z = side * 0.5;
-    horn.rotation.x = -0.5;
-    group.add(horn);
-    const whisker = mesh(new THREE.CylinderGeometry(0.5, 0.5, 24, 3), coral);
-    whisker.position.set(side * 8, -3, 34);
-    whisker.rotation.z = side * 1.2;
-    group.add(whisker);
+    const eye = mesh(new THREE.SphereGeometry(2.8, 8, 6), eyeMat);
+    eye.position.set(side * 8.5, 5, 9);
+    head.add(eye);
+    const pupil = mesh(new THREE.SphereGeometry(1.3, 6, 5), pupilMat);
+    pupil.position.set(side * 9.6, 5, 11);
+    head.add(pupil);
+    const brow = mesh(new THREE.BoxGeometry(7, 3, 6), bodyMat);
+    brow.position.set(side * 8, 8.5, 8);
+    brow.rotation.z = side * -0.35;
+    head.add(brow);
   }
-  const fluke = mesh(new THREE.ConeGeometry(9, 20, 5), cream);
-  fluke.position.set(0, 0, -15 * 20 + 6);
-  fluke.rotation.x = Math.PI / 2;
-  group.add(skull, snout, mane, fluke);
+
+  // Branched antlers sweeping up and back
+  for (const side of [-1, 1]) {
+    const antler = new THREE.Group();
+    antler.position.set(side * 5, 9, 0);
+    antler.rotation.set(-0.6, 0, side * 0.5);
+    const beam = mesh(new THREE.CylinderGeometry(1.2, 2, 20, 5), hornMat);
+    beam.position.y = 9;
+    antler.add(beam);
+    const tine1 = mesh(new THREE.CylinderGeometry(0.8, 1.2, 11, 4), hornMat);
+    tine1.position.set(side * 4, 13, 1);
+    tine1.rotation.z = side * -0.9;
+    antler.add(tine1);
+    const tine2 = mesh(new THREE.CylinderGeometry(0.7, 1, 8, 4), hornMat);
+    tine2.position.set(side * -2, 16, 0);
+    tine2.rotation.z = side * 0.8;
+    antler.add(tine2);
+    head.add(antler);
+  }
+
+  // Mane: spiky crest running the head-to-neck
+  for (let i = 0; i < 5; i += 1) {
+    const spike = mesh(new THREE.ConeGeometry(2.4 - i * 0.2, 11 - i, 5), maneMat);
+    spike.position.set(0, 9 - i * 0.6, 2 - i * 4.5);
+    spike.rotation.x = -0.7;
+    head.add(spike);
+  }
+
+  // Flowing whiskers — a chain of tapering segments, swayed each frame
+  const whiskerRoots: THREE.Group[] = [];
+  for (const side of [-1, 1]) {
+    const root = new THREE.Group();
+    root.position.set(side * 5, 3.5, 33);
+    root.rotation.set(0.1, side * 0.5, 0);
+    let parent: THREE.Object3D = root;
+    for (let s = 0; s < 4; s += 1) {
+      const link = new THREE.Group();
+      link.position.z = s === 0 ? 0 : -13;
+      link.rotation.set(0.12, side * 0.16, 0);
+      const bone = mesh(new THREE.CylinderGeometry(1.5 - s * 0.32, 1.7 - s * 0.32, 13, 5), whiskerMat);
+      bone.rotation.x = Math.PI / 2;
+      bone.position.z = -6.5;
+      link.add(bone);
+      parent.add(link);
+      parent = link;
+    }
+    head.add(root);
+    whiskerRoots.push(root);
+  }
 
   return {
     group,
     animate: (t, phase) => {
-      segments.forEach((s, i) => {
-        s.position.x = Math.sin(t * 1.7 - i * 0.5 + phase) * 3.2 * Math.sqrt(i + 1);
-        s.position.y = Math.cos(t * 1.3 - i * 0.42 + phase) * 2.2 * Math.sqrt(i + 1);
+      for (let i = 0; i < SEG; i += 1) {
+        const w = Math.sqrt(i + 1);
+        vertebrae[i]!.position.x = Math.sin(t * 1.7 - i * 0.5 + phase) * 3.4 * w;
+        vertebrae[i]!.position.y = Math.cos(t * 1.3 - i * 0.42 + phase) * 2.2 * w;
+      }
+      head.rotation.x = Math.sin(t * 1.1 + phase) * 0.05;
+      head.rotation.z = Math.sin(t * 0.7 + phase) * 0.05;
+      jaw.rotation.x = 0.1 + Math.sin(t * 0.9 + phase) * 0.1;
+      whiskerRoots.forEach((wr, k) => {
+        const dir = k === 0 ? 1 : -1;
+        wr.children.forEach((link, s) => {
+          link.rotation.y = dir * (0.16 + Math.sin(t * 1.6 + phase + s * 0.9) * 0.14);
+          link.rotation.x = 0.12 + Math.sin(t * 1.3 + phase + s * 0.7) * 0.1;
+        });
       });
     },
   };

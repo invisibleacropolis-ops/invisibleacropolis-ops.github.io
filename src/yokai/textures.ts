@@ -421,34 +421,173 @@ export const paddyTexture = (water = "#b7d4c9", sprout = "#4e8f3e") =>
     }
   });
 
-/** Soft horizontal rock strata for mountains: near-white, multiplies over
- *  vertex colors so the painted banding shows through as sediment lines. */
-export const strataTexture = () =>
-  makeTexture(
-    256,
-    (ctx, s) => {
-      ctx.fillStyle = "#f2f2f0";
-      ctx.fillRect(0, 0, s, s);
-      // Sediment bands: wavering horizontal strokes in two depths
-      for (let band = 0; band < 22; band += 1) {
-        const y = (band / 22) * s + rand() * 6;
-        const depth = rand();
-        ctx.strokeStyle = depth > 0.6 ? "rgba(150, 152, 160, 0.34)" : "rgba(190, 192, 198, 0.3)";
-        ctx.lineWidth = 1.4 + rand() * 2.6;
-        ctx.beginPath();
-        ctx.moveTo(-8, y);
-        ctx.bezierCurveTo(s * 0.3, y + (rand() - 0.5) * 7, s * 0.7, y + (rand() - 0.5) * 7, s + 8, y + (rand() - 0.5) * 4);
-        ctx.stroke();
-      }
-      // Grain
-      for (let i = 0; i < 900; i += 1) {
-        const v = 222 + Math.floor(rand() * 26);
-        ctx.fillStyle = `rgba(${v}, ${v}, ${v + 4}, 0.3)`;
-        ctx.fillRect(rand() * s, rand() * s, 1.6, 1.2);
-      }
-    },
-    1
-  );
+/**
+ * A painted alpine mountain face, mapped onto the cone's UVs (v = base→tip,
+ * u = around). It tiles horizontally so the cone's wrap-seam is invisible.
+ * Snow crowns the top with a ragged hem, couloirs of snow streak down the
+ * gullies, dark rock ribs poke up through the cap, and cool slate rock
+ * with vertical crag striations fills the flanks below — the woodblock /
+ * anime read of a snow-capped peak.
+ */
+export const mountainTexture = (): THREE.CanvasTexture => {
+  const w = 1024;
+  const h = 1024;
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d")!;
+
+  // Periodic-in-u noise (integer harmonics) so the left/right edges meet
+  const makePeriodic = (harmonics: number) => {
+    const terms: Array<{ f: number; a: number; p: number }> = [];
+    let norm = 0;
+    for (let k = 0; k < harmonics; k += 1) {
+      const a = (0.3 + rand() * 0.8) / (0.6 + k);
+      terms.push({ f: k + 1, a, p: rand() * Math.PI * 2 });
+      norm += Math.abs(a);
+    }
+    return (u: number) => {
+      let s = 0;
+      for (const t of terms) s += t.a * Math.sin(2 * Math.PI * t.f * u + t.p);
+      return s / norm;
+    };
+  };
+  const snowBig = makePeriodic(5);
+  const snowFine = makePeriodic(12);
+  // Snowline in v-space (0 base → 1 tip); lower = snow reaches further down
+  const snowV = (u: number) => 0.47 + snowBig(u) * 0.1 + snowFine(u) * 0.03;
+  const snowY = (u: number) => (1 - snowV(u)) * h; // canvas y (top = tip)
+
+  // 1. Rock gradient body (light near the crest, deep slate at the skirt)
+  const rockGrad = ctx.createLinearGradient(0, 0, 0, h);
+  rockGrad.addColorStop(0, "#9caabd");
+  rockGrad.addColorStop(0.5, "#6c7a94");
+  rockGrad.addColorStop(1, "#4a5670");
+  ctx.fillStyle = rockGrad;
+  ctx.fillRect(0, 0, w, h);
+
+  // 2. Broad facet panels — big soft value planes across the flank
+  for (let i = 0; i < 7; i += 1) {
+    const cx = (i / 7 + rand() * 0.06) * w;
+    const pw = w * (0.1 + rand() * 0.13);
+    const light = rand() > 0.5;
+    const col = light ? "255,255,255" : "20,26,44";
+    const pg = ctx.createLinearGradient(cx - pw, 0, cx + pw, 0);
+    pg.addColorStop(0, `rgba(${col},0)`);
+    pg.addColorStop(0.5, `rgba(${col},${light ? 0.1 : 0.17})`);
+    pg.addColorStop(1, `rgba(${col},0)`);
+    ctx.fillStyle = pg;
+    ctx.fillRect(cx - pw, 0, pw * 2, h);
+  }
+
+  // 3. Vertical crag striations — the rock's ribs and gullies
+  for (let i = 0; i < 130; i += 1) {
+    const x = rand() * w;
+    const dark = rand() > 0.42;
+    ctx.strokeStyle = dark ? "rgba(28,34,52,0.32)" : "rgba(182,196,214,0.22)";
+    ctx.lineWidth = 1.4 + rand() * 5;
+    const wob = 8 + rand() * 26;
+    ctx.beginPath();
+    ctx.moveTo(x, -12);
+    ctx.bezierCurveTo(
+      x + (rand() - 0.5) * wob, h * 0.4,
+      x + (rand() - 0.5) * wob, h * 0.72,
+      x + (rand() - 0.5) * wob * 0.6, h + 12
+    );
+    ctx.stroke();
+  }
+
+  // 4. The snow cap: fill everything above the ragged snowline
+  const steps = 240;
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(w, 0);
+  ctx.lineTo(w, snowY(1));
+  for (let i = steps; i >= 0; i -= 1) ctx.lineTo((i / steps) * w, snowY(i / steps));
+  ctx.closePath();
+  const snowGrad = ctx.createLinearGradient(0, 0, 0, h * 0.62);
+  snowGrad.addColorStop(0, "#ffffff");
+  snowGrad.addColorStop(1, "#e6edf4");
+  ctx.fillStyle = snowGrad;
+  ctx.fill();
+
+  // 5. Couloir tongues — snow streaking down the gullies into the rock
+  for (let i = 0; i < 7; i += 1) {
+    const u = 0.12 + (i / 7) * 0.76 + (rand() - 0.5) * 0.05;
+    const x = u * w;
+    const top = snowY(u);
+    const reach = h * (0.1 + rand() * 0.17);
+    const wid = 12 + rand() * 22;
+    const tg = ctx.createLinearGradient(0, top, 0, top + reach);
+    tg.addColorStop(0, "rgba(255,255,255,0.95)");
+    tg.addColorStop(1, "rgba(238,244,250,0)");
+    ctx.fillStyle = tg;
+    ctx.beginPath();
+    ctx.moveTo(x - wid, top - 4);
+    ctx.quadraticCurveTo(x - wid * 0.3, top + reach * 0.6, x, top + reach);
+    ctx.quadraticCurveTo(x + wid * 0.3, top + reach * 0.6, x + wid, top - 4);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // 6. Rock ribs surfacing through the snow cap — softer slate outcrops,
+  //    not sharp spikes, so they read as stone up close
+  for (let i = 0; i < 6; i += 1) {
+    const u = 0.1 + (i / 6) * 0.8 + (rand() - 0.5) * 0.06;
+    const x = u * w;
+    const base = snowY(u);
+    const rise = h * (0.05 + rand() * 0.09);
+    const wid = 9 + rand() * 15;
+    ctx.fillStyle = "rgba(84,94,116,0.5)";
+    ctx.beginPath();
+    ctx.moveTo(x - wid, base + 10);
+    ctx.bezierCurveTo(x - wid * 0.5, base - rise * 0.5, x - wid * 0.2, base - rise, x, base - rise);
+    ctx.bezierCurveTo(x + wid * 0.2, base - rise, x + wid * 0.5, base - rise * 0.5, x + wid, base + 10);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // 7. Snow form: faint blue gully-shadows within the cap
+  for (let i = 0; i < 46; i += 1) {
+    const u = rand();
+    const x = u * w;
+    const line = snowY(u);
+    const yTop = rand() * line * 0.55;
+    const len = 40 + rand() * 130;
+    if (yTop + len > line) continue; // stay on the snow
+    ctx.strokeStyle = "rgba(150,170,196,0.4)";
+    ctx.lineWidth = 3 + rand() * 7;
+    ctx.beginPath();
+    ctx.moveTo(x, yTop);
+    ctx.lineTo(x + (rand() - 0.5) * 10, yTop + len);
+    ctx.stroke();
+  }
+
+  // 8. Patchy snow clinging to the rock just below the snowline
+  for (let i = 0; i < 280; i += 1) {
+    const u = rand();
+    const x = u * w;
+    const y = snowY(u) + rand() * h * 0.2;
+    ctx.fillStyle = `rgba(240,245,249,${0.28 + rand() * 0.5})`;
+    ctx.beginPath();
+    ctx.arc(x, y, 1.4 + rand() * 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 9. Fine grain over the whole face
+  for (let i = 0; i < 2600; i += 1) {
+    const value = 200 + Math.floor(rand() * 55);
+    ctx.fillStyle = `rgba(${value},${value},${value + 6},0.09)`;
+    ctx.fillRect(rand() * w, rand() * h, 1.5, 1.5);
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 8;
+  return texture;
+};
 
 /** Radial glow for lantern halos and other soft lights. */
 let glowTexture: THREE.CanvasTexture | null = null;
