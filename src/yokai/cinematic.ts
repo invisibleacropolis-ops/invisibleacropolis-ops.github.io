@@ -1,27 +1,26 @@
 import * as THREE from "three";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
-import { OutlineEffect } from "three/examples/jsm/effects/OutlineEffect.js";
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { Pass } from "three/examples/jsm/postprocessing/Pass.js";
 import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
+import { SafeOutlineEffect } from "./safeOutlineEffect.ts";
 
 /** First composer pass: color render plus the canonical inverted-hull toon ink. */
 class ToonRenderPass extends Pass {
   private readonly scene: THREE.Scene;
   private readonly camera: THREE.Camera;
-  private readonly outline: OutlineEffect;
+  private readonly outline: SafeOutlineEffect;
 
   constructor(renderer: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.Camera) {
     super();
     this.scene = scene;
     this.camera = camera;
     this.needsSwap = false;
-    this.outline = new OutlineEffect(renderer, {
+    this.outline = new SafeOutlineEffect(renderer, {
       defaultThickness: 0.003,
       defaultColor: [0.035, 0.045, 0.065],
       defaultAlpha: 0.94,
-      defaultKeepAlive: true,
     });
   }
 
