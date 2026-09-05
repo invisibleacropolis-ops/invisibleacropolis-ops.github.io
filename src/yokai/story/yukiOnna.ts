@@ -1,4 +1,6 @@
 import * as THREE from "three";
+import { createStorySpectacle } from "./spectacleDirector.ts";
+import { enchantCharacter } from "./spectacleFx.ts";
 import type { Story } from "./engine.ts";
 import { createMoodController, MOODS, type StoryWorld } from "./mood.ts";
 import { createActorMover } from "./motion.ts";
@@ -421,6 +423,37 @@ export const createYukiOnnaStory = (world: StoryWorld): Story => {
     },
   ];
 
+  const spectacle = createStorySpectacle(props, "#caf4ff", "#b7aaff");
+  const frostEnchant = enchantCharacter(yuki.group, "#b4e6ff");
+  const spellAt = new THREE.Vector3();
+  spectacle.smoke.setColors("#bacbdb", "#e4ecf3");
+  spectacle.rainbow.group.position.copy(FLAME_SPOT).add(new THREE.Vector3(0, 60, -190));
+  let breathBeat = -1;
+  spectacle.direct(shots, {
+    0: { frame: (k, s) => { frostEnchant.update(s); frostEnchant.setIntensity(k * 0.3); } },
+    1: { frame: (_k, _s, dt) => spectacle.trail(yukiTravel.position, dt, 0.7) },
+    2: { cues: [{ at: 5, fire: () => {
+      spectacle.echoes.ring(POND_V3.clone().add(new THREE.Vector3(0, 4, 0)), 600, 5);
+      spectacle.smoke.burst(yukiTravel.position.clone().add(new THREE.Vector3(0, 75, 0)), { count: 24, size: 60, speed: 40, life: 5 });
+    } }] },
+    3: { frame: (k, s) => {
+      frostEnchant.update(s); frostEnchant.setIntensity(0.3 + Math.sin(k * Math.PI) * 0.5);
+      const beat = Math.floor(s * 2);
+      if (beat !== breathBeat) {
+        breathBeat = beat;
+        spectacle.sparks.burst(yukiTravel.position.clone().add(new THREE.Vector3(0, 85, 0)), { count: 20, speed: 65, size: 9, life: 4 });
+      }
+    } },
+    5: { cues: [{ at: 6.5, fire: () => { spectacle.echoes.ring(shield.mesh.position, 100, 4, true); spectacle.sparks.burst(shield.mesh.position, { count: 90, speed: 28, life: 4 }); } }] },
+    6: { frame: (_k, _s, dt) => spectacle.trail(wispTravels[2]!.getWorldPosition(spellAt), dt, 2) },
+    7: { frame: (k, s) => { spectacle.rainbow.setIntensity(k * 0.65); frostEnchant.update(s); } },
+    8: { cues: [{ at: 2, fire: () => spectacle.sparks.burst(yukiTravel.position, { count: 260, speed: 110, size: 16, life: 6 }) }], frame: (k, _s, dt) => {
+      spectacle.rainbow.setIntensity((1 - k) * 0.65);
+      spectacle.trail(yukiTravel.position, dt, 3);
+      frostEnchant.setIntensity(1 - k);
+    } },
+  });
+
   return {
     title: "The Night of First Snow",
     subtitle: "初雪の夜 — a tale of Kakuriyo",
@@ -432,6 +465,8 @@ export const createYukiOnnaStory = (world: StoryWorld): Story => {
       for (let i = 0; i < 6; i += 1) world.spirits?.setHidden(`wisp${i}`, true);
     },
     onEnd: () => {
+      spectacle.dispose();
+      frostEnchant.dispose();
       moodCtl.restore();
       windStrength.value = 1;
       water?.setIce(0);

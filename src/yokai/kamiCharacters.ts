@@ -6,11 +6,14 @@ import { FootGait, TwoBoneIK, type GroundSampler } from "./kamiRig.ts";
 import type { SpiritBuild } from "./spirits.ts";
 
 export type KamiKind = "kitsune" | "shika" | "nekomata" | "baku" | "tanuki" | "kappa" | "oni" | "kodama";
+export type KamiPerformance = { wonder?: number; joy?: number; protect?: number; cast?: number; drum?: number };
 export type ArticulatedKami = SpiritBuild & {
   skeleton: THREE.Skeleton;
   limbs: TwoBoneIK[];
   /** Undefined disables terrain sampling for the turntable/flat story stages. */
   setGroundSampler: (sampler?: GroundSampler) => void;
+  setPerformance: (pose: KamiPerformance) => void;
+  getAnchorWorld: (anchor: "leftHand" | "rightHand" | "head" | "tail", out: THREE.Vector3) => THREE.Vector3;
 };
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
@@ -403,14 +406,24 @@ export function buildArticulatedKami(kind: KamiKind): ArticulatedKami {
   });
   const skeleton = new THREE.Skeleton(bones);
   let sampler: GroundSampler | undefined = worldGroundY;
+  const performance = { wonder: 0, joy: 0, protect: 0, cast: 0, drum: 0 };
   let lastTime: number | undefined;
   const handTarget = V();
+  const poseTarget = V();
   const fingers = bones.filter((b) => b.name.startsWith("finger."));
   const charm = bones.find((b) => b.name === "charm");
 
   const build: ArticulatedKami = {
     group, skeleton, limbs,
     setGroundSampler: (ground) => { sampler = ground; },
+    setPerformance(pose) {
+      for (const name of Object.keys(performance) as (keyof typeof performance)[]) performance[name] = THREE.MathUtils.clamp(pose[name] ?? 0, 0, 1);
+    },
+    getAnchorWorld(anchor, out) {
+      const firstTail = tails[0]?.joints;
+      const joint = anchor === "leftHand" ? arms[0]?.end : anchor === "rightHand" ? arms[1]?.end : anchor === "tail" ? firstTail?.[firstTail.length - 1] : head;
+      return (joint ?? head).getWorldPosition(out);
+    },
     animate(t, phase, moving01) {
       const moving = THREE.MathUtils.clamp(moving01, 0, 1);
       const dt = lastTime === undefined || t < lastTime ? 1 / 60 : Math.min(0.1, t - lastTime);
@@ -428,8 +441,11 @@ export function buildArticulatedKami(kind: KamiKind): ArticulatedKami {
       head.rotation.y = attention * (1 - moving * 0.7) * 0.3;
       head.rotation.z = Math.sin(t * 0.61 + phase) * 0.06 * (1 - moving);
       head.rotation.x = kind === "shika" ? Math.pow(Math.max(0, Math.sin(t * 0.24 + phase)), 6) * 0.65 * (1 - moving) : breath * 0.02;
+      head.rotation.x -= performance.wonder * 0.25 + performance.cast * 0.12;
+      head.rotation.z += performance.joy * Math.sin(t * 3.2) * 0.09;
       if (kind === "kodama") head.rotation.z += Math.pow(Math.max(0, Math.sin(t * 0.73 + phase)), 18) * Math.sin(t * 34) * 0.16;
       jaw.rotation.x = 0.02 + Math.max(0, Math.sin(t * 1.8 + phase)) ** 8 * (kind === "oni" ? 0.18 : 0.07);
+      jaw.rotation.x += performance.wonder * 0.13 + performance.joy * 0.08;
       const blinkPhase = ((t + phase) % 4.7 + 4.7) % 4.7;
       const blink = blinkPhase < 0.16 ? 1 - Math.sin(blinkPhase / 0.16 * Math.PI) * 0.96 : 1;
       eyes.forEach((eye) => { eye.scale.y = blink * (kind === "kitsune" || kind === "nekomata" ? 0.7 : 1); eye.rotation.y = attention * 0.12; });
@@ -440,7 +456,7 @@ export function buildArticulatedKami(kind: KamiKind): ArticulatedKami {
       });
       tails.forEach(({ joints, spread, index }) => joints.forEach((joint, j) => {
         joint.rotation.y = (j === 0 ? spread : 0) + Math.sin(t * 1.4 + phase + index * 0.7 - j * 0.55) * 0.12;
-        joint.rotation.x = (j === 0 ? 0.42 + (index % 3) * 0.15 : 0.12) + Math.sin(t * 1.8 + phase - j * 0.5 + index) * 0.1;
+        joint.rotation.x = (j === 0 ? 0.42 + (index % 3) * 0.15 : 0.12) + Math.sin(t * (1.8 + performance.joy) + phase - j * 0.5 + index) * (0.1 + performance.cast * 0.12);
       }));
       trunk.forEach((joint, i) => { joint.rotation.x = -0.14 + Math.sin(t * 1.1 + phase - i * 0.35) * 0.13; joint.rotation.z = Math.sin(t * 0.7 + phase - i * 0.3) * 0.06; });
       if (charm) charm.rotation.x = Math.sin(gait + 0.8) * 0.22 * moving + breath * 0.04;
@@ -456,8 +472,15 @@ export function buildArticulatedKami(kind: KamiKind): ArticulatedKami {
         handTarget.y += gesture * p.body[1] * 0.75;
         handTarget.z += gesture * p.body[0] * 0.65;
         if (kind === "oni" && i === 1) handTarget.y += 9;
+        if (performance.protect > 0 && i === 0) handTarget.lerp(poseTarget.set(-p.body[0] * 0.5, -1, p.body[2] + 9), performance.protect);
+        if (performance.cast > 0) handTarget.lerp(poseTarget.set(side * (p.body[0] + 3), p.body[1] * 0.65, p.body[2] + 6), performance.cast);
+        if (performance.drum > 0) {
+          const beat = Math.sin(t * Math.PI * 2 / 0.62 + i * Math.PI);
+          handTarget.lerp(poseTarget.set(side * p.body[0] * 0.34, -1 + Math.max(0, beat) * 7, p.body[2] + 2), performance.drum);
+        }
         arm.solve(handTarget);
         arm.end.rotation.x += kind === "oni" && i === 1 ? 0.8 : -gesture * 0.3;
+        if (i === 0) arm.end.rotation.x -= performance.protect * Math.PI / 2;
       });
     },
   };

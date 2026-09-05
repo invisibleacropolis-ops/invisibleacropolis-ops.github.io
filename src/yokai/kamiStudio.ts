@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { buildArticulatedKami, type KamiKind } from "./kamiCharacters.ts";
+import { createSpellParticles, createEchoRings, createRainbowArc, enchantCharacter } from "./story/spectacleFx.ts";
 import "./kamiStudio.css";
 
 /** Close-up review of the very same builders used by roaming and story actors.
@@ -33,6 +34,15 @@ panel.innerHTML = `
   <label class="kami-check"><input id="kami-skeleton" type="checkbox" /> Show articulated skeleton</label>
   <label class="kami-check"><input id="kami-slope" type="checkbox" /> Uneven ground / foot IK</label>
   <button id="kami-pause" type="button">Pause animation</button>
+  <label for="kami-performance">Performance</label>
+  <select id="kami-performance"><option value="idle">Quiet</option><option value="wonder">Wonder</option><option value="joy">Joy</option><option value="cast">Cast a spell</option><option value="protect">Gentle hands</option><option value="drum">Belly drum</option></select>
+  <label class="kami-check"><input id="kami-enchanted" type="checkbox" /> Enchanted character shader</label>
+  <label class="kami-check"><input id="kami-night" type="checkbox" /> Night stage</label>
+  <div class="kami-fx-buttons" aria-label="Magic effects">
+    <button data-fx="sparks">Sparks</button><button data-fx="confetti">Confetti</button>
+    <button data-fx="smoke">Smoke</button><button data-fx="echo">Echo rings</button>
+    <button data-fx="rainbow">Rainbow</button><button data-fx="all">All together</button>
+  </div>
   <p id="kami-stats" class="kami-stats" aria-live="polite"></p>
   <p class="kami-note">Walking is demonstrated in place. Ground mode uses the live IK solver on the visible slope.</p>`;
 document.body.append(panel);
@@ -41,6 +51,8 @@ const movement = panel.querySelector<HTMLInputElement>("#kami-motion")!;
 const rigToggle = panel.querySelector<HTMLInputElement>("#kami-skeleton")!;
 const slopeToggle = panel.querySelector<HTMLInputElement>("#kami-slope")!;
 const pause = panel.querySelector<HTMLButtonElement>("#kami-pause")!;
+const performance = panel.querySelector<HTMLSelectElement>("#kami-performance")!;
+const enchanted = panel.querySelector<HTMLInputElement>("#kami-enchanted")!;
 
 const renderer = new THREE.WebGLRenderer({ canvas: document.querySelector<HTMLCanvasElement>("#scene")!, antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
@@ -79,14 +91,30 @@ let current: ReturnType<typeof buildArticulatedKami>;
 let helper: THREE.SkeletonHelper | undefined;
 let paused = false;
 let time = 0;
+let enchantment: ReturnType<typeof enchantCharacter> | undefined;
+const sparks = createSpellParticles("sparks"), confetti = createSpellParticles("confetti"), smoke = createSpellParticles("smoke", 96);
+const echoes = createEchoRings(), rainbow = createRainbowArc(65, 9);
+scene.add(sparks.group, confetti.group, smoke.group, echoes.group, rainbow.group);
+smoke.setColors("#778c95", "#c4cbd8");
+rainbow.group.position.set(0, 0, -35);
+let rainbowUntil = -1;
+const spellOrigin = new THREE.Vector3();
+
+function setPerformance() {
+  current.setPerformance({ [performance.value]: 1 });
+}
 
 function changeSpirit() {
   const kind = select.value as KamiKind;
   if (current) scene.remove(current.group);
+  enchantment?.dispose();
   if (helper) { scene.remove(helper); helper.dispose(); }
   let build = cache.get(kind);
   if (!build) { build = buildArticulatedKami(kind); cache.set(kind, build); }
   current = build;
+  enchantment = enchantCharacter(current.group);
+  enchantment.setIntensity(enchanted.checked ? 0.8 : 0);
+  setPerformance();
   current.setGroundSampler(slopeToggle.checked ? sampleSlope : flatGround);
   current.animate(time, 0.6, Number(movement.value));
   scene.add(current.group);
@@ -113,6 +141,23 @@ function changeSpirit() {
   panel.querySelector("#kami-stats")!.textContent = `${current.skeleton.bones.length} bones · ${current.limbs.length} IK chains · ${Math.round(triangles).toLocaleString()} triangles · ${meshes} meshes`;
 }
 select.addEventListener("change", changeSpirit);
+performance.addEventListener("change", setPerformance);
+enchanted.addEventListener("change", () => enchantment?.setIntensity(enchanted.checked ? 0.8 : 0));
+panel.querySelector<HTMLInputElement>("#kami-night")!.addEventListener("change", (event) => {
+  const night = (event.target as HTMLInputElement).checked;
+  scene.background = new THREE.Color(night ? "#172532" : "#d8d9cd");
+  (ground.material as THREE.MeshStandardMaterial).color.set(night ? "#273e4b" : "#9da990");
+  light.intensity = night ? 1.4 : 3;
+});
+panel.querySelectorAll<HTMLButtonElement>("[data-fx]").forEach((button) => button.addEventListener("click", () => {
+  const effect = button.dataset.fx;
+  current.getAnchorWorld("head", spellOrigin);
+  if (effect === "sparks" || effect === "all") sparks.burst(spellOrigin, { count: 160, size: 5, speed: 38, life: 3 });
+  if (effect === "confetti" || effect === "all") confetti.burst(spellOrigin, { count: 130, size: 3, speed: 40, life: 3 });
+  if (effect === "smoke" || effect === "all") smoke.burst(spellOrigin, { count: 20, size: 18, speed: 10, life: 4 });
+  if (effect === "echo" || effect === "all") echoes.ring(new THREE.Vector3(0, 1, 0), 80, 3);
+  if (effect === "rainbow" || effect === "all") rainbowUntil = time + 6;
+}));
 rigToggle.addEventListener("change", () => { if (helper) helper.visible = rigToggle.checked; });
 slopeToggle.addEventListener("change", () => {
   const positions = groundGeometry.attributes.position;
@@ -141,7 +186,11 @@ changeSpirit();
 const clock = new THREE.Clock();
 renderer.setAnimationLoop(() => {
   const dt = Math.min(clock.getDelta(), 0.05);
-  if (!paused) { time += dt; current.animate(time, 0.6, Number(movement.value)); }
+  if (!paused) {
+    time += dt; current.animate(time, 0.6, Number(movement.value));
+    sparks.update(time); confetti.update(time); smoke.update(time); echoes.update(time); rainbow.update(time); enchantment?.update(time);
+    rainbow.setIntensity(Math.min(1, Math.max(0, rainbowUntil - time)));
+  }
   controls.update();
   renderer.render(scene, camera);
 });

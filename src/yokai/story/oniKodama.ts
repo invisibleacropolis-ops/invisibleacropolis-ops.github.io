@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { createStorySpectacle } from "./spectacleDirector.ts";
 import type { Story } from "./engine.ts";
 import { createMoodController, MOODS, type StoryWorld } from "./mood.ts";
 import { createActorMover } from "./motion.ts";
@@ -190,10 +191,8 @@ export const createOniKodamaStory = (world: StoryWorld): Story => {
 
     if (carrying) {
       // Riding the great open palm
-      lostTravel.position.copy(oniTravel.position);
-      lostTravel.position.y += 62;
-      const forward = new THREE.Vector3(Math.sin(oniTravel.rotation.y), 0, Math.cos(oniTravel.rotation.y));
-      lostTravel.position.addScaledVector(forward, 34);
+      oni.getAnchorWorld("leftHand", lostTravel.position);
+      lostTravel.position.y += 4;
       lostTravel.rotation.y = oniTravel.rotation.y;
     }
   };
@@ -314,7 +313,7 @@ export const createOniKodamaStory = (world: StoryWorld): Story => {
         const lift = THREE.MathUtils.clamp((s - 2.6) / 2.6, 0, 1);
         if (lift > 0 && !carrying) {
           const eased = lift * lift * (3 - 2 * lift);
-          const palm = oniTravel.position.clone().add(new THREE.Vector3(0, 62, 30));
+          const palm = oni.getAnchorWorld("leftHand", new THREE.Vector3()).add(new THREE.Vector3(0, 4, 0));
           lostTravel.position.lerpVectors(findSpot, palm, eased);
           if (lift >= 1) carrying = true;
         }
@@ -377,7 +376,7 @@ export const createOniKodamaStory = (world: StoryWorld): Story => {
         if (setDown > 0) {
           carrying = false; // the hand guides from here
           const eased = setDown * setDown * (3 - 2 * setDown);
-          const palm = oniTravel.position.clone().add(new THREE.Vector3(0, 62, 30));
+          const palm = oni.getAnchorWorld("leftHand", new THREE.Vector3()).add(new THREE.Vector3(0, 4, 0));
           const home = new THREE.Vector3(grove.x, heightAt(grove.x, grove.z), grove.z);
           lostTravel.position.lerpVectors(palm, home, eased);
           if (setDown >= 1 && !petalsFired) {
@@ -464,6 +463,26 @@ export const createOniKodamaStory = (world: StoryWorld): Story => {
     },
   ];
 
+  const spectacle = createStorySpectacle(props, "#f9d3eb", "#bcf1cf", oni);
+  const spellAt = new THREE.Vector3();
+  spectacle.direct(shots, {
+    2: { pose: { wonder: 0.5 } },
+    3: { pose: { protect: 1 }, cues: [{ at: 5.2, fire: () => spectacle.sparks.burst(oni.getAnchorWorld("leftHand", spellAt), { count: 35, speed: 15, size: 7 }) }] },
+    4: { pose: { protect: 1 }, frame: (_k, _s, dt) => {
+      if (carrying) { oni.getAnchorWorld("leftHand", lostTravel.position); lostTravel.position.y += 4; }
+      spectacle.trail(oni.getAnchorWorld("leftHand", spellAt), dt, 0.5);
+    } },
+    5: { pose: { protect: 1 }, cues: [{ at: 4.1, fire: () => {
+      spellAt.copy(grove).y += 30;
+      spectacle.confetti.burst(spellAt, { count: 220, speed: 80, life: 5, size: 8 });
+      spectacle.sparks.burst(spellAt, { count: 130, speed: 60, life: 4 });
+      spectacle.echoes.ring(grove.clone().add(new THREE.Vector3(0, 3, 0)), 240, 5);
+    } }] },
+    6: { pose: { wonder: 0.7, joy: 0.3 }, frame: (k) => spectacle.enchantment?.setIntensity(k * 0.6) },
+    7: { pose: { joy: 0.6 } },
+    8: { pose: { joy: 0.6 }, frame: (k) => spectacle.enchantment?.setIntensity((1 - k) * 0.6) },
+  });
+
   return {
     title: "The Oni Who Guarded the Gate",
     subtitle: "門番の鬼 — a tale of Kakuriyo",
@@ -477,6 +496,7 @@ export const createOniKodamaStory = (world: StoryWorld): Story => {
       world.spirits?.setHidden("shika", true);
     },
     onEnd: () => {
+      spectacle.dispose();
       moodCtl.restore();
       petalBurst.dispose();
       world.spirits?.setHidden("oni", false);

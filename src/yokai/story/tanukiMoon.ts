@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { createStorySpectacle } from "./spectacleDirector.ts";
 import type { Story } from "./engine.ts";
 import { createMoodController, MOODS, type StoryWorld } from "./mood.ts";
 import { createPoofFx, createRippleFx } from "./fx.ts";
@@ -530,6 +531,34 @@ export const createTanukiMoonStory = (world: StoryWorld): Story => {
     },
   ];
 
+  const spectacle = createStorySpectacle(props, "#ffd985", "#b6d68d", tanuki);
+  const spellAt = new THREE.Vector3();
+  const hengeBurst = () => {
+    spellAt.copy(tanukiTravel.position).y += 35;
+    spectacle.smoke.burst(spellAt, { count: 48, size: 60, speed: 38 });
+    spectacle.confetti.burst(spellAt, { count: 100, speed: 100, life: 4.5 });
+    spectacle.echoes.ring(tanukiTravel.position, 140, 2.8);
+  };
+  let spellBeat = -1;
+  spectacle.direct(shots, {
+    1: { pose: { wonder: 0.25 } },
+    3: { pose: { cast: 0.9 }, cues: [{ at: 2.2, fire: hengeBurst }], frame: (_k, s) => spectacle.enchantment?.setIntensity(Math.max(0, 1 - Math.abs(s - 2.2))) },
+    5: { enter: hengeBurst },
+    6: { pose: { wonder: 1 } },
+    7: { pose: { protect: 0.5 }, cues: [{ at: 9.2, fire: () => spectacle.sparks.burst(tanuki.getAnchorWorld("head", spellAt), { count: 45, speed: 30 }) }] },
+    8: { pose: { drum: 1, joy: 1 }, enter: () => { spellBeat = -1; }, frame: (_k, s) => {
+      spectacle.enchantment?.setIntensity(0.22 + Math.sin(s * 2) * 0.08);
+      const beat = Math.floor(s / 0.62);
+      if (beat !== spellBeat && s > 0.6) {
+        spellBeat = beat;
+        tanuki.getAnchorWorld(beat % 2 ? "leftHand" : "rightHand", spellAt);
+        spectacle.echoes.ring(spellAt, 140, 2.2, true);
+        spectacle.sparks.burst(spellAt, { count: 18, speed: 35, size: 8 });
+        if (beat % 4 === 0) spectacle.confetti.burst(spellAt, { count: 90, speed: 95, life: 4 });
+      }
+    } },
+  });
+
   return {
     title: "The Tanuki and the Moon-Offering",
     subtitle: "狸と月見団子 — a tale of Kakuriyo",
@@ -543,6 +572,7 @@ export const createTanukiMoonStory = (world: StoryWorld): Story => {
       world.spirits?.setHidden("chochin", true);
     },
     onEnd: () => {
+      spectacle.dispose();
       moodCtl.restore();
       world.spirits?.setHidden("tanuki", false);
       world.spirits?.setHidden("chochin", false);

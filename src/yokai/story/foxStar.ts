@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { createStorySpectacle } from "./spectacleDirector.ts";
 import type { Story } from "./engine.ts";
 import { createMoodController, MOODS, type StoryWorld } from "./mood.ts";
 import { createActorMover } from "./motion.ts";
@@ -278,7 +279,7 @@ export const createFoxStarStory = (world: StoryWorld): Story => {
         lookOffset: new THREE.Vector3(0, 30, 60),
       },
       lines: [
-        { at: 1.4, text: "On the shrine road, the five-tailed fox saw the sky stumble." },
+        { at: 1.4, text: "On the shrine road, the nine-tailed fox saw the sky stumble." },
         { at: 6.2, text: "Curiosity is a fox's oldest religion." },
       ],
       onEnter: () => {
@@ -399,7 +400,7 @@ export const createFoxStarStory = (world: StoryWorld): Story => {
         lookAt: () => star.getWorldPosition(new THREE.Vector3()).lerp(new THREE.Vector3(PEAK_LEDGE.x, PEAK_LEDGE.y + 120, PEAK_LEDGE.z), 0.4),
       },
       lines: [
-        { at: 1.2, text: "At the little shrine on the world's shoulder, she threw with all five tails." },
+        { at: 1.2, text: "At the little shrine on the world's shoulder, she threw with all nine tails." },
         { at: 9.0, text: "And the sky, delighted, caught it." },
       ],
       onEnter: () => {
@@ -468,6 +469,31 @@ export const createFoxStarStory = (world: StoryWorld): Story => {
     },
   ];
 
+  const spectacle = createStorySpectacle(props, "#ffe5a2", "#b8a4ff", fox);
+  const spellAt = new THREE.Vector3();
+  spectacle.rainbow.group.position.set(PEAK_LEDGE.x, PEAK_LEDGE.y + 200, PEAK_LEDGE.z - 160);
+  spectacle.rainbow.group.scale.setScalar(1.5);
+  spectacle.direct(shots, {
+    1: { cues: [{ at: 5.85, fire: () => {
+      spectacle.sparks.burst(STAR_REST, { count: 180, speed: 110 });
+      spectacle.echoes.ring(STAR_REST, 240, 4);
+      spectacle.smoke.burst(STAR_REST, { count: 16, speed: 18, size: 35 });
+    } }], frame: (_k, s, dt) => { if (s > 1.2 && s < 5.8) spectacle.trail(star.getWorldPosition(spellAt), dt, 3); } },
+    2: { pose: { wonder: 0.8 } },
+    4: { pose: { wonder: 0.4 } },
+    5: { pose: { joy: 0.5 }, frame: (k) => spectacle.enchantment?.setIntensity(k * 0.55) },
+    6: { frame: (_k, _s, dt) => spectacle.trail(fox.getAnchorWorld("tail", spellAt), dt) },
+    7: { pose: { cast: 1, joy: 0.8 }, cues: [
+      { at: 2.2, fire: () => { spectacle.echoes.ring(foxTravel.position, 210, 4); spectacle.sparks.burst(star.getWorldPosition(spellAt), { count: 140 }); } },
+      { at: 9.2, fire: () => spectacle.sparks.burst(star.getWorldPosition(spellAt), { count: 340, size: 24, speed: 230, life: 5 }) },
+    ], frame: (k, s, dt) => {
+      spectacle.enchantment?.setIntensity(Math.sin(k * Math.PI) * 0.9);
+      spectacle.rainbow.setIntensity(Math.min(1, Math.max(0, s - 6) / 4));
+      if (s > 2.2 && s < 9.2) spectacle.trail(star.getWorldPosition(spellAt), dt, 5);
+    } },
+    8: { pose: { joy: 0.6 }, frame: (k) => { spectacle.rainbow.setIntensity(1 - k); spectacle.enchantment?.setIntensity((1 - k) * 0.4); } },
+  });
+
   return {
     title: "The Fox and the Fallen Star",
     subtitle: "狐と流れ星 — a tale of Kakuriyo",
@@ -480,6 +506,7 @@ export const createFoxStarStory = (world: StoryWorld): Story => {
       world.spirits?.setHidden("kappa", true);
     },
     onEnd: () => {
+      spectacle.dispose();
       applyMood(0);
       aurora.dispose();
       launchWhirl.dispose();

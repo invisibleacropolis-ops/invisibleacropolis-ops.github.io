@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { createStorySpectacle } from "./spectacleDirector.ts";
 import type { Story } from "./engine.ts";
 import { createMoodController, MOODS, type StoryWorld } from "./mood.ts";
 import { createActorMover } from "./motion.ts";
@@ -388,6 +389,30 @@ export const createDragonRainStory = (world: StoryWorld): Story => {
     },
   ];
 
+  const spectacle = createStorySpectacle(props, "#aee9ff", "#d3b9ff", kappa);
+  const spellAt = new THREE.Vector3();
+  spectacle.smoke.setColors("#8498ab", "#c7d3e0");
+  spectacle.rainbow.group.position.set(POND_CENTER.x, WATER_LEVEL + 35, POND_CENTER.y - 200);
+  spectacle.rainbow.group.scale.setScalar(1.65);
+  let cloudBeat = -1;
+  spectacle.direct(shots, {
+    3: { pose: { cast: 0.55 }, cues: [{ at: 4.5, fire: () => { spectacle.sparks.burst(offering.position, { count: 70, speed: 35 }); spectacle.echoes.ring(offering.position, 95, 4); } }] },
+    4: { pose: { wonder: 1 } },
+    6: { pose: { wonder: 0.8 }, frame: (k, s, dt) => {
+      spectacle.trail(ryuTravel.position, dt, 4);
+      const beat = Math.floor(s * 2);
+      if (beat !== cloudBeat) {
+        cloudBeat = beat;
+        spectacle.smoke.burst(ryuTravel.position, { count: 8, size: 180, speed: 45, life: 5 });
+        if (beat % 5 === 0) spectacle.echoes.ring(ryuTravel.position, 450, 4);
+      }
+      spectacle.enchantment?.setIntensity(k * 0.5);
+    } },
+    7: { frame: (k) => spectacle.rainbow.setIntensity(Math.max(0, k - 0.45)) },
+    8: { pose: { joy: 1, cast: 0.4 }, cues: [{ at: 0.6, fire: () => spectacle.sparks.burst(kappa.getAnchorWorld("head", spellAt), { count: 130, speed: 90 }) }],
+      frame: (k) => { spectacle.rainbow.setIntensity(Math.sin((0.15 + k * 0.85) * Math.PI)); spectacle.enchantment?.setIntensity((1 - k) * 0.6); } },
+  });
+
   return {
     title: "The Day the River Slept",
     subtitle: "川が眠った日 — a tale of Kakuriyo",
@@ -400,6 +425,7 @@ export const createDragonRainStory = (world: StoryWorld): Story => {
       world.spirits?.setHidden("ryu", true);
     },
     onEnd: () => {
+      spectacle.dispose();
       moodCtl.restore();
       windStrength.value = 1;
       water?.setFlow(1);
