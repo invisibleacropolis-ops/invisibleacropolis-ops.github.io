@@ -7,6 +7,7 @@
     "build": "npm run generate:pages && vite build && npm run copy:pages",
     "copy:pages": "node scripts/copy-static-pages.cjs",
     "preview": "vite preview",
+    "verify:kami": "node scripts/verify-kami.mjs",
     "generate:pages": "node scripts/generate-pages-json.cjs"
   },
   "devDependencies": {

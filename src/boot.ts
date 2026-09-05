@@ -6,7 +6,9 @@
  */
 const params = new URLSearchParams(window.location.search);
 
-if (params.has("classic")) {
+if (params.has("kami")) {
+  void import("./yokai/kamiStudio.ts");
+} else if (params.has("classic")) {
   void import("./index.ts");
 } else {
   void import("./yokai/main.ts");
