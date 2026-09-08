@@ -25,6 +25,12 @@ This runs three steps in order:
 
 Preview the production build with `npm run preview`.
 
+## Automatic Playwright screen exports
+
+Use [the screen-export helper](docs/playwright-screen-export.md) alongside an existing Playwright tab to capture one viewport screenshot per second automatically. Run `node scripts/playwright-screen-export.cjs tool-start <label>`, then pass the returned file to Playwright's code tool. Each run gets a separate, git-ignored `.captures/playwright/` folder; filenames contain elapsed timecodes and UTC timestamps. Stop with `page.__screenExport.stop()`, review the sequence, then use the helper's guarded `clean` command. A native Node Playwright API is also provided, including a JSON timing index.
+
+Agent skill: `playwright-screen-export` (installed in the local Codex skills directory) explicitly references this helper. Screenshots sample browser output, not the physical display; a 1 Hz sequence can miss a one-frame glitch.
+
 ## Deployment
 
 `.github/workflows/deploy.yml` runs on every push to `main` (or manually via workflow dispatch): it runs `npm run build` and deploys `dist/` to GitHub Pages.

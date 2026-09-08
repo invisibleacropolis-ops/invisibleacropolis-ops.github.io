@@ -61,8 +61,9 @@ export const createStoryPlayer = ({
   /**
    * Solid scenery (terrain, mountains, buildings). Each frame a ray is
    * cast from the shot's look-target back toward the desired camera; if
-   * scenery interrupts it, the camera booms in front of the obstruction —
-   * so it can never sit inside or slide through geometry.
+   * scenery interrupts it, the camera booms in front of the obstruction.
+   * This center-line guard complements authored clear paths; it is not a
+   * full camera-volume collision solver and excludes decorative foliage.
    */
   occluders?: THREE.Object3D[];
 }): StoryPlayer => {
@@ -71,6 +72,8 @@ export const createStoryPlayer = ({
   let shotTime = 0;
   let firedLines = 0;
   const smoothedLook = new THREE.Vector3();
+  // Keep the authored follow motion independent of collision corrections.
+  const followPosition = new THREE.Vector3();
   let lookInitialized = false;
 
   const enterShot = (index: number) => {
@@ -120,13 +123,18 @@ export const createStoryPlayer = ({
         const target = resolve(rig.target);
         const desired = target.clone().add(rig.offset);
         const stiffness = rig.stiffness ?? 2.4;
-        camera.position.lerp(desired, Math.min(1, dt * stiffness));
         const lookPoint = target.clone().add(rig.lookOffset ?? new THREE.Vector3(0, 20, 0));
         if (!lookInitialized) {
           smoothedLook.copy(lookPoint);
+          followPosition.copy(desired);
           lookInitialized = true;
         }
-        smoothedLook.lerp(lookPoint, Math.min(1, dt * 3.2));
+        const blend = 1 - Math.exp(-dt * stiffness);
+        followPosition.lerp(desired, blend);
+        camera.position.copy(followPosition);
+        // Aim follows the current subject; translation alone supplies the
+        // cinematic lag. Delaying both can lose fast actors around tight bends.
+        smoothedLook.copy(lookPoint);
         camera.lookAt(smoothedLook);
         return smoothedLook.clone();
       }
@@ -156,7 +164,7 @@ export const createStoryPlayer = ({
   let boomFrac = 1;
   let boomFresh = true;
 
-  const resolveBoom = (look: THREE.Vector3) => {
+  const resolveBoom = (look: THREE.Vector3, dt: number) => {
     if (!occluders || occluders.length === 0) return;
     boomDir.copy(camera.position).sub(look);
     const dist = boomDir.length();
@@ -164,14 +172,21 @@ export const createStoryPlayer = ({
     boomDir.normalize();
     raycaster.set(look, boomDir);
     raycaster.far = dist;
-    const hits = raycaster.intersectObjects(occluders, true);
+    const hits = raycaster.intersectObjects(occluders, true).filter((hit) => {
+      // Light halos and invisible helpers are not physical camera obstacles.
+      if (!(hit.object instanceof THREE.Mesh)) return false;
+      for (let node: THREE.Object3D | null = hit.object; node; node = node.parent) {
+        if (!node.visible) return false;
+      }
+      const materials = Array.isArray(hit.object.material) ? hit.object.material : [hit.object.material];
+      const material = materials[hit.face?.materialIndex ?? 0];
+      return material?.visible && !(material.transparent && !material.depthWrite);
+    });
 
     let targetFrac = 1;
     if (hits.length > 0) {
-      // Never boom closer than ~140 units: a grazing terrain hit should
-      // trim the shot, not press the lens against the subject.
-      const minFrac = Math.min(1, 140 / dist);
-      targetFrac = THREE.MathUtils.clamp((hits[0]!.distance - 20) / dist, minFrac, 1);
+      // A minimum subject distance must never override an actual obstruction.
+      targetFrac = THREE.MathUtils.clamp((hits[0]!.distance - 20) / dist, 0, 1);
     }
     if (boomFresh) {
       boomFrac = targetFrac; // a fresh shot must not start embedded
@@ -179,7 +194,7 @@ export const createStoryPlayer = ({
     } else if (targetFrac < boomFrac) {
       boomFrac = targetFrac; // snap in front of obstruction immediately
     } else {
-      boomFrac += (targetFrac - boomFrac) * 0.06; // relax back out slowly
+      boomFrac += (targetFrac - boomFrac) * (1 - Math.exp(-dt * 3.7));
     }
     camera.position.copy(look).addScaledVector(boomDir, dist * boomFrac);
   };
@@ -216,18 +231,24 @@ export const createStoryPlayer = ({
         }
       }
 
+      // Choreography must precede framing: targets now describe this frame.
+      shot.onUpdate?.(shotT01, dt, shotTime);
       const lookPoint = runRig(shot.rig, shotT01, dt);
 
-      // Collision guards: boom in front of scenery, then stay above ground.
-      resolveBoom(lookPoint);
+      // Raise the intended endpoint before checking the sightline.
       if (groundY) {
         const minY = groundY(camera.position.x, camera.position.z) + cameraClearance;
         if (camera.position.y < minY) {
           camera.position.y = minY;
         }
       }
-
-      shot.onUpdate?.(shotT01, dt, shotTime);
+      resolveBoom(lookPoint, dt);
+      if (groundY) {
+        camera.position.y = Math.max(camera.position.y,
+          groundY(camera.position.x, camera.position.z) + cameraClearance);
+      }
+      // Ground/boom corrections change the view direction, especially on slopes.
+      camera.lookAt(lookPoint);
 
       if (shotTime >= shot.duration) {
         shot.onExit?.();

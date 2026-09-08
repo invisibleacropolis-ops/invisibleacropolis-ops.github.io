@@ -7,11 +7,12 @@ import { createAurora, createWhirl } from "./magicFx.ts";
 import { buildKappa, buildKitsune } from "../spirits.ts";
 import { heightAt, WATER_LEVEL } from "../terrain.ts";
 import { PEAK_LEDGE } from "../mountains.ts";
+import { openFoliageCorridor } from "./foliageClearance.ts";
 
 /**
  * THE FOX AND THE FALLEN STAR
  *
- * A star slips from the sky into the spirit pond. The five-tailed
+ * A star slips from the sky into the spirit pond. The nine-tailed
  * kitsune of the shrine road carries it up the sacred mountain, to the
  * little hokora on the world's shoulder, and throws it home.
  */
@@ -126,28 +127,39 @@ export const createFoxStarStory = (world: StoryWorld): Story => {
   /* ── Paths ── */
   const groundPoint = (x: number, z: number, lift = 0) => new THREE.Vector3(x, heightAt(x, z) + lift, z);
 
-  const t1 = toriiPath[1] ?? groundPoint(900, 900);
-  const t3 = toriiPath[3] ?? groundPoint(1000, 1400);
-  const t5 = toriiPath[5] ?? groundPoint(1100, 1900);
+  // The articulated tails are wider/taller than the old model. Use a parallel
+  // lane outside the torii pillars and lanterns rather than threading their roofs.
+  const roadSide = (p: THREE.Vector3) => groundPoint(p.x + 240, p.z);
+  const t1 = roadSide(toriiPath[1] ?? groundPoint(900, 900));
+  const t3 = roadSide(toriiPath[3] ?? groundPoint(1000, 1400));
+  const t5 = roadSide(toriiPath[5] ?? groundPoint(1100, 1900));
 
   const pathRoad = new THREE.CatmullRomCurve3([
     t1.clone(), t3.clone(), t5.clone(),
   ]);
 
-  const bridgeMid = groundPoint(-820, 1690, 56);
+  // A light bound over the narrow bridge keeps the broad tail fan above its rails.
+  const bridgeMid = groundPoint(-820, 1690, 130);
   const pathJourney = new THREE.CatmullRomCurve3([
     t5.clone(),
-    groundPoint(240, 1780),
+    groundPoint(t5.x, t5.z + 250),
+    groundPoint(240, 2100),
     groundPoint(-320, 2020),
     groundPoint(-660, 1800),
     bridgeMid,
+    groundPoint(-1010, 1590),
     groundPoint(-980, 1430),
+    groundPoint(-760, 1500),
+    groundPoint(-540, 1450),
     groundPoint(SHORE.x, SHORE.z),
   ]);
 
   const pathClimb = new THREE.CatmullRomCurve3([
     groundPoint(SHORE.x, SHORE.z),
-    groundPoint(-900, 690),
+    // Follow the eastern bank instead of cutting across the water disk.
+    groundPoint(-410, 900),
+    groundPoint(-500, 460),
+    groundPoint(-940, 200),
     groundPoint(-1240, 110),
     groundPoint(-1500, -430),
     new THREE.Vector3(-1660, 330, -930),
@@ -209,6 +221,9 @@ export const createFoxStarStory = (world: StoryWorld): Story => {
   };
 
   const foxPos = () => foxTravel.position.clone();
+  // Frame the whole encounter, not the star alone at water level.
+  const pondFocus = () => foxPos().lerp(kappaTravel.position, 0.5).add(new THREE.Vector3(0, 48, 0));
+  let restoreFoliage: (() => void) | undefined;
 
   /* ── The shots ── */
   const shots: Story["shots"] = [
@@ -219,8 +234,8 @@ export const createFoxStarStory = (world: StoryWorld): Story => {
         kind: "dolly",
         from: new THREE.Vector3(-1600, 1500, 3200),
         to: new THREE.Vector3(-400, 900, 2400),
-        lookFrom: new THREE.Vector3(700, 250, 350),
-        lookTo: new THREE.Vector3(200, 150, 800),
+        lookFrom: new THREE.Vector3(700, 560, 350),
+        lookTo: new THREE.Vector3(200, 480, 800),
       },
       lines: [{ at: 3.2, text: "When the sun slipped behind the mountains, Kakuriyo held its breath." }],
       onEnter: () => {
@@ -239,7 +254,7 @@ export const createFoxStarStory = (world: StoryWorld): Story => {
       duration: 9.5,
       rig: {
         kind: "static",
-        position: new THREE.Vector3(-1450, 190, 1720),
+        position: new THREE.Vector3(-1150, 340, 1550),
         lookAt: () => star.visible ? star.position.clone() : new THREE.Vector3(400, 1500, 0),
       },
       lines: [
@@ -275,8 +290,8 @@ export const createFoxStarStory = (world: StoryWorld): Story => {
       rig: {
         kind: "follow",
         target: foxPos,
-        offset: new THREE.Vector3(-130, 150, -170),
-        lookOffset: new THREE.Vector3(0, 30, 60),
+        offset: new THREE.Vector3(-260, 300, 220),
+        lookOffset: new THREE.Vector3(0, 48, 0),
       },
       lines: [
         { at: 1.4, text: "On the shrine road, the nine-tailed fox saw the sky stumble." },
@@ -297,9 +312,10 @@ export const createFoxStarStory = (world: StoryWorld): Story => {
       rig: {
         kind: "follow",
         target: foxPos,
-        // High enough to clear the bamboo grove the route threads through
-        offset: new THREE.Vector3(230, 175, 70),
-        lookOffset: new THREE.Vector3(0, 26, 0),
+        // Steep, generous framing keeps the nine tails inside the picture
+        // and shortens the sightline through the bamboo canopy.
+        offset: new THREE.Vector3(100, 380, 170),
+        lookOffset: new THREE.Vector3(0, 48, 0),
         stiffness: 3,
       },
       lines: [
@@ -317,8 +333,8 @@ export const createFoxStarStory = (world: StoryWorld): Story => {
       duration: 12,
       rig: {
         kind: "static",
-        position: new THREE.Vector3(-980, 70, 1420),
-        lookAt: STAR_REST.clone().add(new THREE.Vector3(60, 10, 40)),
+        position: new THREE.Vector3(-1010, 270, 930),
+        lookAt: pondFocus,
       },
       lines: [
         { at: 1.0, text: "In the shallows lay the star, growing dim." },
@@ -342,10 +358,10 @@ export const createFoxStarStory = (world: StoryWorld): Story => {
       duration: 8.5,
       rig: {
         kind: "dolly",
-        from: new THREE.Vector3(-870, 60, 1350),
-        to: new THREE.Vector3(-700, 46, 1290),
-        lookFrom: STAR_REST.clone(),
-        lookTo: () => foxTravel.position.clone().add(new THREE.Vector3(0, 40, 0)),
+        from: new THREE.Vector3(-1010, 270, 930),
+        to: new THREE.Vector3(-910, 235, 990),
+        lookFrom: pondFocus,
+        lookTo: () => foxPos().lerp(STAR_REST, 0.35).add(new THREE.Vector3(0, 48, 0)),
       },
       lines: [
         { at: 1.6, text: "「Then ride my tails,」 said the fox. 「The mountain knows the way home.」" },
@@ -373,8 +389,8 @@ export const createFoxStarStory = (world: StoryWorld): Story => {
       rig: {
         kind: "follow",
         target: foxPos,
-        offset: new THREE.Vector3(150, 120, 190),
-        lookOffset: new THREE.Vector3(0, 30, 0),
+        offset: new THREE.Vector3(250, 300, 330),
+        lookOffset: new THREE.Vector3(0, 48, 0),
         stiffness: 2.6,
       },
       lines: [
@@ -396,7 +412,7 @@ export const createFoxStarStory = (world: StoryWorld): Story => {
       duration: 13,
       rig: {
         kind: "static",
-        position: new THREE.Vector3(PEAK_LEDGE.x + 260, PEAK_LEDGE.y + 60, PEAK_LEDGE.z + 300),
+        position: new THREE.Vector3(PEAK_LEDGE.x + 370, PEAK_LEDGE.y + 180, PEAK_LEDGE.z + 500),
         lookAt: () => star.getWorldPosition(new THREE.Vector3()).lerp(new THREE.Vector3(PEAK_LEDGE.x, PEAK_LEDGE.y + 120, PEAK_LEDGE.z), 0.4),
       },
       lines: [
@@ -453,7 +469,7 @@ export const createFoxStarStory = (world: StoryWorld): Story => {
         from: new THREE.Vector3(PEAK_LEDGE.x + 400, PEAK_LEDGE.y + 160, PEAK_LEDGE.z + 480),
         to: new THREE.Vector3(-100, 1250, 2400),
         lookFrom: new THREE.Vector3(PEAK_LEDGE.x, PEAK_LEDGE.y + 60, PEAK_LEDGE.z),
-        lookTo: new THREE.Vector3(400, 260, 300),
+        lookTo: new THREE.Vector3(400, 560, 300),
       },
       lines: [
         { at: 2.2, text: "They say a fox's wish still burns among the stars —" },
@@ -499,6 +515,7 @@ export const createFoxStarStory = (world: StoryWorld): Story => {
     subtitle: "狐と流れ星 — a tale of Kakuriyo",
     shots,
     onStart: () => {
+      restoreFoliage = openFoliageCorridor(world.foliage, [pathRoad, pathJourney, pathClimb]);
       scene.add(props);
       applyMood(0);
       // The tale casts the fox and the kappa; their ambient doubles rest
@@ -506,6 +523,8 @@ export const createFoxStarStory = (world: StoryWorld): Story => {
       world.spirits?.setHidden("kappa", true);
     },
     onEnd: () => {
+      restoreFoliage?.();
+      restoreFoliage = undefined;
       spectacle.dispose();
       applyMood(0);
       aurora.dispose();

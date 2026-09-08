@@ -26,6 +26,8 @@ export type StoryWorld = {
   castleGate?: THREE.Vector3;
   /** Sakura positions — where kodama belong. */
   sakuraSpots?: THREE.Vector3[];
+  /** Instanced vegetation, for reversible cinematic route clearance. */
+  foliage?: THREE.Group;
 };
 
 export type Mood = {

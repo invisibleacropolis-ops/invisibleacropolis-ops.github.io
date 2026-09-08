@@ -4,6 +4,9 @@ node_modules/
 # Build output
 dist/
 
+# Automatic Playwright screenshot sessions (local evidence only)
+.captures/
+
 # IDE
 .vscode/
 .idea/

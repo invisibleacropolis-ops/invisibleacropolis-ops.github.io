@@ -197,6 +197,7 @@ const storyWorld: StoryWorld = {
   water,
   castleGate: castle.gatePoint,
   sakuraSpots: flora.sakuraSpots,
+  foliage: flora.group,
 };
 
 // The library of tales, each on its own key from the splash screen
