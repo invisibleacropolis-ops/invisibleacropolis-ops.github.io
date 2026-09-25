@@ -4,6 +4,8 @@ import { createRng } from "../scene/random.ts";
 import { KAKURIYO, getToonGradient, toon } from "./palette.ts";
 import { POND_CENTER, TEMPLE_CENTER, heightAt, slopeAt } from "./terrain.ts";
 import { SACRED_PEAK } from "./mountains.ts";
+import { castleGroundY, castleSegmentClear, type CastleLayout } from "./castleLayout.ts";
+import { createCastleVisitor, planCastleVisit, advanceCastleVisit, safeVisitorHome, type CastleVisitor } from "./castleVisits.ts";
 
 /* ═══════════════════════════════════════════════════════════════
    The spirits of Kakuriyo — yokai and animal kami going about
@@ -35,6 +37,7 @@ export type SpiritBuild = {
   group: THREE.Group;
   /** moving01: 0 idle → 1 walking, already smoothed by the AI. */
   animate: (t: number, phase: number, moving01: number) => void;
+  setGroundSampler?: (sampler?: (x: number, z: number) => number) => void;
 };
 
 /* ── Shared body-part helpers (all builds face +Z) ── */
@@ -495,6 +498,7 @@ export const buildKodama = () => buildArticulatedKami("kodama");
 /* ═══ Wander AI ═══════════════════════════════════════════════ */
 
 type Wanderer = {
+  visitor?: CastleVisitor;
   build: SpiritBuild;
   /** Outer node the AI moves; builders animate build.group inside it. */
   travel: THREE.Group;
@@ -529,6 +533,7 @@ type Hoverer = {
 };
 
 export type SpiritsOptions = {
+  castleNavigation?: CastleLayout;
   sakuraSpots: THREE.Vector3[];
   toriiPath: THREE.Vector3[];
   pagodaTop: THREE.Vector3;
@@ -536,7 +541,7 @@ export type SpiritsOptions = {
   villageSquare?: THREE.Vector3;
 };
 
-export const createSpirits = ({ sakuraSpots, toriiPath, pagodaTop, castleGate, villageSquare }: SpiritsOptions): SpiritLayer => {
+export const createSpirits = ({ sakuraSpots, toriiPath, pagodaTop, castleGate, villageSquare, castleNavigation }: SpiritsOptions): SpiritLayer => {
   const group = new THREE.Group();
   const rng = createRng(0x10ca1);
   const wanderers: Wanderer[] = [];
@@ -555,14 +560,25 @@ export const createSpirits = ({ sakuraSpots, toriiPath, pagodaTop, castleGate, v
     speed: number,
     scale: number,
     yOffset = 0,
-    name?: string
+    name?: string,
+    visit?: { radius: number; indoors?: boolean; patrol?: boolean },
   ) => {
     const travel = new THREE.Group();
     if (name) namedActors.set(name, travel);
     travel.scale.setScalar(scale);
     travel.add(build.group);
     group.add(travel);
+    if (visit && castleNavigation) {
+      const safe = safeVisitorHome(castleNavigation, new THREE.Vector3(home.x,heightAt(home.x,home.y),home.y), visit.radius);
+      home.set(safe.x,safe.z);
+    }
+    const visitor = visit && castleNavigation ? createCastleVisitor(new THREE.Vector3(home.x, heightAt(home.x, home.y), home.y), visit.radius, !!visit.indoors, !!visit.patrol, 8 + wanderers.length * 7) : undefined;
+    if (visitor) {
+      build.setGroundSampler?.((x, z) => castleGroundY(castleNavigation!, x, z));
+      travel.userData.castleVisitor = visitor;
+    }
     wanderers.push({
+      visitor,
       build,
       travel,
       home,
@@ -580,20 +596,20 @@ export const createSpirits = ({ sakuraSpots, toriiPath, pagodaTop, castleGate, v
   };
 
   // The ground-dwellers, each with a territory that suits their nature
-  addWanderer(buildKitsune(), new THREE.Vector2(pathMid.x, pathMid.z), 900, 62, 1.5, 0, "kitsune");
-  addWanderer(buildTanuki(), new THREE.Vector2(-500, 1900), 700, 34, 1.4, 0, "tanuki");
+  addWanderer(buildKitsune(), new THREE.Vector2(pathMid.x, pathMid.z), 900, 62, 1.5, 0, "kitsune", { radius: 24, indoors: true });
+  addWanderer(buildTanuki(), new THREE.Vector2(-500, 1900), 700, 34, 1.4, 0, "tanuki", { radius: 20, indoors: true });
   addWanderer(buildKappa(), new THREE.Vector2(POND_CENTER.x + 350, POND_CENTER.y + 260), 420, 40, 1.3, 0, "kappa");
-  addWanderer(buildShika(), new THREE.Vector2(1500, 1900), 1100, 48, 1.6, 0, "shika");
-  addWanderer(buildShika(), new THREE.Vector2(1900, 1500), 900, 44, 1.3);
+  addWanderer(buildShika(), new THREE.Vector2(1500, 1900), 1100, 48, 1.6, 0, "shika", { radius: 34 });
+  addWanderer(buildShika(), new THREE.Vector2(1900, 1500), 900, 44, 1.3, 0, undefined, { radius: 30 });
   addWanderer(buildKarakasa(), new THREE.Vector2(toriiPath[4]?.x ?? 900, toriiPath[4]?.z ?? 1500), 640, 46, 1.4);
-  addWanderer(buildNekomata(), new THREE.Vector2(TEMPLE_CENTER.x + 150, TEMPLE_CENTER.y - 120), 520, 52, 1.5);
+  addWanderer(buildNekomata(), new THREE.Vector2(TEMPLE_CENTER.x + 150, TEMPLE_CENTER.y - 120), 520, 52, 1.5, 0, undefined, { radius: 18, indoors: true });
 
   // The oni paces outside the castle gate, club dragging
   if (castleGate) {
-    addWanderer(buildOni(), new THREE.Vector2(castleGate.x - 200, castleGate.z + 200), 620, 30, 1.7, 0, "oni");
+    addWanderer(buildOni(), new THREE.Vector2(castleGate.x, castleGate.z - 180), 620, 30, 1.7, 0, "oni", { radius: 34, patrol: true });
   }
   // The baku ambles the open meadow between shrine and castle, eating dreams
-  addWanderer(buildBaku(), new THREE.Vector2(1450, -450), 850, 36, 1.5);
+  addWanderer(buildBaku(), new THREE.Vector2(1450, -450), 850, 36, 1.5, 0, undefined, { radius: 26, indoors: true });
   // Yuki-onna drifts the cold slopes near the sacred peak — she never steps
   addWanderer(buildYukiOnna(), new THREE.Vector2(-1550, -1500), 800, 42, 1.6, 0, "yukionna");
   // Chōchin-obake bobs around the hamlet square
@@ -670,6 +686,28 @@ export const createSpirits = ({ sakuraSpots, toriiPath, pagodaTop, castleGate, v
 
   const update = (t: number, dt: number) => {
     for (const w of wanderers) {
+      const v = w.visitor;
+      if (v && !w.travel.visible) continue;
+      if (v && castleNavigation && w.travel.visible) {
+        v.cooldown -= dt;
+        if (!v.route.length && v.cooldown <= 0) planCastleVisit(castleNavigation, v, w.travel.position, rng);
+        if (v.route.length || v.node) {
+          const previousX = w.travel.position.x, previousZ = w.travel.position.z;
+          const walking = v.route.length > 0;
+          if (walking) advanceCastleVisit(castleNavigation, v, w.travel.position, w.speed * Math.max(0, dt));
+          const dx = w.travel.position.x - previousX, dz = w.travel.position.z - previousZ;
+          const yaw = Math.hypot(dx, dz) > 0.001 ? Math.atan2(dx, dz) : v.destination?.destination?.yaw;
+          if (yaw !== undefined) {
+            const delta = yaw - w.travel.rotation.y;
+            w.travel.rotation.y += Math.atan2(Math.sin(delta), Math.cos(delta)) * Math.min(1, dt * 4);
+          }
+          w.moving01 = THREE.MathUtils.damp(w.moving01, walking ? 1 : 0, 5, dt);
+          w.groundSmooth = w.travel.position.y;
+          w.state = "idle"; w.timer = 3;
+          w.build.animate(t, w.phase, w.moving01);
+          continue;
+        }
+      }
       w.timer -= dt;
 
       if (w.state === "idle") {
@@ -682,6 +720,7 @@ export const createSpirits = ({ sakuraSpots, toriiPath, pagodaTop, castleGate, v
             const tx = w.home.x + Math.cos(angle) * r;
             const tz = w.home.y + Math.sin(angle) * r;
             if (heightAt(tx, tz) < 22 || slopeAt(tx, tz) > 0.8) continue;
+            if (castleNavigation && !castleSegmentClear(castleNavigation, w.travel.position, new THREE.Vector3(tx, heightAt(tx, tz), tz), v?.radius ?? 24, true)) continue;
             w.target.set(tx, tz);
             w.state = "walk";
             break;
@@ -698,8 +737,9 @@ export const createSpirits = ({ sakuraSpots, toriiPath, pagodaTop, castleGate, v
           w.timer = 2.5 + rng() * 6;
         } else {
           tmp.normalize();
-          pos.x += tmp.x * w.speed * dt;
-          pos.z += tmp.y * w.speed * dt;
+          const step = Math.min(dist, w.speed * dt);
+          pos.x += tmp.x * step;
+          pos.z += tmp.y * step;
           // Face the way we're going, turning smoothly
           const targetYaw = Math.atan2(tmp.x, tmp.y);
           let delta = targetYaw - w.travel.rotation.y;

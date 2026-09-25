@@ -12,6 +12,7 @@ import { createGroundDetail } from "./groundDetail.ts";
 import { createWaterFeature } from "./water.ts";
 import { createArchitecture } from "./architecture.ts";
 import { createCastle } from "./castle.ts";
+import { registerNavigationObstacles } from "./castleVisits.ts";
 import { createVillage } from "./village.ts";
 import { createSpirits } from "./spirits.ts";
 import { createYokaiUi } from "./ui.ts";
@@ -107,6 +108,7 @@ scene.add(castle.group);
 
 const village = createVillage();
 scene.add(village.group);
+registerNavigationObstacles(castle.navigation, [architecture.group, village.group]);
 
 const groundDetail = createGroundDetail();
 scene.add(groundDetail.group);
@@ -115,6 +117,7 @@ const flora = createFlora();
 scene.add(flora.group);
 
 const spirits = createSpirits({
+  castleNavigation: castle.navigation,
   sakuraSpots: flora.sakuraSpots,
   toriiPath: architecture.toriiPath,
   pagodaTop: architecture.pagodaTop,
@@ -198,6 +201,7 @@ const storyWorld: StoryWorld = {
   castleGate: castle.gatePoint,
   sakuraSpots: flora.sakuraSpots,
   foliage: flora.group,
+  village,
 };
 
 // The library of tales, each on its own key from the splash screen
@@ -244,7 +248,7 @@ const animate = () => {
   } else if (freeFlight) {
     controls.update(dt);
     // Stay above the land and inside the painting
-    const minY = heightAt(camera.position.x, camera.position.z) + 10;
+    const minY = castle.groundY(camera.position.x, camera.position.z) + 10;
     if (camera.position.y < minY) camera.position.y = minY;
     camera.position.y = Math.min(camera.position.y, 3200);
     const bound = WORLD_SIZE * 0.55;

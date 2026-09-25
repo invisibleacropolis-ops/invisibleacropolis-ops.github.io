@@ -18,6 +18,9 @@ export type Village = {
   group: THREE.Group;
   /** Around here the lantern yokai bobs and the tanuki snoops. */
   square: THREE.Vector3;
+  bridgeCrossing: THREE.Vector3[];
+  /** Actual deck and terrace surfaces, for grounded story choreography. */
+  walkableY: (x: number, z: number) => number;
 };
 
 const buildMinka = (
@@ -74,6 +77,7 @@ const buildMinka = (
 
 export const createVillage = (): Village => {
   const group = new THREE.Group();
+  const walkable: THREE.Mesh[] = [];
   const rng = createRng(0x0714);
 
   const thatchMat = toonTex(thatchTexture());
@@ -112,6 +116,7 @@ export const createVillage = (): Village => {
     water.rotation.x = -Math.PI / 2;
     water.position.set(px, py, pz);
     group.add(water);
+    walkable.push(water);
     reserveLine(px - w / 2 + 40, pz, px + w / 2 - 40, pz, d / 2 + 30);
 
     // Bund walls around each terrace
@@ -126,6 +131,7 @@ export const createVillage = (): Village => {
       const bund = new THREE.Mesh(new THREE.BoxGeometry(ew, bundH, ed), bundMat);
       bund.position.set(ex, py + 2 - bundH / 2 + bundH * 0.55, ez);
       group.add(bund);
+      walkable.push(bund);
     }
   }
 
@@ -146,6 +152,7 @@ export const createVillage = (): Village => {
     plank.position.set(along, rise, 0);
     plank.rotation.z = Math.cos(tt * Math.PI) * -0.5;
     bridge.add(plank);
+    walkable.push(plank);
   }
   // Vermilion railings following the arc
   for (const side of [-1, 1]) {
@@ -170,6 +177,29 @@ export const createVillage = (): Village => {
     VILLAGE_CENTER.x - POND_CENTER.x
   ) + Math.PI / 2;
   group.add(bridge);
+  group.updateWorldMatrix(true, true);
+  // The deck sits above the sloping banks. Join its ends to the land instead
+  // of leaving a vertical first step for walking characters to pass through.
+  for (const side of [-1, 1]) {
+    const bank = bridge.localToWorld(new THREE.Vector3(side * 240, 0, 0));
+    const bankY = heightAt(bank.x, bank.z) - bridge.position.y;
+    const ramp = new THREE.Mesh(new THREE.BoxGeometry(Math.hypot(120, bankY), 6, 64), plankMat);
+    ramp.position.set(side * 180, bankY / 2, 0);
+    ramp.rotation.z = side * Math.atan2(bankY, 120);
+    bridge.add(ramp);
+    walkable.push(ramp);
+  }
+  group.updateWorldMatrix(true, true);
+  // Straight lead-in/out keeps a spline turn outside the rail ends.
+  const bridgeCrossing = [-240, -180, -140, -90, 0, 90, 140, 180, 240].map((along) =>
+    bridge.localToWorld(new THREE.Vector3(along, 0, 0)));
+  const groundRay = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(0, -1, 0));
+  const walkableY = (x: number, z: number) => {
+    groundRay.ray.origin.set(x, 10000, z);
+    const hit = groundRay.intersectObjects(walkable, false)[0];
+    return Math.max(heightAt(x, z), hit?.point.y ?? -Infinity);
+  };
+  bridgeCrossing.forEach((point) => { point.y = walkableY(point.x, point.z); });
 
   /* ── A well at the square's heart ── */
   const well = new THREE.Group();
@@ -192,5 +222,7 @@ export const createVillage = (): Village => {
   return {
     group,
     square: new THREE.Vector3(VILLAGE_CENTER.x, wy, VILLAGE_CENTER.y),
+    bridgeCrossing,
+    walkableY,
   };
 };

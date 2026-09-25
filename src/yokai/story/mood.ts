@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { KakuriyoSky } from "../sky.ts";
 import type { SpiritLayer } from "../spirits.ts";
 import type { WaterFeature } from "../water.ts";
+import type { Village } from "../village.ts";
 
 /**
  * Shared mood machinery: every tale wants to repaint the world's light —
@@ -28,6 +29,7 @@ export type StoryWorld = {
   sakuraSpots?: THREE.Vector3[];
   /** Instanced vegetation, for reversible cinematic route clearance. */
   foliage?: THREE.Group;
+  village?: Village;
 };
 
 export type Mood = {

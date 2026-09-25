@@ -5,6 +5,7 @@ import { createMoodController, MOODS, type StoryWorld } from "./mood.ts";
 import { createPoofFx, createRippleFx } from "./fx.ts";
 import { createDriftField, createWhirl } from "./magicFx.ts";
 import { createActorMover, worldGroundY } from "./motion.ts";
+import { openFoliageCorridor } from "./foliageClearance.ts";
 import { buildChochin, buildTanuki } from "../spirits.ts";
 import { getToonGradient, toon } from "../palette.ts";
 import { VILLAGE_CENTER, heightAt } from "../terrain.ts";
@@ -45,7 +46,7 @@ export const createTanukiMoonStory = (world: StoryWorld): Story => {
   chochinTravel.add(chochin.group);
   props.add(chochinTravel);
 
-  const groundY = (x: number, z: number) => heightAt(x, z);
+  const groundY = world.village?.walkableY ?? heightAt;
   const squareY = groundY(SQUARE.x, SQUARE.y);
 
   /* ── Props: the offering stand ── */
@@ -107,8 +108,8 @@ export const createTanukiMoonStory = (world: StoryWorld): Story => {
     new THREE.MeshBasicMaterial({ color: "#f2e0a8", transparent: true, opacity: 0.18, blending: THREE.AdditiveBlending, depthWrite: false })
   );
   moon.add(moonFace, moonHalo);
-  const MOON_FROM = new THREE.Vector3(3800, -300, 4600);
-  const MOON_TO = new THREE.Vector3(3800, 2400, 4600);
+  const MOON_FROM = new THREE.Vector3(-4700, -300, -200);
+  const MOON_TO = new THREE.Vector3(-4700, 1700, -200);
   moon.position.copy(MOON_FROM);
   moon.visible = false;
   props.add(moon);
@@ -120,35 +121,31 @@ export const createTanukiMoonStory = (world: StoryWorld): Story => {
   props.add(drumRipples.group);
 
   /* ── Choreography helpers ── */
-  const HIDE_SPOT = new THREE.Vector3(SQUARE.x - 320, 0, SQUARE.y + 210);
+  const HIDE_SPOT = new THREE.Vector3(SQUARE.x + 150, 0, SQUARE.y + 60);
   HIDE_SPOT.y = groundY(HIDE_SPOT.x, HIDE_SPOT.z);
   const CHOCHIN_POST = new THREE.Vector3(STAND_POS.x + 90, squareY + 78, STAND_POS.z + 40);
 
+  const point = (x: number, z: number) => new THREE.Vector3(x, groundY(x, z), z);
+  // Enter through the south-east lane, clear of the houses and central well.
   const pathArrive = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(SQUARE.x - 680, groundY(SQUARE.x - 680, SQUARE.y + 640), SQUARE.y + 640),
-    new THREE.Vector3(SQUARE.x - 480, groundY(SQUARE.x - 480, SQUARE.y + 430), SQUARE.y + 430),
-    HIDE_SPOT.clone(),
+    point(100, 2760), point(40, 2560), point(-220, 2470), HIDE_SPOT.clone(),
   ]);
-
-  const bridgeMid = new THREE.Vector3(-820, groundY(-820, 1690) + 56, 1690);
-  const paddySplash = new THREE.Vector3(-1120, groundY(-1120, 2440) + 8, 2440);
+  const disguiseEnd = STAND_POS.clone().add(new THREE.Vector3(46, 0, 26));
+  const paddyStop = point(-1100, 2580);
+  const bridgeCrossing = world.village?.bridgeCrossing ?? [point(-688, 1737), point(-820, 1690), point(-952, 1643)];
   const pathFlee = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(STAND_POS.x, squareY, STAND_POS.z + 40),
-    new THREE.Vector3(SQUARE.x - 260, groundY(SQUARE.x - 260, SQUARE.y - 160), SQUARE.y - 160),
-    new THREE.Vector3(-700, groundY(-700, 1960), 1960),
-    bridgeMid,
-    new THREE.Vector3(-1010, groundY(-1010, 2120), 2120),
-    paddySplash,
-    new THREE.Vector3(-1240, groundY(-1240, 2760), 2760),
+    disguiseEnd.clone(), point(-240, 2430), point(-30, 2480), point(50, 2160),
+    point(-190, 1990), point(-570, 1920), ...bridgeCrossing.map((p) => p.clone()),
+    point(-1110, 1900), point(-1250, 2270), point(-1160, 2480), paddyStop.clone(),
   ]);
+  // Cut back to the village lane: the return beat spends its time on the gift.
   const pathReturn = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(-1240, groundY(-1240, 2760), 2760),
-    new THREE.Vector3(-880, groundY(-880, 2620), 2620),
-    new THREE.Vector3(SQUARE.x - 300, groundY(SQUARE.x - 300, SQUARE.y + 180), SQUARE.y + 180),
-    new THREE.Vector3(STAND_POS.x - 60, squareY, STAND_POS.z + 50),
+    point(20, 2520), point(-220, 2470), HIDE_SPOT.clone(),
+    point(STAND_POS.x + 70, STAND_POS.z + 50),
   ]);
 
-  const tanukiMover = createActorMover(tanukiTravel);
+  const tanukiMover = createActorMover(tanukiTravel, groundY);
+  let restoreFoliage = () => {};
 
   const faceTarget = (travel: THREE.Group, target: THREE.Vector3, dt: number, rate = 5) => {
     const yaw = Math.atan2(target.x - travel.position.x, target.z - travel.position.z);
@@ -194,10 +191,17 @@ export const createTanukiMoonStory = (world: StoryWorld): Story => {
   let storyTime = 0;
   let disguiseProgress = 0; // 0 at hide spot → 1 at the stand
   let lastDrumBeat = 0;
+  const mouthPoint = new THREE.Vector3();
+  const mouthOffset = new THREE.Vector3();
+  const mouthWorld = () => tanuki.getAnchorWorld("head", mouthPoint).add(
+    mouthOffset.set(0, -2, 18).applyQuaternion(tanukiTravel.quaternion));
   const tick = (dt: number) => {
     storyTime += dt;
     tanukiMoving += (tanukiMovingTarget - tanukiMoving) * Math.min(1, dt * 3.5);
     tanuki.animate(storyTime, 0.7, tanukiMoving);
+    for (const ball of [topDango, dango[2]!]) {
+      if (ball.parent === tanukiTravel) ball.position.copy(tanukiTravel.worldToLocal(mouthWorld()));
+    }
     chochin.animate(storyTime, 2.3, 1);
     poof.update(dt);
     drumRipples.update(dt);
@@ -220,10 +224,10 @@ export const createTanukiMoonStory = (world: StoryWorld): Story => {
       duration: 9,
       rig: {
         kind: "dolly",
-        from: new THREE.Vector3(SQUARE.x + 620, squareY + 420, SQUARE.y + 700),
-        to: new THREE.Vector3(STAND_POS.x + 120, squareY + 100, STAND_POS.z + 190),
+        from: new THREE.Vector3(STAND_POS.x + 190, squareY + 300, STAND_POS.z + 220),
+        to: new THREE.Vector3(STAND_POS.x + 170, squareY + 180, STAND_POS.z + 240),
         lookFrom: new THREE.Vector3(SQUARE.x, squareY + 60, SQUARE.y),
-        lookTo: STAND_POS.clone().add(new THREE.Vector3(0, 40, 0)),
+        lookTo: STAND_POS.clone().add(new THREE.Vector3(40, 80, 15)),
         ease: true,
       },
       lines: [
@@ -247,8 +251,8 @@ export const createTanukiMoonStory = (world: StoryWorld): Story => {
       rig: {
         kind: "follow",
         target: tanukiPos,
-        offset: new THREE.Vector3(-150, 120, 170),
-        lookOffset: new THREE.Vector3(0, 26, 0),
+        offset: new THREE.Vector3(140, 125, 200),
+        lookOffset: new THREE.Vector3(0, 42, 0),
       },
       lines: [
         { at: 1.2, text: "The tanuki smelled them from three fields away." },
@@ -269,9 +273,9 @@ export const createTanukiMoonStory = (world: StoryWorld): Story => {
     {
       duration: 9,
       rig: {
-        // Inside the ring of houses, above the tanuki's hiding shoulder
+        // View through the open south-east lane.
         kind: "static",
-        position: new THREE.Vector3(SQUARE.x - 190, squareY + 135, SQUARE.y + 230),
+        position: new THREE.Vector3(STAND_POS.x + 120, squareY + 140, STAND_POS.z + 180),
         lookAt: CHOCHIN_POST.clone(),
       },
       lines: [
@@ -293,9 +297,9 @@ export const createTanukiMoonStory = (world: StoryWorld): Story => {
     {
       duration: 15,
       rig: {
-        // High enough to clear every thatched roof between here and the well
+        // Keep both the disguise and its watcher in the open square.
         kind: "static",
-        position: new THREE.Vector3(STAND_POS.x - 20, squareY + 150, STAND_POS.z + 240),
+        position: new THREE.Vector3(STAND_POS.x + 190, squareY + 145, STAND_POS.z + 200),
         lookAt: () => disguise.visible ? disguisePos().add(new THREE.Vector3(0, 40, 0)) : tanukiPos().add(new THREE.Vector3(0, 30, 0)),
       },
       lines: [
@@ -321,8 +325,7 @@ export const createTanukiMoonStory = (world: StoryWorld): Story => {
           if (!watching) {
             disguiseProgress = Math.min(1, disguiseProgress + dt / 8);
           }
-          const target = STAND_POS.clone().add(new THREE.Vector3(-46, 0, 26));
-          disguise.position.lerpVectors(HIDE_SPOT, target, disguiseProgress);
+          disguise.position.lerpVectors(HIDE_SPOT, disguiseEnd, disguiseProgress);
           disguise.position.y = groundY(disguise.position.x, disguise.position.z);
           // Hop while moving, freeze at a guilty tilt while watched
           if (!watching) {
@@ -345,8 +348,8 @@ export const createTanukiMoonStory = (world: StoryWorld): Story => {
       duration: 10,
       rig: {
         kind: "dolly",
-        from: new THREE.Vector3(STAND_POS.x + 130, squareY + 40, STAND_POS.z + 150),
-        to: new THREE.Vector3(STAND_POS.x + 90, squareY + 26, STAND_POS.z + 90),
+        from: new THREE.Vector3(STAND_POS.x + 160, squareY + 90, STAND_POS.z - 15),
+        to: new THREE.Vector3(STAND_POS.x + 140, squareY + 65, STAND_POS.z - 25),
         lookFrom: () => disguisePos().add(new THREE.Vector3(0, 40, 0)),
         lookTo: () => disguisePos().add(new THREE.Vector3(0, 16, -14)),
       },
@@ -384,9 +387,9 @@ export const createTanukiMoonStory = (world: StoryWorld): Story => {
       rig: {
         kind: "follow",
         target: tanukiPos,
-        offset: new THREE.Vector3(240, 170, 80),
-        lookOffset: new THREE.Vector3(0, 24, 0),
-        stiffness: 3,
+        offset: new THREE.Vector3(-100, 300, -300),
+        lookOffset: new THREE.Vector3(0, 70, 0),
+        stiffness: 5,
       },
       lines: [
         { at: 1.4, text: "He fled — over the drum bridge, straight through the young rice —" },
@@ -403,7 +406,8 @@ export const createTanukiMoonStory = (world: StoryWorld): Story => {
         // The dango rides in his mouth
         scene.attach(topDango);
         tanukiTravel.add(topDango);
-        topDango.position.set(0, 28, 16);
+        topDango.scale.setScalar(1 / 1.5);
+        topDango.position.copy(tanukiTravel.worldToLocal(mouthWorld()));
       },
       onUpdate: (k, dt) => {
         tick(dt);
@@ -416,7 +420,7 @@ export const createTanukiMoonStory = (world: StoryWorld): Story => {
         chochinTravel.position.lerp(ghostPoint, Math.min(1, dt * 4));
         faceTarget(chochinTravel, tanukiTravel.position, dt, 6);
         // Splash rings when he tears through the paddy
-        if (k > 0.68 && k < 0.82 && Math.floor(storyTime * 4) !== lastDrumBeat) {
+        if (tanukiTravel.position.x < -1050 && tanukiTravel.position.z > 2320 && Math.floor(storyTime * 4) !== lastDrumBeat) {
           lastDrumBeat = Math.floor(storyTime * 4);
           drumRipples.ring(tanukiTravel.position.clone().setY(groundY(tanukiTravel.position.x, tanukiTravel.position.z) + 6));
         }
@@ -428,8 +432,8 @@ export const createTanukiMoonStory = (world: StoryWorld): Story => {
       duration: 11,
       rig: {
         kind: "static",
-        position: new THREE.Vector3(-1420, groundY(-1240, 2760) + 60, 2980),
-        lookAt: () => new THREE.Vector3(-1240, groundY(-1240, 2760) + 40, 2760).lerp(moon.position, 0.12),
+        position: paddyStop.clone().add(new THREE.Vector3(240, 140, 180)),
+        lookAt: paddyStop.clone().add(new THREE.Vector3(0, 90, 0)),
       },
       lines: [
         { at: 2.0, text: "And then, above the mountains, the moon came up to see." },
@@ -454,10 +458,10 @@ export const createTanukiMoonStory = (world: StoryWorld): Story => {
       duration: 12,
       rig: {
         kind: "dolly",
-        from: new THREE.Vector3(STAND_POS.x - 160, squareY + 150, STAND_POS.z + 240),
-        to: new THREE.Vector3(STAND_POS.x + 40, squareY + 50, STAND_POS.z + 170),
-        lookFrom: STAND_POS.clone().add(new THREE.Vector3(0, 30, 0)),
-        lookTo: STAND_POS.clone().add(new THREE.Vector3(-30, 26, 30)),
+        from: new THREE.Vector3(STAND_POS.x + 250, squareY + 190, STAND_POS.z + 220),
+        to: new THREE.Vector3(STAND_POS.x + 190, squareY + 170, STAND_POS.z + 260),
+        lookFrom: () => tanukiPos().add(new THREE.Vector3(0, 40, 0)),
+        lookTo: STAND_POS.clone().add(new THREE.Vector3(55, 90, 30)),
       },
       lines: [
         { at: 1.4, text: "So he brought it back — which is the hardest trick a tanuki knows." },
@@ -466,6 +470,7 @@ export const createTanukiMoonStory = (world: StoryWorld): Story => {
       onEnter: () => {
         tanukiMovingTarget = 1;
         chochinTravel.position.copy(CHOCHIN_POST);
+        tanukiMover.place(pathReturn.getPoint(0), pathReturn.getPoint(0.1));
       },
       onUpdate: (k, dt, s) => {
         tick(dt);
@@ -488,8 +493,10 @@ export const createTanukiMoonStory = (world: StoryWorld): Story => {
           if (share > 0) {
             const gift = dango[2]!;
             if (gift.parent === stand) scene.attach(gift);
-            const mouth = tanukiTravel.position.clone().add(new THREE.Vector3(0, 26, 18));
-            gift.position.lerp(mouth, Math.min(1, dt * 2.4));
+            if (gift.parent === scene) {
+              gift.position.lerp(mouthWorld(), Math.min(1, dt * 2.4));
+              if (share >= 1) tanukiTravel.attach(gift);
+            }
           }
         }
         faceTarget(chochinTravel, tanukiTravel.position, dt, 3);
@@ -502,10 +509,10 @@ export const createTanukiMoonStory = (world: StoryWorld): Story => {
       duration: 13,
       rig: {
         kind: "dolly",
-        from: new THREE.Vector3(STAND_POS.x + 120, squareY + 50, STAND_POS.z + 200),
-        to: new THREE.Vector3(STAND_POS.x + 60, squareY + 380, STAND_POS.z + 560),
-        lookFrom: () => tanukiPos().add(new THREE.Vector3(0, 30, 0)),
-        lookTo: () => tanukiPos().clone().lerp(moon.position, 0.2),
+        from: new THREE.Vector3(STAND_POS.x - 150, squareY + 170, STAND_POS.z - 40),
+        to: new THREE.Vector3(STAND_POS.x - 200, squareY + 380, STAND_POS.z - 100),
+        lookFrom: () => tanukiPos().add(new THREE.Vector3(0, 55, 0)),
+        lookTo: () => tanukiPos().add(new THREE.Vector3(0, 85, 0)),
       },
       lines: [
         { at: 2.0, text: "If you hear drumming on the night of the full moon, it is not thunder." },
@@ -564,6 +571,7 @@ export const createTanukiMoonStory = (world: StoryWorld): Story => {
     subtitle: "狸と月見団子 — a tale of Kakuriyo",
     shots,
     onStart: () => {
+      restoreFoliage = openFoliageCorridor(world.foliage, [pathArrive, pathFlee, pathReturn], 230);
       scene.add(props);
       moodCtl.apply(dusk, 0);
       // The tale casts the tanuki and the lantern-ghost; their ambient
@@ -572,6 +580,7 @@ export const createTanukiMoonStory = (world: StoryWorld): Story => {
       world.spirits?.setHidden("chochin", true);
     },
     onEnd: () => {
+      restoreFoliage();
       spectacle.dispose();
       moodCtl.restore();
       world.spirits?.setHidden("tanuki", false);

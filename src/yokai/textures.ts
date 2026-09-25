@@ -9,6 +9,49 @@ import * as THREE from "three";
 
 type Painter = (ctx: CanvasRenderingContext2D, size: number) => void;
 
+/** Fine woven rush and a warm, almost imperceptible alternating thread. */
+export const castleTatamiTexture = () => makeTexture(256, (ctx, s) => {
+  ctx.fillStyle = "#c8bd87"; ctx.fillRect(0, 0, s, s);
+  for (let y = 0; y < s; y += 3) {
+    ctx.fillStyle = y % 2 ? "#b7ad79" : "#ded09a"; ctx.fillRect(0, y, s, 1);
+  }
+  for (let x = 0; x < s; x += 12) {
+    ctx.fillStyle = "rgba(86,81,48,.13)"; ctx.fillRect(x, 0, 1, s);
+  }
+});
+
+export const castleGravelTexture = () => makeTexture(256, (ctx, s) => {
+  ctx.fillStyle = "#bdbeb1"; ctx.fillRect(0, 0, s, s);
+  // Local deterministic sequence: castle materials cannot perturb the world's texture seed.
+  let seed = 7249;
+  for (let i = 0; i < 6000; i++) {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    const x = seed % s, y = (seed >>> 12) % s;
+    ctx.fillStyle = i % 2 ? "#dad8c8" : "#989f95";
+    ctx.fillRect(x, y, 1.5, 1);
+  }
+});
+
+/** Two hand-painted ink studies for the castle's tokonoma displays. */
+export const castleScrollTexture = (blossom = false) => makeTexture(256, (ctx, s) => {
+  ctx.fillStyle = "#e7dbb6"; ctx.fillRect(0,0,s,s);
+  ctx.fillStyle = "#c8ad87"; ctx.beginPath();ctx.arc(174,57,25,0,Math.PI*2);ctx.fill();
+  for(let layer=0;layer<3;layer++) {
+    ctx.fillStyle = ["#acb3a0","#7b9085","#405e5b"][layer];
+    ctx.beginPath();ctx.moveTo(0,170+layer*24);
+    for(let i=0;i<=8;i++) ctx.lineTo(i*36,126+layer*27+Math.sin(i*2.2+layer)*33);
+    ctx.lineTo(s,s);ctx.lineTo(0,s);ctx.fill();
+  }
+  ctx.strokeStyle="#343f39";ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(37,230);ctx.bezierCurveTo(55,165,32,119,78,91);ctx.stroke();
+  for(let i=0;i<5;i++) {
+    const x=45+i*6,y=172-i*17;
+    ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x,y+10);ctx.lineTo(x+35,y-12);ctx.stroke();
+    ctx.fillStyle=blossom?"#ba7c87":"#365a4e";
+    for(let k=0;k<4;k++){ctx.beginPath();ctx.ellipse(x+20+k*6,y-10+(k%2)*5,blossom?5:13,4,-.3,0,Math.PI*2);ctx.fill();}
+  }
+  ctx.fillStyle="#a75545";ctx.fillRect(211,213,14,19);
+});
+
 const makeTexture = (size: number, paint: Painter, repeat = 1): THREE.CanvasTexture => {
   const canvas = document.createElement("canvas");
   canvas.width = size;

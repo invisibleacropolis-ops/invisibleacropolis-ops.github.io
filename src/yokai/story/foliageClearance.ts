@@ -7,6 +7,7 @@ export const openFoliageCorridor = (
   root: THREE.Object3D | undefined,
   routes: THREE.Curve<THREE.Vector3>[],
   radius = 125,
+  preservedTrees: readonly THREE.Vector3[] = [],
 ): (() => void) => {
   if (!root) return () => {};
   const points = routes.flatMap((route) => route.getPoints(160));
@@ -23,6 +24,8 @@ export const openFoliageCorridor = (
     for (let index = 0; index < object.count; index++) {
       object.getMatrixAt(index, matrix);
       position.setFromMatrixPosition(matrix).applyMatrix4(object.matrixWorld);
+      // Keep a story's landmark tree, including its offset crown instances.
+      if (preservedTrees.some((p) => Math.hypot(p.x - position.x, p.z - position.z) < 65)) continue;
       if (!points.some((p) => (p.x - position.x) ** 2 + (p.z - position.z) ** 2 < radius ** 2)) continue;
       saved.push({ mesh: object, index, matrix: matrix.clone() });
       object.setMatrixAt(index, hidden);

@@ -3,6 +3,7 @@ import { createStorySpectacle } from "./spectacleDirector.ts";
 import type { Story } from "./engine.ts";
 import { createMoodController, MOODS, type StoryWorld } from "./mood.ts";
 import { createActorMover } from "./motion.ts";
+import { openFoliageCorridor } from "./foliageClearance.ts";
 import { createPoofFx } from "./fx.ts";
 import { createDriftField, createWhirl } from "./magicFx.ts";
 import { buildHitodama, buildKitsune, buildKodama, buildOni, buildShika } from "../spirits.ts";
@@ -28,9 +29,12 @@ export const createOniKodamaStory = (world: StoryWorld): Story => {
   const gate =
     world.castleGate?.clone() ??
     new THREE.Vector3(CASTLE_CENTER.x, heightAt(CASTLE_CENTER.x, CASTLE_CENTER.y - 420), CASTLE_CENTER.y - 420);
-  const grove =
+  const groveTree =
     world.sakuraSpots?.find((s) => s.z > 1200 && s.x > -200) ??
     new THREE.Vector3(520, heightAt(520, 1720), 1720);
+  // Stage the reunion in front of the tree, never inside its trunk.
+  const grove = groveTree.clone().add(new THREE.Vector3(40, 0, 160));
+  grove.y = heightAt(grove.x, grove.z);
 
   /* ── Actors ── */
   const props = new THREE.Group();
@@ -103,11 +107,13 @@ export const createOniKodamaStory = (world: StoryWorld): Story => {
   /* ── Paths ── */
   const groundPoint = (x: number, z: number) => new THREE.Vector3(x, heightAt(x, z), z);
   const meadow = groundPoint(1450, 620);
-  const findSpot = groundPoint(gate.x - 260, gate.z + 300);
+  const gatePost = groundPoint(gate.x, gate.z - 140);
+  const findSpot = groundPoint(gate.x - 550, gate.z + 100);
+  const handStop = groundPoint(findSpot.x + 65, findSpot.z - 30);
 
   const pathToMeadow = new THREE.CatmullRomCurve3([
-    groundPoint(gate.x - 60, gate.z + 80),
-    groundPoint(1780, 60),
+    gatePost.clone(), groundPoint(1740, -1930), groundPoint(1460, -1700),
+    groundPoint(1370, -1100), groundPoint(1440, -250),
     meadow.clone(),
   ]);
   const pathKitsuneFlee = new THREE.CatmullRomCurve3([
@@ -122,21 +128,20 @@ export const createOniKodamaStory = (world: StoryWorld): Story => {
   ]);
   const pathBackToGate = new THREE.CatmullRomCurve3([
     meadow.clone(),
-    groundPoint(1800, -300),
-    findSpot.clone(),
+    groundPoint(1400, -250), groundPoint(1370, -1100),
+    handStop.clone(),
   ]);
   const pathLongWalk = new THREE.CatmullRomCurve3([
-    findSpot.clone(),
-    groundPoint(1350, 250),
-    groundPoint(950, 800),
-    groundPoint(760, 1280),
-    groundPoint(grove.x + 90, grove.z - 90),
+    handStop.clone(), groundPoint(1370, -1100), groundPoint(1400, -250),
+    groundPoint(1450, 620), groundPoint(1350, 1120),
+    groundPoint(grove.x + 130, grove.z + 60),
   ]);
   const pathKitsuneReturn = new THREE.CatmullRomCurve3([
     groundPoint(600, 1150),
-    groundPoint(560, 1450),
-    groundPoint(grove.x - 70, grove.z - 60),
+    groundPoint(760, 1580),
+    groundPoint(grove.x + 50, grove.z + 140),
   ]);
+  let restoreFoliage = () => {};
 
   /* ── Magic: the grove's answer ── */
   const blessingWhirl = createWhirl({
@@ -198,6 +203,7 @@ export const createOniKodamaStory = (world: StoryWorld): Story => {
   };
 
   const oniPos = () => oniTravel.position.clone();
+  const homewardCameraOffset = new THREE.Vector3(-230, 170, 290);
 
   /* ── Shots ── */
   const shots: Story["shots"] = [
@@ -206,17 +212,17 @@ export const createOniKodamaStory = (world: StoryWorld): Story => {
       duration: 9,
       rig: {
         kind: "dolly",
-        from: new THREE.Vector3(gate.x + 500, gate.y + 260, gate.z + 620),
-        to: new THREE.Vector3(gate.x + 160, gate.y + 90, gate.z + 300),
-        lookFrom: new THREE.Vector3(gate.x, gate.y + 80, gate.z),
-        lookTo: () => oniPos().add(new THREE.Vector3(0, 60, 0)),
+        from: gatePost.clone().add(new THREE.Vector3(230, 210, -380)),
+        to: gatePost.clone().add(new THREE.Vector3(150, 115, -270)),
+        lookFrom: gatePost.clone().add(new THREE.Vector3(0, 80, 0)),
+        lookTo: () => oniPos().add(new THREE.Vector3(0, 75, 0)),
       },
       lines: [
         { at: 1.6, text: "Everyone knew about the oni at the castle gate." },
         { at: 5.8, text: "Mostly, they knew to be somewhere else." },
       ],
       onEnter: () => {
-        oniMover.place(groundPoint(gate.x - 60, gate.z + 80), new THREE.Vector3(gate.x, gate.y, gate.z + 600));
+        oniMover.place(gatePost, gatePost.clone().add(new THREE.Vector3(0, 0, -600)));
         kitsuneMover.place(pathKitsuneFlee.getPoint(0), meadow);
         shikaMover.place(pathShikaFlee.getPoint(0), meadow);
         lostTravel.position.copy(findSpot);
@@ -232,9 +238,12 @@ export const createOniKodamaStory = (world: StoryWorld): Story => {
     {
       duration: 11,
       rig: {
-        kind: "static",
-        position: new THREE.Vector3(meadow.x + 330, meadow.y + 150, meadow.z + 380),
-        lookAt: meadow.clone().add(new THREE.Vector3(0, 40, 0)),
+        kind: "follow",
+        target: oniPos,
+        // The expanded bailey occupies the old north-east camera boom.
+        offset: new THREE.Vector3(-260, 210, -330),
+        lookOffset: new THREE.Vector3(0, 70, 0),
+        stiffness: 4,
       },
       lines: [
         { at: 1.2, text: "Wherever he walked, the meadow emptied." },
@@ -247,10 +256,10 @@ export const createOniKodamaStory = (world: StoryWorld): Story => {
         tick(dt);
         oniMover.onCurve(pathToMeadow, k, dt);
         // The moment he crests the rise, the meadow bolts
-        if (s > 3.5) {
+        if (s > 6.8) {
           kitsuneMovingTarget = 1;
           shikaMovingTarget = 1;
-          const fleeT = THREE.MathUtils.clamp((s - 3.5) / 5, 0, 1);
+          const fleeT = THREE.MathUtils.clamp((s - 6.8) / 3.8, 0, 1);
           kitsuneMover.onCurve(pathKitsuneFlee, fleeT, dt);
           shikaMover.onCurve(pathShikaFlee, fleeT, dt);
         }
@@ -265,11 +274,11 @@ export const createOniKodamaStory = (world: StoryWorld): Story => {
     {
       duration: 11,
       rig: {
-        kind: "dolly",
-        from: new THREE.Vector3(findSpot.x + 240, findSpot.y + 120, findSpot.z + 200),
-        to: new THREE.Vector3(findSpot.x + 90, findSpot.y + 34, findSpot.z + 110),
-        lookFrom: () => oniPos().add(new THREE.Vector3(0, 50, 0)),
-        lookTo: findSpot.clone().add(new THREE.Vector3(0, 16, 0)),
+        kind: "follow",
+        target: oniPos,
+        offset: new THREE.Vector3(-200, 145, 260),
+        lookOffset: new THREE.Vector3(-20, 55, 0),
+        stiffness: 4,
       },
       lines: [
         { at: 1.4, text: "Then, one evening by the wall, he found a very small lost thing." },
@@ -297,10 +306,10 @@ export const createOniKodamaStory = (world: StoryWorld): Story => {
       duration: 8,
       rig: {
         kind: "dolly",
-        from: new THREE.Vector3(findSpot.x + 100, findSpot.y + 30, findSpot.z + 120),
-        to: new THREE.Vector3(findSpot.x + 130, findSpot.y + 70, findSpot.z + 90),
-        lookFrom: findSpot.clone().add(new THREE.Vector3(0, 16, 0)),
-        lookTo: () => oniPos().add(new THREE.Vector3(0, 90, 20)),
+        from: new THREE.Vector3(findSpot.x - 150, findSpot.y + 110, findSpot.z + 210),
+        to: new THREE.Vector3(findSpot.x - 125, findSpot.y + 105, findSpot.z + 180),
+        lookFrom: findSpot.clone().add(new THREE.Vector3(30, 55, 0)),
+        lookTo: () => oniPos().add(new THREE.Vector3(-20, 70, 0)),
       },
       lines: [
         { at: 1.8, text: "A hand that drags a club all day forgets how gently it can close." },
@@ -327,9 +336,9 @@ export const createOniKodamaStory = (world: StoryWorld): Story => {
       rig: {
         kind: "follow",
         target: oniPos,
-        offset: new THREE.Vector3(-240, 170, 200),
-        lookOffset: new THREE.Vector3(0, 60, 0),
-        stiffness: 2.4,
+        offset: homewardCameraOffset,
+        lookOffset: new THREE.Vector3(0, 75, 0),
+        stiffness: 4,
       },
       lines: [
         { at: 1.6, text: "He walked it home the long way — past the paddies, under the pines —" },
@@ -338,11 +347,17 @@ export const createOniKodamaStory = (world: StoryWorld): Story => {
       ],
       onEnter: () => {
         oniMovingTarget = 1;
-        wispTravels.forEach((w) => { w.visible = true; });
+        wispTravels.forEach((w, i) => {
+          w.position.copy(oniTravel.position).add(new THREE.Vector3(-50 - i * 35, 75 + i * 26, -80));
+          w.visible = true;
+        });
       },
       onUpdate: (k, dt) => {
         tick(dt);
         oniMover.onCurve(pathLongWalk, k, dt);
+        // Stay west of the castle wall, then recover the meadow's original framing.
+        homewardCameraOffset.x = THREE.MathUtils.lerp(-230, 230,
+          THREE.MathUtils.smoothstep(oniTravel.position.z, -900, -250));
         // The wisps trail the procession
         wispTravels.forEach((w, i) => {
           const trailT = Math.max(0, k - 0.1 - i * 0.06);
@@ -358,10 +373,10 @@ export const createOniKodamaStory = (world: StoryWorld): Story => {
       duration: 10,
       rig: {
         kind: "dolly",
-        from: new THREE.Vector3(grove.x + 260, grove.y + 120, grove.z + 240),
-        to: new THREE.Vector3(grove.x + 130, grove.y + 40, grove.z + 170),
+        from: new THREE.Vector3(grove.x - 210, grove.y + 155, grove.z + 280),
+        to: new THREE.Vector3(grove.x - 170, grove.y + 125, grove.z + 240),
         lookFrom: () => oniPos().add(new THREE.Vector3(0, 60, 0)),
-        lookTo: grove.clone().add(new THREE.Vector3(0, 16, 0)),
+        lookTo: grove.clone().add(new THREE.Vector3(55, 55, 30)),
       },
       lines: [
         { at: 1.6, text: "He set it down beneath the blossoms, among its family." },
@@ -394,8 +409,8 @@ export const createOniKodamaStory = (world: StoryWorld): Story => {
       duration: 10,
       rig: {
         kind: "static",
-        position: new THREE.Vector3(grove.x - 90, grove.y + 26, grove.z + 150),
-        lookAt: () => oniPos().add(new THREE.Vector3(0, 70, 0)),
+        position: new THREE.Vector3(grove.x - 180, grove.y + 110, grove.z + 270),
+        lookAt: grove.clone().add(new THREE.Vector3(65, 65, 20)),
       },
       lines: [
         { at: 1.4, text: "And the small spirits — who fear nothing, being nearly trees — bowed." },
@@ -421,8 +436,8 @@ export const createOniKodamaStory = (world: StoryWorld): Story => {
       duration: 11,
       rig: {
         kind: "static",
-        position: new THREE.Vector3(grove.x + 210, grove.y + 60, grove.z + 260),
-        lookAt: () => oniPos().add(new THREE.Vector3(-30, 40, 0)),
+        position: new THREE.Vector3(grove.x - 220, grove.y + 145, grove.z + 350),
+        lookAt: grove.clone().add(new THREE.Vector3(70, 65, 70)),
       },
       lines: [
         { at: 1.6, text: "The fox came back first. Foxes always know." },
@@ -447,8 +462,8 @@ export const createOniKodamaStory = (world: StoryWorld): Story => {
       duration: 11,
       rig: {
         kind: "dolly",
-        from: new THREE.Vector3(grove.x + 240, grove.y + 90, grove.z + 300),
-        to: new THREE.Vector3(grove.x + 420, grove.y + 360, grove.z + 620),
+        from: new THREE.Vector3(grove.x - 220, grove.y + 145, grove.z + 350),
+        to: new THREE.Vector3(grove.x - 340, grove.y + 360, grove.z + 620),
         lookFrom: () => oniPos().add(new THREE.Vector3(0, 50, 0)),
         lookTo: grove.clone().add(new THREE.Vector3(0, 60, 0)),
       },
@@ -488,6 +503,8 @@ export const createOniKodamaStory = (world: StoryWorld): Story => {
     subtitle: "門番の鬼 — a tale of Kakuriyo",
     shots,
     onStart: () => {
+      restoreFoliage = openFoliageCorridor(world.foliage,
+        [pathToMeadow, pathBackToGate, pathLongWalk, pathKitsuneFlee, pathShikaFlee, pathKitsuneReturn], 210, [groveTree]);
       scene.add(props);
       moodCtl.apply(dusk, 0.25);
       // The tale casts the oni, the fox, and the deer
@@ -496,6 +513,7 @@ export const createOniKodamaStory = (world: StoryWorld): Story => {
       world.spirits?.setHidden("shika", true);
     },
     onEnd: () => {
+      restoreFoliage();
       spectacle.dispose();
       moodCtl.restore();
       petalBurst.dispose();
