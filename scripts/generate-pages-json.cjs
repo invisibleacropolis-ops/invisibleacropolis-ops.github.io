@@ -3,7 +3,9 @@ const path = require('path');
 
 const ROOT_DIR = process.cwd();
 const OUTPUT_PATH = path.join(ROOT_DIR, 'public', 'pages.json');
-const DEFAULT_EXCLUDES = new Set(['index.html']);
+// The landing page and the Kami world are navigation shells, not monuments
+// inside the world destination manifest.
+const DEFAULT_EXCLUDES = new Set(['index.html', 'kami.html']);
 const IGNORED_DIRS = new Set(['.git', 'dist', 'node_modules', 'public']);
 
 const normalizePath = (filePath) => filePath.split(path.sep).join('/');

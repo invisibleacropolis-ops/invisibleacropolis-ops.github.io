@@ -996,6 +996,15 @@ kbd {
   right: 1rem;
   z-index: 20;
   pointer-events: auto;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.yokai-hud__home {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
 }
 
 .yokai-intro {

@@ -5,7 +5,7 @@ import { createSpellParticles, createEchoRings, createRainbowArc, enchantCharact
 import "./kamiStudio.css";
 
 /** Close-up review of the very same builders used by roaming and story actors.
- * No alternate models or animation mocks. Open /?kami to inspect them. */
+ * No alternate models or animation mocks. Open /kami.html?kami to inspect them. */
 const descriptions: Record<KamiKind, [string, string]> = {
   kitsune: ["Kitsune", "Nine jointed tails · fox-mask markings · listening ears"],
   shika: ["Shika", "Branching golden antlers · spotted coat · grazing and attention"],
@@ -22,7 +22,7 @@ document.body.classList.add("kami-studio");
 const panel = document.createElement("section");
 panel.className = "kami-panel";
 panel.innerHTML = `
-  <a class="kami-back" href="/">← Return to the world</a>
+  <a class="kami-back" href="/kami.html">← Return to the world</a>
   <p class="kami-eyebrow">KAKURIYO / CHARACTER STUDIES</p>
   <h1>Kami atelier<span>神の姿</span></h1>
   <p class="kami-intro">Meet the spirits up close. Drag to orbit, scroll to zoom.</p>

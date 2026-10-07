@@ -155,6 +155,11 @@ const navigationHub = createNavigationHub({ root: uiRoot });
 const hudCorner = document.createElement("div");
 hudCorner.className = "yokai-hud";
 uiRoot.append(hudCorner);
+const homeLink = document.createElement("a");
+homeLink.className = "yokai-hud__home ui-button";
+homeLink.href = "/";
+homeLink.textContent = "Main index";
+hudCorner.append(homeLink);
 const hubTrigger = uiRoot.querySelector(".nav-hub__trigger");
 if (hubTrigger) hudCorner.append(hubTrigger);
 

@@ -1,6 +1,6 @@
 # invisibleacropolis-ops.github.io
 
-A navigable WebGL world built with [Vite](https://vitejs.dev/), TypeScript, and [three.js](https://threejs.org/), served at [invisibleacropolis-ops.github.io](https://invisibleacropolis-ops.github.io). The main page is a 3D scene where monuments act as portals — each one links to a standalone demo page (galaxy, cloth sim, fluid, flow field, procedural city, and more).
+A console-style index and a navigable WebGL world built with [Vite](https://vitejs.dev/), TypeScript, and [three.js](https://threejs.org/), served at [invisibleacropolis-ops.github.io](https://invisibleacropolis-ops.github.io). The main page is a minimal visual directory of every published experience. The Kakuriyo world lives at `/kami.html`; its monuments still link to the standalone demos.
 
 ## Running locally
 
@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-Append `?debug` to the URL to reveal the stats panel and lil-gui dev panel on the main page.
+Append `?debug` to `/kami.html` to reveal the stats panel and lil-gui dev panel in the world. `/kami.html?classic` opens the earlier wireframe world, and `/kami.html?kami` opens the character atelier.
 
 ## Build
 
@@ -19,8 +19,8 @@ npm run build
 
 This runs three steps in order:
 
-1. `scripts/generate-pages-json.cjs` — scans the repo for `.html` files (excluding `index.html`) and writes `public/pages.json`, the manifest the 3D world reads to place monuments and build navigation.
-2. `vite build` — bundles the main app into `dist/`.
+1. `scripts/generate-pages-json.cjs` — scans the repo for demo `.html` files (excluding the landing and Kami entry pages) and writes `public/pages.json`, the manifest both the landing page and 3D world read for navigation.
+2. `vite build` — bundles the landing page, Kami world, and support portals into `dist/`.
 3. `scripts/copy-static-pages.cjs` — copies the root-level demo HTML pages (plus the non-HTML assets listed in `EXTRA_ASSETS`) into `dist/`. **This step is required**: Vite only bundles the entries in `vite.config.ts`, so without it every demo link 404s on GitHub Pages.
 
 Preview the production build with `npm run preview`.

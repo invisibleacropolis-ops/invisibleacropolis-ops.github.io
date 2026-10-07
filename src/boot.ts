@@ -1,5 +1,5 @@
 /**
- * Entry switch. The default experience is the Kakuriyo scene (the hidden
+ * Entry switch for /kami.html. The default experience is Kakuriyo (the hidden
  * world of the kami). The previous neon-wireframe dimension is preserved
  * in full and reachable with ?classic while it awaits its final resting
  * place in the archive.

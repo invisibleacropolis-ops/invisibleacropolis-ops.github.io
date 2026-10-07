@@ -3,42 +3,79 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Kakuriyo — Invisible Acropolis</title>
-    <meta
-      name="description"
-      content="Kakuriyo, the hidden world: a WebGL vision of mystical Japan seen through the eyes of its kami and yokai."
-    />
-    <link
-      rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M6 10 L26 10 M8 10 L8 26 M24 10 L24 26 M5 13 L27 13' stroke='%23d0442a' stroke-width='2.6' fill='none'/%3E%3C/svg%3E"
-    />
+    <meta name="theme-color" content="#050d14" />
+    <meta name="description" content="Invisible Acropolis. Worlds, experiments, and systems." />
+    <title>Invisible Acropolis — Index</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 4 59 51H5Z' fill='none' stroke='%2399fff0' stroke-width='3'/%3E%3Cpath d='M32 19 47 45H17Z' fill='none' stroke='%2399fff0' stroke-width='2'/%3E%3Ccircle cx='32' cy='37' r='4' fill='%23ddff72'/%3E%3C/svg%3E" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Cinzel:wght@400;600;700&family=Spectral:ital,wght@0,300;0,400;1,300&family=IBM+Plex+Mono:wght@400;500&display=swap"
-    />
-    <link rel="stylesheet" href="/src/ui/styles/tokens.css" />
-    <link rel="stylesheet" href="/src/ui/styles/components.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/src/landing.css" />
   </head>
   <body>
-    <canvas id="scene" aria-label="Three.js scene"></canvas>
+    <a class="skip-link" href="#destinations">Skip to destinations</a>
+    <div class="console">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="Invisible Acropolis home">
+          <span class="brand-mark" aria-hidden="true"><span></span></span>
+          <span class="brand-name">INVISIBLE<br />ACROPOLIS</span>
+        </a>
+        <span class="topbar-center" aria-hidden="true">IA <b>/</b> INDEX <b>/</b> 001</span>
+        <span class="topbar-status"><i aria-hidden="true"></i><span id="destination-count">14 ROUTES</span></span>
+      </header>
 
-    <div class="ui">
-      <!-- Loading veil: fades out once the world has generated -->
-      <div class="loading-veil" data-loading-veil>
-        <p class="loading-veil__eyebrow">Crossing over</p>
-        <h1 class="loading-veil__title">隠り世</h1>
-        <div class="loading-veil__bar"><span></span></div>
-      </div>
+      <main class="workbench">
+        <section class="visual-field" aria-label="Holographic index">
+          <div class="visual-grid" aria-hidden="true"></div>
+          <div class="axis axis-x" aria-hidden="true"></div>
+          <div class="axis axis-y" aria-hidden="true"></div>
+          <div class="hero-art" aria-hidden="true">
+            <canvas id="hologram"></canvas>
+            <span class="corner corner-tl"></span><span class="corner corner-tr"></span>
+            <span class="corner corner-bl"></span><span class="corner corner-br"></span>
+            <div class="core-label core-label--top">CORE ARRAY / 001</div>
+            <div class="core-label core-label--left">11.042° N / 73.286° E</div>
+            <div class="core-label core-label--bottom">IA.001 <span>◇</span> ACTIVE</div>
+            <div class="core-scale">00 &nbsp;—&nbsp; 20 &nbsp;—&nbsp; 40 &nbsp;—&nbsp; 60 &nbsp;—&nbsp; 80 &nbsp;—&nbsp; 100</div>
+          </div>
+          <div class="visual-footer" aria-hidden="true"><span>GEOMETRY / LIVE</span><span>∞</span><span>IA : 00</span></div>
+        </section>
 
-      <!-- Aiming reticle (used by the classic world at /?classic) -->
-      <div class="reticle" data-reticle aria-hidden="true">
-        <span class="reticle__ring"></span>
-        <span class="reticle__dot"></span>
-      </div>
+        <nav class="directory" id="destinations" aria-label="All destinations">
+          <div class="directory-header"><span>DIRECTORY</span><span>↗</span></div>
+          <section class="route-group" aria-labelledby="world-label">
+            <h1 id="world-label">WORLD <span>03</span></h1>
+            <div class="route-list">
+              <a class="route route-featured" href="/kami.html"><span class="route-number">01</span><span class="route-name">KAKURIYO</span><span class="route-arrow" aria-hidden="true">↗</span></a>
+              <a class="route" href="/kami.html?classic"><span class="route-number">02</span><span class="route-name">CLASSIC DIMENSION</span><span class="route-arrow" aria-hidden="true">↗</span></a>
+              <a class="route" href="/kami.html?kami"><span class="route-number">03</span><span class="route-name">KAMI ATELIER</span><span class="route-arrow" aria-hidden="true">↗</span></a>
+            </div>
+          </section>
+          <section class="route-group" aria-labelledby="experiments-label">
+            <h2 id="experiments-label">EXPERIMENTS <span id="experiment-count">07</span></h2>
+            <div class="route-list" id="project-grid">
+              <a class="route" href="/galaxy.html"><span class="route-number">04</span><span class="route-name">NEBULA GALAXY</span><span class="route-arrow" aria-hidden="true">↗</span></a>
+              <a class="route" href="/audio-reactive.html"><span class="route-number">05</span><span class="route-name">SPECTRUM SCULPT</span><span class="route-arrow" aria-hidden="true">↗</span></a>
+              <a class="route" href="/flow-field.html"><span class="route-number">06</span><span class="route-name">FLOW FIELD</span><span class="route-arrow" aria-hidden="true">↗</span></a>
+              <a class="route" href="/procedural-city.html"><span class="route-number">07</span><span class="route-name">PROCEDURAL CITY</span><span class="route-arrow" aria-hidden="true">↗</span></a>
+              <a class="route" href="/volumetric-nebula.html"><span class="route-number">08</span><span class="route-name">VOLUMETRIC NEBULA</span><span class="route-arrow" aria-hidden="true">↗</span></a>
+              <a class="route" href="/cloth.html"><span class="route-number">09</span><span class="route-name">CLOTH PLAYGROUND</span><span class="route-arrow" aria-hidden="true">↗</span></a>
+              <a class="route" href="/fluid.html"><span class="route-number">10</span><span class="route-name">FLUID VOLUME</span><span class="route-arrow" aria-hidden="true">↗</span></a>
+            </div>
+          </section>
+          <section class="route-group" aria-labelledby="systems-label">
+            <h2 id="systems-label">SYSTEMS <span>04</span></h2>
+            <div class="route-list">
+              <a class="route" href="/invisible-support/"><span class="route-number">11</span><span class="route-name">INVISIBLE SUPPORT</span><span class="route-arrow" aria-hidden="true">↗</span></a>
+              <a class="route" href="/invisible-support/subspace.html"><span class="route-number">12</span><span class="route-name">SUPPORT SUBSPACE</span><span class="route-arrow" aria-hidden="true">↗</span></a>
+              <a class="route" href="/InvisibleSupport2/"><span class="route-number">13</span><span class="route-name">INVISIBLE SUPPORT 2</span><span class="route-arrow" aria-hidden="true">↗</span></a>
+              <a class="route" href="/InvisibleSupport2/subspace.html"><span class="route-number">14</span><span class="route-name">SUPPORT 2 SUBSPACE</span><span class="route-arrow" aria-hidden="true">↗</span></a>
+            </div>
+          </section>
+          <div class="directory-footer"><span>IA / NAV</span><span>END OF INDEX</span></div>
+        </nav>
+      </main>
     </div>
-
-    <script type="module" src="/src/boot.ts"></script>
+    <script type="module" src="/src/landing.ts"></script>
   </body>
 </html>

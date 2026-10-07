@@ -12,7 +12,9 @@ const DIST_DIR = path.join(ROOT_DIR, 'dist');
 
 // Standalone HTML pages at the repo root (everything pages.json points at).
 const IGNORED_DIRS = new Set(['.git', '.github', 'dist', 'node_modules', 'public', 'src', 'scripts', 'docs']);
-const EXCLUDED_FILES = new Set(['index.html']);
+// Vite processes both entry pages; copying their source HTML would overwrite
+// the bundled output and break module loading in production.
+const EXCLUDED_FILES = new Set(['index.html', 'kami.html']);
 
 // Non-HTML assets the standalone pages depend on.
 const EXTRA_ASSETS = ['galaxy.js', 'galaxy.css', 'fluid', 'app-ads.txt'];

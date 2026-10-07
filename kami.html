@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kakuriyo — Invisible Acropolis</title>
+    <meta
+      name="description"
+      content="Kakuriyo, the hidden world: a WebGL vision of mystical Japan seen through the eyes of its kami and yokai."
+    />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M6 10 L26 10 M8 10 L8 26 M24 10 L24 26 M5 13 L27 13' stroke='%23d0442a' stroke-width='2.6' fill='none'/%3E%3C/svg%3E"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Cinzel:wght@400;600;700&family=Spectral:ital,wght@0,300;0,400;1,300&family=IBM+Plex+Mono:wght@400;500&display=swap"
+    />
+    <link rel="stylesheet" href="/src/ui/styles/tokens.css" />
+    <link rel="stylesheet" href="/src/ui/styles/components.css" />
+  </head>
+  <body>
+    <canvas id="scene" aria-label="Three.js scene"></canvas>
+
+    <div class="ui">
+      <!-- Loading veil: fades out once the world has generated -->
+      <div class="loading-veil" data-loading-veil>
+        <p class="loading-veil__eyebrow">Crossing over</p>
+        <h1 class="loading-veil__title">隠り世</h1>
+        <div class="loading-veil__bar"><span></span></div>
+      </div>
+
+      <!-- Aiming reticle (used by the classic world at /kami.html?classic) -->
+      <div class="reticle" data-reticle aria-hidden="true">
+        <span class="reticle__ring"></span>
+        <span class="reticle__dot"></span>
+      </div>
+    </div>
+
+    <script type="module" src="/src/boot.ts"></script>
+  </body>
+</html>
