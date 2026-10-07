@@ -68,6 +68,114 @@ const makeStrokeGeometry = (base: THREE.BufferGeometry): THREE.BufferGeometry =>
   return geometry;
 };
 
+const makeCellLayer = (shape: THREE.BufferGeometry, color: THREE.Color, density: number, speed: number, phase: number) => {
+  const triangles = shape.index ? shape.toNonIndexed() : shape;
+  const source = triangles.getAttribute("position");
+  const positions: number[] = [];
+  const progress: number[] = [];
+  const cellIds: number[] = [];
+  const facets: number[] = [];
+  const facetIds: number[] = [];
+  for (let cell = 0; cell < source.count / 3; cell++) {
+    const vertices = [0, 1, 2].map((corner) => new THREE.Vector3().fromBufferAttribute(source, cell * 3 + corner));
+    vertices.forEach((vertex) => { facets.push(...vertex.toArray()); facetIds.push(cell); });
+    for (let edge = 0; edge < 3; edge++) {
+      positions.push(...vertices[edge].toArray(), ...vertices[(edge + 1) % 3].toArray());
+      progress.push(edge / 3, (edge + 1) / 3);
+      cellIds.push(cell, cell);
+    }
+  }
+  triangles.dispose();
+  if (triangles !== shape) shape.dispose();
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute("aProgress", new THREE.Float32BufferAttribute(progress, 1));
+  geometry.setAttribute("aCell", new THREE.Float32BufferAttribute(cellIds, 1));
+  const uniforms = {
+    uTime: { value: 1.2 }, uColor: { value: color }, uDensity: { value: density },
+    uSpeed: { value: speed }, uPhase: { value: phase },
+  };
+  const material = new THREE.ShaderMaterial({
+    uniforms,
+    vertexShader: `
+      attribute float aProgress;
+      attribute float aCell;
+      varying float vProgress;
+      varying float vCell;
+      void main() {
+        vProgress = aProgress;
+        vCell = aCell;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform float uTime;
+      uniform vec3 uColor;
+      uniform float uDensity;
+      uniform float uSpeed;
+      uniform float uPhase;
+      varying float vProgress;
+      varying float vCell;
+      float hash(float value) { return fract(sin(value * 72.943) * 43758.5453); }
+      void main() {
+        float cycle = uTime * uSpeed + uPhase;
+        float epoch = floor(cycle);
+        float age = fract(cycle);
+        float chosen = step(hash(vCell + epoch * 337.0 + uPhase * 83.0), uDensity);
+        float start = hash(vCell * 4.1 + epoch * 53.0 + uPhase * 47.0) * .43;
+        float localAge = clamp((age - start) / (1.0 - start), 0.0, 1.0);
+        float tip = clamp(localAge * 2.1, 0.0, 1.06);
+        float drawn = 1.0 - smoothstep(tip - .035, tip + .015, vProgress);
+        float spark = 1.0 - smoothstep(.0, .095, abs(vProgress - tip));
+        float fade = 1.0 - smoothstep(.58, .96, localAge);
+        float alpha = chosen * step(start, age) * fade * (drawn * .94 + spark * .42);
+        if (alpha < .01) discard;
+        gl_FragColor = vec4(uColor, alpha);
+      }
+    `,
+    transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false,
+  });
+  const facetGeometry = new THREE.BufferGeometry();
+  facetGeometry.setAttribute("position", new THREE.Float32BufferAttribute(facets, 3));
+  facetGeometry.setAttribute("aCell", new THREE.Float32BufferAttribute(facetIds, 1));
+  const facetMaterial = new THREE.ShaderMaterial({
+    uniforms,
+    vertexShader: `
+      attribute float aCell;
+      varying float vCell;
+      void main() {
+        vCell = aCell;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform float uTime;
+      uniform vec3 uColor;
+      uniform float uDensity;
+      uniform float uSpeed;
+      uniform float uPhase;
+      varying float vCell;
+      float hash(float value) { return fract(sin(value * 72.943) * 43758.5453); }
+      void main() {
+        float cycle = uTime * uSpeed + uPhase;
+        float epoch = floor(cycle);
+        float age = fract(cycle);
+        float chosen = step(hash(vCell + epoch * 337.0 + uPhase * 83.0), uDensity);
+        float start = hash(vCell * 4.1 + epoch * 53.0 + uPhase * 47.0) * .43;
+        float localAge = clamp((age - start) / (1.0 - start), 0.0, 1.0);
+        float appear = smoothstep(.22, .48, localAge);
+        float fade = 1.0 - smoothstep(.58, .96, localAge);
+        float scan = .78 + .22 * sin(gl_FragCoord.y * 1.7 + uTime * 11.0);
+        float alpha = chosen * step(start, age) * appear * fade * scan * .15;
+        if (alpha < .01) discard;
+        gl_FragColor = vec4(uColor, alpha);
+      }
+    `,
+    transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, side: THREE.DoubleSide,
+  });
+  return { lines: new THREE.LineSegments(geometry, material), facets: new THREE.Mesh(facetGeometry, facetMaterial), uniforms };
+};
+
 const makeFractalBranches = (): THREE.BufferGeometry => {
   const segments: number[] = [];
   const directions: THREE.Vector3[] = [];
@@ -145,14 +253,36 @@ const directionFor = (category: "world" | "experiments" | "systems", index: numb
 export const createAtlas = (canvas: HTMLCanvasElement, art: HTMLElement): AtlasController => {
   const fallback = document.querySelector<HTMLElement>("#webgl-fallback");
   const metadataCard = document.querySelector<HTMLElement>("#metadata-card");
-  const metadataIndex = document.querySelector<HTMLElement>("#metadata-index");
+  const metadataTitleKey = document.querySelector<HTMLElement>("#metadata-title-key");
   const metadataTitle = document.querySelector<HTMLElement>("#metadata-title");
+  const metadataClassKey = document.querySelector<HTMLElement>("#metadata-class-key");
   const metadataClass = document.querySelector<HTMLElement>("#metadata-class");
+  const metadataAddressKey = document.querySelector<HTMLElement>("#metadata-address-key");
   const metadataAddress = document.querySelector<HTMLElement>("#metadata-address");
+  const metadataVectorKey = document.querySelector<HTMLElement>("#metadata-vector-key");
   const metadataVector = document.querySelector<HTMLElement>("#metadata-vector");
   const metadataEnter = document.querySelector<HTMLAnchorElement>("#metadata-enter");
+  const metadataEnterLabel = document.querySelector<HTMLElement>("#metadata-enter-label");
   const metadataClose = document.querySelector<HTMLButtonElement>("#metadata-close");
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const motionToggle = document.querySelector<HTMLButtonElement>("#toggle-motion");
+  let motionOverride: boolean | null = null;
+  const motionEnabled = () => motionOverride ?? !reduceMotion.matches;
+  const updateMotionControl = () => {
+    if (!motionToggle) return;
+    const enabled = motionEnabled();
+    motionToggle.setAttribute("aria-pressed", String(enabled));
+    motionToggle.setAttribute("aria-label", enabled ? "Pause motion" : "Enable motion");
+  };
+  updateMotionControl();
+  motionToggle?.addEventListener("click", () => {
+    motionOverride = !motionEnabled();
+    updateMotionControl();
+  });
+  reduceMotion.addEventListener("change", () => {
+    motionOverride = null;
+    updateMotionControl();
+  });
 
   let renderer: THREE.WebGLRenderer;
   try {
@@ -180,8 +310,8 @@ export const createAtlas = (canvas: HTMLCanvasElement, art: HTMLElement): AtlasC
   const nodeLayer = new THREE.Group();
   assembly.add(nodeLayer);
 
-  // Three polygonal shells: one irregular triangulated skin, one ghost hull,
-  // and a smaller core. The displaced outer skin gives the object its facets.
+  // The irregular shell stays visible; the other layers reveal only a handful
+  // of cells at a time, with a different rhythm and density on each shell.
   const shell = new THREE.IcosahedronGeometry(1.94, 3);
   const shellPositions = shell.getAttribute("position");
   for (let index = 0; index < shellPositions.count; index++) {
@@ -192,7 +322,7 @@ export const createAtlas = (canvas: HTMLCanvasElement, art: HTMLElement): AtlasC
   const wire = new THREE.WireframeGeometry(shell);
   shell.dispose();
   core.add(new THREE.LineSegments(wire, new THREE.LineBasicMaterial({
-    color: AQUA, transparent: true, opacity: .38, blending: THREE.AdditiveBlending, depthWrite: false,
+    color: AQUA, transparent: true, opacity: .19, blending: THREE.AdditiveBlending, depthWrite: false,
   })));
   const strokeUniforms = { uTime: { value: 0 }, uColor: { value: AQUA } };
   const stroke = new THREE.LineSegments(makeStrokeGeometry(wire), new THREE.ShaderMaterial({
@@ -222,32 +352,41 @@ export const createAtlas = (canvas: HTMLCanvasElement, art: HTMLElement): AtlasC
     transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false,
   }));
   core.add(stroke);
-  core.add(new THREE.LineSegments(
-    new THREE.WireframeGeometry(new THREE.IcosahedronGeometry(2.27, 1)),
-    new THREE.LineBasicMaterial({ color: AQUA, transparent: true, opacity: .075, depthWrite: false }),
-  ));
-  core.add(new THREE.LineSegments(
-    new THREE.WireframeGeometry(new THREE.DodecahedronGeometry(1.22, 1)),
-    new THREE.LineBasicMaterial({ color: LIME, transparent: true, opacity: .3, blending: THREE.AdditiveBlending, depthWrite: false }),
-  ));
-  core.add(new THREE.LineSegments(
+  const cellLayers = [
+    makeCellLayer(new THREE.IcosahedronGeometry(2.03, 2), AQUA, .019, .38, .24),
+    makeCellLayer(new THREE.IcosahedronGeometry(2.36, 1), LIME, .072, .47, .61),
+    makeCellLayer(new THREE.DodecahedronGeometry(1.22, 0), AMBER, .16, .32, .84),
+  ];
+  cellLayers.forEach(({ lines, facets }) => { core.add(facets); core.add(lines); });
+  const knotMaterial = new THREE.LineBasicMaterial({
+    color: LIME, transparent: true, opacity: .38, blending: THREE.AdditiveBlending, depthWrite: false,
+  });
+  const knot = new THREE.LineSegments(
     new THREE.WireframeGeometry(new THREE.TorusKnotGeometry(.56, .12, 100, 5, 2, 5)),
-    new THREE.LineBasicMaterial({ color: LIME, transparent: true, opacity: .48, blending: THREE.AdditiveBlending, depthWrite: false }),
-  ));
+    knotMaterial,
+  );
+  core.add(knot);
+  const hullMaterial = new THREE.MeshBasicMaterial({
+    color: "#2bc3ab", transparent: true, opacity: .02, side: THREE.DoubleSide, depthWrite: false,
+  });
   core.add(new THREE.Mesh(
     new THREE.IcosahedronGeometry(1.83, 2),
-    new THREE.MeshBasicMaterial({ color: "#2bc3ab", transparent: true, opacity: .035, side: THREE.DoubleSide, depthWrite: false }),
+    hullMaterial,
   ));
 
   const fractal = makeFractalBranches();
-  core.add(new THREE.LineSegments(fractal, new THREE.LineBasicMaterial({
-    color: AQUA, transparent: true, opacity: .12, blending: THREE.AdditiveBlending, depthWrite: false,
-  })));
+  const branchMaterial = new THREE.LineBasicMaterial({
+    color: AQUA, transparent: true, opacity: .22, blending: THREE.AdditiveBlending, depthWrite: false,
+  });
+  core.add(new THREE.LineSegments(fractal, branchMaterial));
   const redrawGeometry = fractal.clone();
   const redraw = new THREE.LineSegments(redrawGeometry, new THREE.LineBasicMaterial({
-    color: LIME, transparent: true, opacity: .66, blending: THREE.AdditiveBlending, depthWrite: false,
+    color: LIME, transparent: true, opacity: .78, blending: THREE.AdditiveBlending, depthWrite: false,
   }));
   core.add(redraw);
+  const branchSegments = fractal.getAttribute("position").count / 2;
+  fractal.setDrawRange(0, 0);
+  redrawGeometry.setDrawRange(0, 0);
 
   const orbits = new THREE.Group();
   scene.add(orbits);
@@ -265,15 +404,14 @@ export const createAtlas = (canvas: HTMLCanvasElement, art: HTMLElement): AtlasC
   const ringC = new THREE.Mesh(new THREE.TorusGeometry(3.25, .005, 3, 180), ringMaterials[2]);
   ringC.rotation.set(1.25, -.25, -.12);
   orbits.add(ringC);
-  const arc = new THREE.Mesh(
-    new THREE.TorusGeometry(3.06, .016, 3, 96, Math.PI * .94),
-    new THREE.MeshBasicMaterial({ color: LIME, transparent: true, opacity: .85, blending: THREE.AdditiveBlending, depthWrite: false }),
-  );
+  const arcMaterial = new THREE.MeshBasicMaterial({
+    color: LIME, transparent: true, opacity: .45, blending: THREE.AdditiveBlending, depthWrite: false,
+  });
+  const arc = new THREE.Mesh(new THREE.TorusGeometry(3.06, .016, 3, 96, Math.PI * .94), arcMaterial);
   arc.rotation.z = -.8;
   orbits.add(arc);
-  orbits.add(new THREE.LineSegments(makeTicks(), new THREE.LineBasicMaterial({
-    color: AQUA, transparent: true, opacity: .2, depthWrite: false,
-  })));
+  const tickMaterial = new THREE.LineBasicMaterial({ color: AQUA, transparent: true, opacity: .12, depthWrite: false });
+  orbits.add(new THREE.LineSegments(makeTicks(), tickMaterial));
 
   const glowTexture = makeGlowTexture();
   const gemGeometry = new THREE.OctahedronGeometry(.092, 0);
@@ -317,38 +455,39 @@ export const createAtlas = (canvas: HTMLCanvasElement, art: HTMLElement): AtlasC
   };
   const showMetadata = (index: number) => {
     const node = nodes[index];
-    if (!node || !metadataCard || !metadataIndex || !metadataTitle || !metadataClass
-      || !metadataAddress || !metadataVector || !metadataEnter) return;
+    if (!node || !metadataCard || !metadataTitleKey || !metadataTitle || !metadataClassKey
+      || !metadataClass || !metadataAddressKey || !metadataAddress || !metadataVectorKey
+      || !metadataVector || !metadataEnter || !metadataEnterLabel) return;
     cancelAnimationFrame(metadataFrame);
     const title = node.link.querySelector(".route-name")?.textContent?.trim() || node.link.textContent?.trim() || "UNTITLED";
     const category = categoryFor(node.link).toUpperCase();
     const address = new URL(node.link.href).pathname + new URL(node.link.href).search;
     const vector = node.direction.toArray().map((value) => `${value >= 0 ? "+" : ""}${value.toFixed(2)}`).join(" / ");
-    metadataIndex.textContent = String(index + 1).padStart(2, "0");
     metadataEnter.href = node.link.href;
+    metadataEnter.setAttribute("aria-label", `Enter ${title}`);
     metadataCard.hidden = false;
     const fields: [HTMLElement, string][] = [
-      [metadataTitle, title], [metadataClass, category], [metadataAddress, address], [metadataVector, vector],
+      [metadataTitleKey, "TITLE"], [metadataTitle, title],
+      [metadataClassKey, "CLASS"], [metadataClass, category],
+      [metadataAddressKey, "ADDRESS"], [metadataAddress, address],
+      [metadataVectorKey, "VECTOR"], [metadataVector, vector],
+      [metadataEnterLabel, "ENTER PAGE ↗"],
     ];
     fields.forEach(([element, value]) => {
       element.replaceChildren();
       element.setAttribute("aria-label", value);
       element.classList.remove("metadata-cursor");
     });
-    if (reduceMotion.matches) {
-      fields.forEach(([element, value]) => { element.textContent = value; });
-      return;
-    }
     const steps: ({ element: HTMLElement; character: string } | null)[] = [];
     fields.forEach(([element, value], fieldIndex) => {
       for (const character of value) steps.push({ element, character });
-      if (fieldIndex < fields.length - 1) steps.push(null, null);
+      if (fieldIndex < fields.length - 1) steps.push(null);
     });
     let cursor = 0;
     let currentField: HTMLElement | null = null;
     const started = performance.now();
     const type = (now: number) => {
-      const target = Math.min(steps.length, Math.floor((now - started) / 9) + 1);
+      const target = Math.min(steps.length, Math.floor((now - started) / 7) + 1);
       while (cursor < target) {
         const step = steps[cursor++];
         if (!step) continue;
@@ -366,7 +505,7 @@ export const createAtlas = (canvas: HTMLCanvasElement, art: HTMLElement): AtlasC
       if (cursor < steps.length) metadataFrame = requestAnimationFrame(type);
       else currentField?.classList.remove("metadata-cursor");
     };
-    metadataTitle.classList.add("metadata-cursor");
+    metadataTitleKey.classList.add("metadata-cursor");
     metadataFrame = requestAnimationFrame(type);
   };
   const setActive = (index: number | null, source: "pointer" | "directory" | "focus" | null) => {
@@ -385,7 +524,7 @@ export const createAtlas = (canvas: HTMLCanvasElement, art: HTMLElement): AtlasC
     });
     connector.visible = index !== null;
     if (index !== null) {
-      redrawOffset = -time * 155;
+      redrawOffset = time + 1.4;
       const node = nodes[index];
       const position = node.direction.clone().multiplyScalar(2.12);
       connectorGeometry.setFromPoints([new THREE.Vector3(), position]);
@@ -569,7 +708,7 @@ export const createAtlas = (canvas: HTMLCanvasElement, art: HTMLElement): AtlasC
     animationId = requestAnimationFrame(animate);
     if (document.hidden) return;
     const delta = Math.min(clock.getDelta(), .05);
-    if (!reduceMotion.matches) {
+    if (motionEnabled()) {
       time += delta;
       if (!dragging && !aim && activeIndex === null) assembly.rotateY(delta * .08);
       core.rotation.y += delta * .031;
@@ -579,15 +718,30 @@ export const createAtlas = (canvas: HTMLCanvasElement, art: HTMLElement): AtlasC
       ringC.rotation.y += delta * .018;
       arc.rotation.z -= delta * .12;
       strokeUniforms.uTime.value = time;
-      const segmentCount = redrawGeometry.getAttribute("position").count;
-      const count = Math.floor((time * 155 + redrawOffset) % (segmentCount / 2));
-      redrawGeometry.setDrawRange(0, count * 2);
+      cellLayers.forEach(({ uniforms }) => { uniforms.uTime.value = time + 1.2; });
+      const surge = Math.max(0, Math.min(1, (redrawOffset - time) / 1.4));
+      const branchHead = Math.floor(time * (19 + surge * 16)) % branchSegments;
+      const branchStart = Math.max(0, branchHead - 16 - Math.floor(surge * 18));
+      redrawGeometry.setDrawRange(branchStart * 2, (branchHead - branchStart + 1) * 2);
+      const secondHead = (branchHead + Math.floor(branchSegments * .53)) % branchSegments;
+      const secondStart = Math.max(0, secondHead - 11);
+      fractal.setDrawRange(secondStart * 2, (secondHead - secondStart + 1) * 2);
+      knot.rotation.set(Math.sin(time * .23) * .16, time * .11, Math.cos(time * .19) * .18);
+      knotMaterial.opacity = .07 + Math.pow(Math.max(0, Math.sin(time * 1.67)), 4) * .44;
+      hullMaterial.opacity = .004 + Math.pow(Math.max(0, Math.sin(time * .72 + 1.4)), 2) * .032;
+      ringMaterials[0].opacity = .025 + Math.pow(Math.max(0, Math.sin(time * .58)), 5) * .27;
+      ringMaterials[1].opacity = .025 + Math.pow(Math.max(0, Math.sin(time * .47 + 2.1)), 5) * .29;
+      ringMaterials[2].opacity = .02 + Math.pow(Math.max(0, Math.sin(time * .34 + 4.2)), 5) * .18;
+      arcMaterial.opacity = .08 + Math.pow(Math.max(0, Math.sin(time * .42 + .7)), 2) * .67;
+      tickMaterial.opacity = .05 + Math.pow(Math.max(0, Math.sin(time * .8 + .8)), 4) * .18;
       nodes.forEach((node, index) => {
         const pulse = 1 + Math.sin(time * 2.3 + index * 1.8) * .13;
         if (index !== activeIndex) node.gem.scale.setScalar(pulse);
       });
     } else {
-      redrawGeometry.setDrawRange(0, redrawGeometry.getAttribute("position").count);
+      cellLayers.forEach(({ uniforms }) => { uniforms.uTime.value = 1.2; });
+      redrawGeometry.setDrawRange(0, Math.min(32, branchSegments * 2));
+      fractal.setDrawRange(Math.floor(branchSegments * .53) * 2, Math.min(22, branchSegments * 2));
     }
     if (aim) {
       assembly.quaternion.slerp(aim, 1 - Math.exp(-delta * 3.2));

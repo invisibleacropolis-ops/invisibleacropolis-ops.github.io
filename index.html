@@ -41,21 +41,22 @@
             <div class="core-label core-label--bottom">IA.001 <span>◇</span> ACTIVE</div>
             <div class="core-scale">00 &nbsp;—&nbsp; 20 &nbsp;—&nbsp; 40 &nbsp;—&nbsp; 60 &nbsp;—&nbsp; 80 &nbsp;—&nbsp; 100</div>
             <aside class="metadata-card" id="metadata-card" aria-label="Destination metadata" hidden>
-              <div class="metadata-card__header"><span>ROUTE DOSSIER <b id="metadata-index">00</b></span><button type="button" id="metadata-close" aria-label="Close destination metadata">×</button></div>
+              <button class="metadata-card__close" type="button" id="metadata-close" aria-label="Close destination metadata">×</button>
               <div class="metadata-card__body">
-                <div class="metadata-card__title"><span class="metadata-key">TITLE</span><h2 id="metadata-title"></h2></div>
+                <div class="metadata-card__title"><span class="metadata-key" id="metadata-title-key"></span><h2 id="metadata-title"></h2></div>
                 <dl class="metadata-card__fields">
-                  <div><dt>CLASS</dt><dd id="metadata-class"></dd></div>
-                  <div><dt>ADDRESS</dt><dd id="metadata-address"></dd></div>
-                  <div><dt>VECTOR</dt><dd id="metadata-vector"></dd></div>
+                  <div><dt id="metadata-class-key"></dt><dd id="metadata-class"></dd></div>
+                  <div><dt id="metadata-address-key"></dt><dd id="metadata-address"></dd></div>
+                  <div><dt id="metadata-vector-key"></dt><dd id="metadata-vector"></dd></div>
                 </dl>
-                <a class="metadata-card__enter" id="metadata-enter" href="#">ENTER PAGE <span aria-hidden="true">↗</span></a>
+                <a class="metadata-card__enter" id="metadata-enter" href="#"><span id="metadata-enter-label"></span></a>
               </div>
             </aside>
             <div class="viewport-controls" aria-label="Three-dimensional view controls">
               <button type="button" id="zoom-in" aria-label="Zoom in">+</button>
               <button type="button" id="zoom-out" aria-label="Zoom out">−</button>
               <button type="button" id="reset-view" aria-label="Reset view">⌖</button>
+              <button type="button" id="toggle-motion" aria-label="Enable motion" aria-pressed="false" title="Toggle motion">✧</button>
             </div>
             <p class="view-hint">DRAG <span>•</span> ZOOM <span>•</span> SELECT</p>
             <p class="webgl-fallback" id="webgl-fallback" hidden>WEBGL UNAVAILABLE</p>
