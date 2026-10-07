@@ -33,14 +33,25 @@
           <div class="axis axis-x" aria-hidden="true"></div>
           <div class="axis axis-y" aria-hidden="true"></div>
           <div class="hero-art">
-            <canvas id="hologram" tabindex="0" aria-label="Interactive three-dimensional destination map. Drag to rotate, scroll or use the controls to zoom, and select a glowing node to open its page. All pages are also linked in the directory."></canvas>
+            <canvas id="hologram" tabindex="0" aria-label="Interactive three-dimensional destination map. Drag to rotate, scroll or use the controls to zoom, and select a glowing node to inspect its metadata. Use Enter Page on the card to navigate. All pages are also linked in the directory."></canvas>
             <span class="corner corner-tl"></span><span class="corner corner-tr"></span>
             <span class="corner corner-bl"></span><span class="corner corner-br"></span>
             <div class="core-label core-label--top">CORE ARRAY / 001</div>
             <div class="core-label core-label--left">11.042° N / 73.286° E</div>
             <div class="core-label core-label--bottom">IA.001 <span>◇</span> ACTIVE</div>
             <div class="core-scale">00 &nbsp;—&nbsp; 20 &nbsp;—&nbsp; 40 &nbsp;—&nbsp; 60 &nbsp;—&nbsp; 80 &nbsp;—&nbsp; 100</div>
-            <div class="node-callout" id="node-callout" hidden><span id="node-callout-number"></span><strong id="node-callout-name"></strong><span aria-hidden="true">↗</span></div>
+            <aside class="metadata-card" id="metadata-card" aria-label="Destination metadata" hidden>
+              <div class="metadata-card__header"><span>ROUTE DOSSIER <b id="metadata-index">00</b></span><button type="button" id="metadata-close" aria-label="Close destination metadata">×</button></div>
+              <div class="metadata-card__body">
+                <div class="metadata-card__title"><span class="metadata-key">TITLE</span><h2 id="metadata-title"></h2></div>
+                <dl class="metadata-card__fields">
+                  <div><dt>CLASS</dt><dd id="metadata-class"></dd></div>
+                  <div><dt>ADDRESS</dt><dd id="metadata-address"></dd></div>
+                  <div><dt>VECTOR</dt><dd id="metadata-vector"></dd></div>
+                </dl>
+                <a class="metadata-card__enter" id="metadata-enter" href="#">ENTER PAGE <span aria-hidden="true">↗</span></a>
+              </div>
+            </aside>
             <div class="viewport-controls" aria-label="Three-dimensional view controls">
               <button type="button" id="zoom-in" aria-label="Zoom in">+</button>
               <button type="button" id="zoom-out" aria-label="Zoom out">−</button>

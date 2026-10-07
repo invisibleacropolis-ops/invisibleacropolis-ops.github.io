@@ -144,9 +144,14 @@ const directionFor = (category: "world" | "experiments" | "systems", index: numb
 
 export const createAtlas = (canvas: HTMLCanvasElement, art: HTMLElement): AtlasController => {
   const fallback = document.querySelector<HTMLElement>("#webgl-fallback");
-  const callout = document.querySelector<HTMLElement>("#node-callout");
-  const calloutNumber = document.querySelector<HTMLElement>("#node-callout-number");
-  const calloutName = document.querySelector<HTMLElement>("#node-callout-name");
+  const metadataCard = document.querySelector<HTMLElement>("#metadata-card");
+  const metadataIndex = document.querySelector<HTMLElement>("#metadata-index");
+  const metadataTitle = document.querySelector<HTMLElement>("#metadata-title");
+  const metadataClass = document.querySelector<HTMLElement>("#metadata-class");
+  const metadataAddress = document.querySelector<HTMLElement>("#metadata-address");
+  const metadataVector = document.querySelector<HTMLElement>("#metadata-vector");
+  const metadataEnter = document.querySelector<HTMLAnchorElement>("#metadata-enter");
+  const metadataClose = document.querySelector<HTMLButtonElement>("#metadata-close");
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
   let renderer: THREE.WebGLRenderer;
@@ -283,18 +288,18 @@ export const createAtlas = (canvas: HTMLCanvasElement, art: HTMLElement): AtlasC
   const attached = new WeakSet<HTMLAnchorElement>();
   let activeIndex: number | null = null;
   let activeSource: "pointer" | "directory" | "focus" | null = null;
+  let pinnedIndex: number | null = null;
+  let metadataFrame = 0;
   let aim: THREE.Quaternion | null = null;
   let cameraTarget = 10.2;
   let dragging = false;
   let moved = false;
   let lastX = 0, lastY = 0;
-  let pointerX = 0, pointerY = 0;
   let width = 1, height = 1;
   let time = 0;
   let redrawOffset = 0;
   let animationId = 0;
   const clock = new THREE.Clock();
-  const projected = new THREE.Vector3();
   const connectorGeometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
   const connector = new THREE.Line(connectorGeometry, new THREE.LineBasicMaterial({
     color: LIME, transparent: true, opacity: .55, blending: THREE.AdditiveBlending, depthWrite: false,
@@ -306,22 +311,68 @@ export const createAtlas = (canvas: HTMLCanvasElement, art: HTMLElement): AtlasC
     const heading = link.closest(".route-group")?.querySelector("h1, h2");
     return heading?.id === "world-label" ? "world" : heading?.id === "systems-label" ? "systems" : "experiments";
   };
-  const placeCallout = () => {
-    if (!callout || activeIndex === null || !nodes[activeIndex]) return;
-    if (activeSource === "directory" || activeSource === "focus") {
-      nodes[activeIndex].group.getWorldPosition(projected);
-      projected.project(camera);
-      pointerX = (projected.x + 1) * width / 2;
-      pointerY = (1 - projected.y) * height / 2;
-    }
-    callout.style.left = `${Math.max(24, Math.min(width - 183, pointerX + 19))}px`;
-    callout.style.top = `${Math.max(40, Math.min(height - 65, pointerY - 16))}px`;
+  const hideMetadata = () => {
+    cancelAnimationFrame(metadataFrame);
+    if (metadataCard) metadataCard.hidden = true;
   };
-  const setActive = (index: number | null, source: "pointer" | "directory" | "focus" | null) => {
-    if (index === activeIndex && source === activeSource) {
-      placeCallout();
+  const showMetadata = (index: number) => {
+    const node = nodes[index];
+    if (!node || !metadataCard || !metadataIndex || !metadataTitle || !metadataClass
+      || !metadataAddress || !metadataVector || !metadataEnter) return;
+    cancelAnimationFrame(metadataFrame);
+    const title = node.link.querySelector(".route-name")?.textContent?.trim() || node.link.textContent?.trim() || "UNTITLED";
+    const category = categoryFor(node.link).toUpperCase();
+    const address = new URL(node.link.href).pathname + new URL(node.link.href).search;
+    const vector = node.direction.toArray().map((value) => `${value >= 0 ? "+" : ""}${value.toFixed(2)}`).join(" / ");
+    metadataIndex.textContent = String(index + 1).padStart(2, "0");
+    metadataEnter.href = node.link.href;
+    metadataCard.hidden = false;
+    const fields: [HTMLElement, string][] = [
+      [metadataTitle, title], [metadataClass, category], [metadataAddress, address], [metadataVector, vector],
+    ];
+    fields.forEach(([element, value]) => {
+      element.replaceChildren();
+      element.setAttribute("aria-label", value);
+      element.classList.remove("metadata-cursor");
+    });
+    if (reduceMotion.matches) {
+      fields.forEach(([element, value]) => { element.textContent = value; });
       return;
     }
+    const steps: ({ element: HTMLElement; character: string } | null)[] = [];
+    fields.forEach(([element, value], fieldIndex) => {
+      for (const character of value) steps.push({ element, character });
+      if (fieldIndex < fields.length - 1) steps.push(null, null);
+    });
+    let cursor = 0;
+    let currentField: HTMLElement | null = null;
+    const started = performance.now();
+    const type = (now: number) => {
+      const target = Math.min(steps.length, Math.floor((now - started) / 9) + 1);
+      while (cursor < target) {
+        const step = steps[cursor++];
+        if (!step) continue;
+        if (currentField !== step.element) {
+          currentField?.classList.remove("metadata-cursor");
+          currentField = step.element;
+          currentField.classList.add("metadata-cursor");
+        }
+        const glyph = document.createElement("span");
+        glyph.className = "metadata-glyph";
+        glyph.setAttribute("aria-hidden", "true");
+        glyph.textContent = step.character;
+        step.element.append(glyph);
+      }
+      if (cursor < steps.length) metadataFrame = requestAnimationFrame(type);
+      else currentField?.classList.remove("metadata-cursor");
+    };
+    metadataTitle.classList.add("metadata-cursor");
+    metadataFrame = requestAnimationFrame(type);
+  };
+  const setActive = (index: number | null, source: "pointer" | "directory" | "focus" | null) => {
+    if (index === null && pinnedIndex !== null) index = pinnedIndex;
+    if (index === activeIndex && source === activeSource) return;
+    const changedNode = index !== activeIndex;
     activeIndex = index;
     activeSource = source;
     canvas.style.cursor = index === null ? (dragging ? "grabbing" : "grab") : "pointer";
@@ -338,13 +389,10 @@ export const createAtlas = (canvas: HTMLCanvasElement, art: HTMLElement): AtlasC
       const node = nodes[index];
       const position = node.direction.clone().multiplyScalar(2.12);
       connectorGeometry.setFromPoints([new THREE.Vector3(), position]);
-      if (calloutNumber) calloutNumber.textContent = String(index + 1).padStart(2, "0");
-      if (calloutName) calloutName.textContent = node.link.querySelector(".route-name")?.textContent || node.link.textContent || "";
-      if (callout) callout.hidden = false;
+      if (changedNode) showMetadata(index);
       if (source === "directory" || source === "focus") aim = new THREE.Quaternion().setFromUnitVectors(node.direction, FRONT);
-      placeCallout();
     } else {
-      if (callout) callout.hidden = true;
+      hideMetadata();
       aim = null;
     }
   };
@@ -408,12 +456,16 @@ export const createAtlas = (canvas: HTMLCanvasElement, art: HTMLElement): AtlasC
       if (!attached.has(link)) {
         link.addEventListener("pointerenter", () => {
           if (document.activeElement?.classList.contains("route")) return;
+          pinnedIndex = null;
           setActive(nodes.findIndex((node) => node.link === link), "directory");
         });
         link.addEventListener("pointerleave", () => {
           if (document.activeElement !== link) setActive(null, null);
         });
-        link.addEventListener("focus", () => setActive(nodes.findIndex((node) => node.link === link), "focus"));
+        link.addEventListener("focus", () => {
+          pinnedIndex = null;
+          setActive(nodes.findIndex((node) => node.link === link), "focus");
+        });
         link.addEventListener("blur", () => setActive(null, null));
         attached.add(link);
       }
@@ -434,6 +486,7 @@ export const createAtlas = (canvas: HTMLCanvasElement, art: HTMLElement): AtlasC
   };
   canvas.addEventListener("pointerdown", (event) => {
     if (event.button !== 0) return;
+    pinnedIndex = null;
     dragging = true;
     moved = false;
     lastX = event.clientX;
@@ -443,9 +496,6 @@ export const createAtlas = (canvas: HTMLCanvasElement, art: HTMLElement): AtlasC
     aim = null;
   });
   canvas.addEventListener("pointermove", (event) => {
-    const bounds = canvas.getBoundingClientRect();
-    pointerX = event.clientX - bounds.left;
-    pointerY = event.clientY - bounds.top;
     if (dragging) {
       const dx = event.clientX - lastX;
       const dy = event.clientY - lastY;
@@ -455,7 +505,7 @@ export const createAtlas = (canvas: HTMLCanvasElement, art: HTMLElement): AtlasC
       lastX = event.clientX;
       lastY = event.clientY;
       setActive(null, null);
-    } else {
+    } else if (pinnedIndex === null) {
       setActive(pick(event), "pointer");
     }
   });
@@ -464,11 +514,22 @@ export const createAtlas = (canvas: HTMLCanvasElement, art: HTMLElement): AtlasC
     canvas.releasePointerCapture(event.pointerId);
     dragging = false;
     const index = pick(event);
-    if (!moved && index !== null) window.location.assign(nodes[index].link.href);
-    else setActive(index, index === null ? null : "pointer");
+    if (!moved && index !== null) pinnedIndex = index;
+    setActive(index, index === null ? null : "pointer");
   });
   canvas.addEventListener("pointercancel", () => { dragging = false; setActive(null, null); });
-  canvas.addEventListener("pointerleave", () => { if (!dragging && activeSource === "pointer") setActive(null, null); });
+  canvas.addEventListener("pointerleave", (event) => {
+    if (!dragging && activeSource === "pointer" && pinnedIndex === null
+      && !(event.relatedTarget instanceof Node && metadataCard?.contains(event.relatedTarget))) setActive(null, null);
+  });
+  metadataCard?.addEventListener("pointerleave", () => {
+    if (pinnedIndex === null && activeSource === "pointer") setActive(null, null);
+  });
+  metadataClose?.addEventListener("click", () => {
+    pinnedIndex = null;
+    setActive(null, null);
+    canvas.focus();
+  });
   canvas.addEventListener("wheel", (event) => {
     event.preventDefault();
     cameraTarget = THREE.MathUtils.clamp(cameraTarget + event.deltaY * .007, 6.7, 13);
@@ -481,7 +542,7 @@ export const createAtlas = (canvas: HTMLCanvasElement, art: HTMLElement): AtlasC
     else if (event.key === "ArrowUp") assembly.rotateX(-.2);
     else if (event.key === "ArrowDown") assembly.rotateX(.2);
     else if (event.key === "Enter" && activeIndex !== null) window.location.assign(nodes[activeIndex].link.href);
-    else if (event.key === "Escape") { aim = new THREE.Quaternion(); cameraTarget = 10.2; setActive(null, null); }
+    else if (event.key === "Escape") { pinnedIndex = null; aim = new THREE.Quaternion(); cameraTarget = 10.2; setActive(null, null); }
     else return;
     event.preventDefault();
   });
@@ -489,6 +550,7 @@ export const createAtlas = (canvas: HTMLCanvasElement, art: HTMLElement): AtlasC
   document.querySelector("#zoom-out")?.addEventListener("click", () => { cameraTarget = Math.min(13, cameraTarget + .8); });
   document.querySelector("#reset-view")?.addEventListener("click", () => {
     cameraTarget = 10.2;
+    pinnedIndex = null;
     setActive(null, null);
     aim = new THREE.Quaternion();
   });
@@ -532,7 +594,6 @@ export const createAtlas = (canvas: HTMLCanvasElement, art: HTMLElement): AtlasC
       if (assembly.quaternion.angleTo(aim) < .002) aim = null;
     }
     camera.position.z += (cameraTarget - camera.position.z) * (1 - Math.exp(-delta * 5));
-    if (activeIndex !== null) placeCallout();
     renderer.render(scene, camera);
   };
   refreshRoutes();
