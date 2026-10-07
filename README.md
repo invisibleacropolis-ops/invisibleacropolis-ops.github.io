@@ -1,6 +1,6 @@
 # invisibleacropolis-ops.github.io
 
-A console-style index and a navigable WebGL world built with [Vite](https://vitejs.dev/), TypeScript, and [three.js](https://threejs.org/), served at [invisibleacropolis-ops.github.io](https://invisibleacropolis-ops.github.io). The main page is a minimal visual directory of every published experience. The Kakuriyo world lives at `/kami.html`; its monuments still link to the standalone demos.
+A spatial WebGL index and a navigable world built with [Vite](https://vitejs.dev/), TypeScript, and [three.js](https://threejs.org/), served at [invisibleacropolis-ops.github.io](https://invisibleacropolis-ops.github.io). The main page maps every published experience to a selectable node on an animated 3D object. An optional floating directory opens from the header and starts closed. The Kakuriyo world lives at `/kami.html`; its monuments still link to the standalone demos.
 
 ## Running locally
 

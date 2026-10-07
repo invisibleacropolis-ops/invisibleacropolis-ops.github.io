@@ -21,7 +21,10 @@
           <span class="brand-name">INVISIBLE<br />ACROPOLIS</span>
         </a>
         <span class="topbar-center" aria-hidden="true">IA <b>/</b> INDEX <b>/</b> 001</span>
-        <span class="topbar-status"><i aria-hidden="true"></i><span id="destination-count">14 ROUTES</span></span>
+        <div class="topbar-actions">
+          <span class="topbar-status"><i aria-hidden="true"></i><span id="destination-count">14 ROUTES</span></span>
+          <button class="directory-toggle" id="directory-toggle" type="button" aria-controls="destinations" aria-haspopup="true" aria-expanded="false"><span>DIRECTORY</span><span aria-hidden="true">☷</span></button>
+        </div>
       </header>
 
       <main class="workbench">
@@ -29,20 +32,28 @@
           <div class="visual-grid" aria-hidden="true"></div>
           <div class="axis axis-x" aria-hidden="true"></div>
           <div class="axis axis-y" aria-hidden="true"></div>
-          <div class="hero-art" aria-hidden="true">
-            <canvas id="hologram"></canvas>
+          <div class="hero-art">
+            <canvas id="hologram" tabindex="0" aria-label="Interactive three-dimensional destination map. Drag to rotate, scroll or use the controls to zoom, and select a glowing node to open its page. All pages are also linked in the directory."></canvas>
             <span class="corner corner-tl"></span><span class="corner corner-tr"></span>
             <span class="corner corner-bl"></span><span class="corner corner-br"></span>
             <div class="core-label core-label--top">CORE ARRAY / 001</div>
             <div class="core-label core-label--left">11.042° N / 73.286° E</div>
             <div class="core-label core-label--bottom">IA.001 <span>◇</span> ACTIVE</div>
             <div class="core-scale">00 &nbsp;—&nbsp; 20 &nbsp;—&nbsp; 40 &nbsp;—&nbsp; 60 &nbsp;—&nbsp; 80 &nbsp;—&nbsp; 100</div>
+            <div class="node-callout" id="node-callout" hidden><span id="node-callout-number"></span><strong id="node-callout-name"></strong><span aria-hidden="true">↗</span></div>
+            <div class="viewport-controls" aria-label="Three-dimensional view controls">
+              <button type="button" id="zoom-in" aria-label="Zoom in">+</button>
+              <button type="button" id="zoom-out" aria-label="Zoom out">−</button>
+              <button type="button" id="reset-view" aria-label="Reset view">⌖</button>
+            </div>
+            <p class="view-hint">DRAG <span>•</span> ZOOM <span>•</span> SELECT</p>
+            <p class="webgl-fallback" id="webgl-fallback" hidden>WEBGL UNAVAILABLE</p>
           </div>
-          <div class="visual-footer" aria-hidden="true"><span>GEOMETRY / LIVE</span><span>∞</span><span>IA : 00</span></div>
+          <div class="visual-footer" aria-hidden="true"><span>SPATIAL INDEX / LIVE</span><span>∞</span><span>IA : 00</span></div>
         </section>
 
-        <nav class="directory" id="destinations" aria-label="All destinations">
-          <div class="directory-header"><span>DIRECTORY</span><span>↗</span></div>
+        <nav class="directory" id="destinations" aria-label="All destinations" hidden>
+          <div class="directory-header"><span>DIRECTORY</span><button type="button" id="directory-close" aria-label="Close directory">×</button></div>
           <section class="route-group" aria-labelledby="world-label">
             <h1 id="world-label">WORLD <span>03</span></h1>
             <div class="route-list">
