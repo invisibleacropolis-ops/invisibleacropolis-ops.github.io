@@ -109,8 +109,12 @@ submit them with <code>ingest_snapshot</code> (tagged <code>agent-reported</code
 <h2>7. Using the website instead of the API</h2>
 <p>The Desk at <a href="https://invisibleacropolis-ops.github.io/RHDesk/">https://invisibleacropolis-ops.github.io/RHDesk/</a> is built for agents too: every control has a stable <code>data-testid</code>, decisions take two clicks
 (<code>&lt;id&gt;</code> then <code>&lt;id&gt;-confirm</code>), and every page mirrors exactly what it shows into
-<code>&lt;script type=&quot;application/json&quot; id=&quot;desk-state&quot;&gt;</code>. Read that instead of scraping the screen. The API remains the
-primary interface; the website is for the owner and for agents that only have a browser.</p>
+<code>&lt;script type=&quot;application/json&quot; id=&quot;desk-state&quot;&gt;</code>. Read that instead of scraping the screen. Record pages:
+<code>/proposals/?id=&lt;uuid&gt;</code> (limit checks), <code>/mandates/</code> (limit use per mandate), <code>/accounts/</code>, <code>/positions/?symbol=&lt;SYM&gt;</code>
+(the position&#39;s story from thesis to fills) and <code>/tasks/</code>. Approving proposals and activating mandates are the owner&#39;s
+decisions; an agent never makes them on the owner&#39;s behalf. The API remains the primary interface; the website is for
+the owner and for agents that only have a browser. Through the API, <code>mandate_utilization</code> shows how much of each
+mandate&#39;s limits is in use.</p>
 <h2>8. When something fails</h2>
 <p>Errors look like <code>{&quot;code&quot;:&quot;P0001&quot;,&quot;details&quot;:&quot;&lt;machine code&gt;&quot;,&quot;message&quot;:&quot;&lt;code&gt;: &lt;text&gt;&quot;,&quot;hint&quot;:&quot;&lt;what to do&gt;&quot;}</code>.</p>
 <table>

@@ -603,6 +603,64 @@
       ],
       "type": "object"
     },
+    "mandate_utilization": {
+      "properties": {
+        "daily_trade_cap": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "exposure_usd": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "goal_id": {
+          "description": "Note:\nThis is a Foreign Key to `goals.id`.<fk table='goals' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "largest_position_pct": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "limits": {
+          "format": "jsonb"
+        },
+        "mandate_id": {
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "max_order_usd": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "max_position_pct": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "positions": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "status": {
+          "format": "text",
+          "type": "string"
+        },
+        "title": {
+          "format": "text",
+          "type": "string"
+        },
+        "trades_today": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "version": {
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
     "mandates": {
       "properties": {
         "account_id": {
@@ -1803,6 +1861,15 @@
         "$ref": "#/definitions/loops"
       }
     },
+    "body.mandate_utilization": {
+      "description": "mandate_utilization",
+      "in": "body",
+      "name": "mandate_utilization",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/mandate_utilization"
+      }
+    },
     "body.mandates": {
       "description": "mandates",
       "in": "body",
@@ -2618,6 +2685,84 @@
     "rowFilter.loops.updated_at": {
       "in": "query",
       "name": "updated_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandate_utilization.daily_trade_cap": {
+      "in": "query",
+      "name": "daily_trade_cap",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandate_utilization.exposure_usd": {
+      "in": "query",
+      "name": "exposure_usd",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandate_utilization.goal_id": {
+      "in": "query",
+      "name": "goal_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandate_utilization.largest_position_pct": {
+      "in": "query",
+      "name": "largest_position_pct",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandate_utilization.limits": {
+      "in": "query",
+      "name": "limits",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandate_utilization.mandate_id": {
+      "in": "query",
+      "name": "mandate_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandate_utilization.max_order_usd": {
+      "in": "query",
+      "name": "max_order_usd",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandate_utilization.max_position_pct": {
+      "in": "query",
+      "name": "max_position_pct",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandate_utilization.positions": {
+      "in": "query",
+      "name": "positions",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandate_utilization.status": {
+      "in": "query",
+      "name": "status",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandate_utilization.title": {
+      "in": "query",
+      "name": "title",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandate_utilization.trades_today": {
+      "in": "query",
+      "name": "trades_today",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandate_utilization.version": {
+      "in": "query",
+      "name": "version",
       "required": false,
       "type": "string"
     },
@@ -4599,6 +4744,89 @@
         },
         "tags": [
           "loops"
+        ]
+      }
+    },
+    "/mandate_utilization": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.mandate_utilization.mandate_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.mandate_utilization.goal_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.mandate_utilization.title"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.mandate_utilization.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.mandate_utilization.version"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.mandate_utilization.limits"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.mandate_utilization.daily_trade_cap"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.mandate_utilization.max_position_pct"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.mandate_utilization.max_order_usd"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.mandate_utilization.trades_today"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.mandate_utilization.positions"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.mandate_utilization.exposure_usd"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.mandate_utilization.largest_position_pct"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/mandate_utilization"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "mandate_utilization"
         ]
       }
     },

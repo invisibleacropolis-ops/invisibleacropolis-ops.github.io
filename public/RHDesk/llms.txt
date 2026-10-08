@@ -108,8 +108,12 @@ Without it, do research-only work (scouts, journal, tasks) and tell the human.
 
 The Desk at https://invisibleacropolis-ops.github.io/RHDesk/ is built for agents too: every control has a stable `data-testid`, decisions take two clicks
 (`<id>` then `<id>-confirm`), and every page mirrors exactly what it shows into
-`<script type="application/json" id="desk-state">`. Read that instead of scraping the screen. The API remains the
-primary interface; the website is for the owner and for agents that only have a browser.
+`<script type="application/json" id="desk-state">`. Read that instead of scraping the screen. Record pages:
+`/proposals/?id=<uuid>` (limit checks), `/mandates/` (limit use per mandate), `/accounts/`, `/positions/?symbol=<SYM>`
+(the position's story from thesis to fills) and `/tasks/`. Approving proposals and activating mandates are the owner's
+decisions; an agent never makes them on the owner's behalf. The API remains the primary interface; the website is for
+the owner and for agents that only have a browser. Through the API, `mandate_utilization` shows how much of each
+mandate's limits is in use.
 
 ## 8. When something fails
 
