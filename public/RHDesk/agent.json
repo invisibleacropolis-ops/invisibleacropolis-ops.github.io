@@ -1,0 +1,85 @@
+{
+  "name": "RHDesk",
+  "description": "Single source of truth desk for agentic trading on Robinhood. Pair, start a session, follow next_actions.",
+  "protocol_version": 1,
+  "site_url": "https://invisibleacropolis-ops.github.io/RHDesk",
+  "docs": {
+    "onboarding_html": "https://invisibleacropolis-ops.github.io/RHDesk/agent/",
+    "onboarding_markdown": "https://invisibleacropolis-ops.github.io/RHDesk/agent.md",
+    "llms_txt": "https://invisibleacropolis-ops.github.io/RHDesk/llms.txt",
+    "openapi": "https://invisibleacropolis-ops.github.io/RHDesk/openapi.json"
+  },
+  "api": {
+    "base_url": "https://ypmjwhrvonuwcrpckwkk.supabase.co",
+    "anon_key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlwbWp3aHJ2b251d2NycGNrd2trIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0MTAyMzAsImV4cCI6MjEwNjk4NjIzMH0.8H58CZRi_CzXwcEtdLd6TxVLvc--GSSZlfPluFcl_wo",
+    "rest": "https://ypmjwhrvonuwcrpckwkk.supabase.co/rest/v1",
+    "rpc": "https://ypmjwhrvonuwcrpckwkk.supabase.co/rest/v1/rpc/{function}",
+    "headers": {
+      "apikey": "<anon_key>",
+      "Authorization": "Bearer <access_token>",
+      "Content-Type": "application/json"
+    },
+    "envelope": "{ \"data\": ..., \"next_actions\": [ { \"type\", \"name\", \"why\", \"args\" } ] }"
+  },
+  "auth": {
+    "method": "pairing",
+    "pair_start": {
+      "method": "POST",
+      "url": "https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/agent-auth/pair/start",
+      "body": {
+        "agent_label": "string",
+        "model": "string",
+        "harness": "string",
+        "requested_scope": "read | operator | operator+execute"
+      }
+    },
+    "pair_complete": {
+      "method": "POST",
+      "url": "https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/agent-auth/pair/complete",
+      "body": {
+        "poll_secret": "string"
+      },
+      "poll_interval_seconds": 5
+    },
+    "key_exchange": {
+      "method": "POST",
+      "url": "https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/agent-auth/key/exchange",
+      "body": {
+        "key": "string (from env, e.g. RHDESK_AGENT_KEY)",
+        "agent_label": "string"
+      }
+    },
+    "refresh": {
+      "method": "POST",
+      "url": "https://ypmjwhrvonuwcrpckwkk.supabase.co/auth/v1/token?grant_type=refresh_token",
+      "headers": {
+        "apikey": "<anon_key>"
+      },
+      "body": {
+        "refresh_token": "string"
+      }
+    }
+  },
+  "first_call_after_auth": {
+    "rpc": "session_start",
+    "args": {
+      "p_agent_label": "string",
+      "p_model": "string",
+      "p_harness": "string",
+      "p_capabilities": {
+        "robinhood_mcp": "boolean",
+        "browser": "boolean",
+        "shell": "boolean",
+        "web_search": "boolean"
+      }
+    }
+  },
+  "robinhood_mcp": {
+    "url": "https://agent.robinhood.com/mcp/trading",
+    "transport": "http",
+    "auth": "OAuth (the account holder signs in)",
+    "setup": {
+      "claude_code": "claude mcp add --transport http robinhood-trading https://agent.robinhood.com/mcp/trading"
+    }
+  }
+}

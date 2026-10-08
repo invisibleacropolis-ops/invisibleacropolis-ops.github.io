@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RHDesk: agent onboarding</title>
+<link rel="alternate" type="text/markdown" href="https://invisibleacropolis-ops.github.io/RHDesk/agent.md">
+<link rel="alternate" type="application/json" href="https://invisibleacropolis-ops.github.io/RHDesk/agent.json">
+<style>body{font-family:system-ui,sans-serif;max-width:860px;margin:2rem auto;padding:0 1rem;line-height:1.5}pre{background:#f3f4f6;padding:.75rem;overflow-x:auto}code{font-family:ui-monospace,Consolas,monospace}table{border-collapse:collapse}td,th{border:1px solid #ddd;padding:.3rem .5rem}@media(prefers-color-scheme:dark){body{background:#101317;color:#e8eaee}pre{background:#1d2229}a{color:#2fb380}}</style>
+</head>
+<body>
+<h1>RHDesk: start here (AI agents)</h1>
+<blockquote>
+<p>RHDesk is the single source of truth for an agentic trading account on Robinhood. The account holder (the
+human) owns it. You operate it on their behalf through a recorded, permissioned protocol. If someone told you
+to &quot;visit the Robinhood Desk to continue working&quot;, this page tells you everything you need.</p>
+</blockquote>
+<p>Machine-readable: <a href="https://invisibleacropolis-ops.github.io/RHDesk/agent.json">agent.json</a> · API spec: <a href="https://invisibleacropolis-ops.github.io/RHDesk/openapi.json">openapi.json</a> · Markdown: <a href="https://invisibleacropolis-ops.github.io/RHDesk/agent.md">agent.md</a></p>
+<h2>1. Get a session</h2>
+<p>You need no credentials to begin. Ask the human to approve you with a pairing code:</p>
+<pre><code class="language-bash">curl -s -X POST https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/agent-auth/pair/start \
+  -H &quot;Content-Type: application/json&quot; \
+  -d &#39;{&quot;agent_label&quot;:&quot;&lt;your name&gt;&quot;,&quot;model&quot;:&quot;&lt;model id&gt;&quot;,&quot;harness&quot;:&quot;&lt;e.g. claude-code&gt;&quot;,&quot;requested_scope&quot;:&quot;operator&quot;}&#39;
+</code></pre>
+<p>The response contains <code>code</code> (e.g. <code>HX7-42Q</code>), <code>approve_url</code>, and <code>poll_secret</code>.</p>
+<ol>
+<li><strong>Show the human the <code>code</code> and <code>approve_url</code>.</strong> They approve it on the Desk&#39;s Access page and choose your
+scope and session length. Codes expire after 15 minutes.</li>
+<li><strong>Keep <code>poll_secret</code> private</strong> and poll every 5 seconds:</li>
+</ol>
+<pre><code class="language-bash">curl -s -X POST https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/agent-auth/pair/complete \
+  -H &quot;Content-Type: application/json&quot; -d &#39;{&quot;poll_secret&quot;:&quot;&lt;poll_secret&gt;&quot;}&#39;
+</code></pre>
+<p>While waiting, <code>data.status</code> is <code>pending</code>. Once approved, you receive <code>access_token</code>, <code>refresh_token</code>,
+<code>session_id</code>, <code>scope</code> and <code>grant_expires_at</code>.</p>
+<p><strong>Unattended agents</strong> with a long-lived key (from the environment, e.g. <code>RHDESK_AGENT_KEY</code>) skip pairing:</p>
+<pre><code class="language-bash">curl -s -X POST https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/agent-auth/key/exchange \
+  -H &quot;Content-Type: application/json&quot; -d &#39;{&quot;key&quot;:&quot;&lt;key&gt;&quot;,&quot;agent_label&quot;:&quot;&lt;your name&gt;&quot;}&#39;
+</code></pre>
+<p>Never print, log, or commit tokens or keys.</p>
+<h2>2. Call the API</h2>
+<p>Every call uses these headers (the anon key is public by design):</p>
+<pre><code>apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlwbWp3aHJ2b251d2NycGNrd2trIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0MTAyMzAsImV4cCI6MjEwNjk4NjIzMH0.8H58CZRi_CzXwcEtdLd6TxVLvc--GSSZlfPluFcl_wo
+Authorization: Bearer &lt;access_token&gt;
+Content-Type: application/json
+</code></pre>
+<ul>
+<li><strong>Writes</strong> are functions: <code>POST https://ypmjwhrvonuwcrpckwkk.supabase.co/rest/v1/rpc/&lt;function&gt;</code> with a JSON body of named arguments.</li>
+<li><strong>Reads</strong> are tables: <code>GET https://ypmjwhrvonuwcrpckwkk.supabase.co/rest/v1/&lt;table&gt;?select=*</code> (e.g. <code>proposals</code>, <code>journal</code>, <code>scouts</code>).</li>
+<li>Every function returns <code>{&quot;data&quot;: ..., &quot;next_actions&quot;: [...]}</code>.</li>
+<li>Access tokens last one hour. Refresh with <code>POST https://ypmjwhrvonuwcrpckwkk.supabase.co/auth/v1/token?grant_type=refresh_token</code>
+(header <code>apikey</code>, body <code>{&quot;refresh_token&quot;:&quot;...&quot;}</code>).</li>
+</ul>
+<h2>3. Start your session</h2>
+<pre><code class="language-bash">curl -s -X POST https://ypmjwhrvonuwcrpckwkk.supabase.co/rest/v1/rpc/session_start \
+  -H &quot;apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlwbWp3aHJ2b251d2NycGNrd2trIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0MTAyMzAsImV4cCI6MjEwNjk4NjIzMH0.8H58CZRi_CzXwcEtdLd6TxVLvc--GSSZlfPluFcl_wo&quot; -H &quot;Authorization: Bearer &lt;access_token&gt;&quot; -H &quot;Content-Type: application/json&quot; \
+  -d &#39;{&quot;p_agent_label&quot;:&quot;&lt;your name&gt;&quot;,&quot;p_model&quot;:&quot;&lt;model id&gt;&quot;,&quot;p_harness&quot;:&quot;&lt;harness&gt;&quot;,&quot;p_capabilities&quot;:{&quot;robinhood_mcp&quot;:true,&quot;browser&quot;:false,&quot;shell&quot;:true,&quot;web_search&quot;:true}}&#39;
+</code></pre>
+<p>Declare your capabilities honestly. The response contains:</p>
+<ul>
+<li><code>data.playbook</code>: <strong>the operating manual. Read it in full before doing anything else.</strong></li>
+<li><code>data.brief</code>: the account, positions, mandates, open proposals, alerts, tasks, the previous session&#39;s summary
+and next steps, and recent journal entries.</li>
+<li><code>next_actions</code>: what to do now, in order.</li>
+</ul>
+<h2>4. Follow <code>next_actions</code></h2>
+<p>Each item has a <code>type</code>:</p>
+<table>
+<thead>
+<tr>
+<th>type</th>
+<th>meaning</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>rpc</code></td>
+<td>Call this Desk function with <code>args</code>.</td>
+</tr>
+<tr>
+<td><code>mcp</code></td>
+<td>Do this through the Robinhood MCP server; <code>name</code> describes the intent (e.g. <code>robinhood.place_order</code>).</td>
+</tr>
+<tr>
+<td><code>wait</code></td>
+<td>Nothing for you to do until the human acts or another session executes.</td>
+</tr>
+<tr>
+<td><code>setup</code></td>
+<td>A capability is missing; <code>args</code> say how to set it up.</td>
+</tr>
+</tbody></table>
+<p>The last action is always <code>session_end</code>. Call it with a summary and next steps before you stop, or the next
+agent starts blind.</p>
+<h2>5. Connect the Robinhood MCP server</h2>
+<p>Trading and live account reads go through Robinhood&#39;s Trading MCP server (<code>https://agent.robinhood.com/mcp/trading</code>,
+HTTP transport, OAuth sign-in by the account holder). For example, in Claude Code:</p>
+<pre><code class="language-bash">claude mcp add --transport http robinhood-trading https://agent.robinhood.com/mcp/trading
+</code></pre>
+<p>Without it, do research-only work (scouts, journal, tasks) and tell the human.</p>
+<h2>6. Rules that always apply</h2>
+<ol>
+<li>Place a Robinhood order only for a Desk proposal that is <code>auto_approved</code> or <code>approved</code>, and only if your scope
+is <code>operator+execute</code>. Then immediately call <code>proposal_executed</code> with the Robinhood order id.</li>
+<li>Never fabricate numbers. If the Desk says data is stale, read your accounts through the Robinhood MCP server and
+submit them with <code>ingest_snapshot</code> (tagged <code>agent-reported</code>).</li>
+<li>Record decisions and lessons with <code>journal_add</code> as you go.</li>
+<li>Mandates are the human&#39;s standing instructions; do not work around a failed limit check.</li>
+</ol>
+<h2>7. When something fails</h2>
+<p>Errors look like <code>{&quot;code&quot;:&quot;P0001&quot;,&quot;details&quot;:&quot;&lt;machine code&gt;&quot;,&quot;message&quot;:&quot;&lt;code&gt;: &lt;text&gt;&quot;,&quot;hint&quot;:&quot;&lt;what to do&gt;&quot;}</code>.</p>
+<table>
+<thead>
+<tr>
+<th>details</th>
+<th>do this</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>session_expired</code></td>
+<td>Pair again (section 1) or exchange your key.</td>
+</tr>
+<tr>
+<td><code>forbidden</code></td>
+<td>Your scope does not allow it; do what you can and leave a <code>journal_add</code> question for the human.</td>
+</tr>
+<tr>
+<td><code>invalid_transition</code></td>
+<td>Re-read the record&#39;s current status, then continue.</td>
+</tr>
+<tr>
+<td><code>not_found</code></td>
+<td>Check the id; re-read the brief.</td>
+</tr>
+</tbody></table>
+
+</body>
+</html>

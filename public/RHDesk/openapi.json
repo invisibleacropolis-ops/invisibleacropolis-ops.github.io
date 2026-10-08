@@ -1,0 +1,6894 @@
+{
+  "basePath": "/rest/v1",
+  "consumes": [
+    "application/json",
+    "application/vnd.pgrst.object+json;nulls=stripped",
+    "application/vnd.pgrst.object+json",
+    "text/csv"
+  ],
+  "definitions": {
+    "accounts": {
+      "properties": {
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "kind": {
+          "format": "text",
+          "type": "string"
+        },
+        "masked_number": {
+          "format": "text",
+          "type": "string"
+        },
+        "nickname": {
+          "format": "text",
+          "type": "string"
+        },
+        "rh_account_ref": {
+          "format": "text",
+          "type": "string"
+        },
+        "source": {
+          "format": "text",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "rh_account_ref",
+        "masked_number",
+        "kind",
+        "source",
+        "created_at",
+        "updated_at"
+      ],
+      "type": "object"
+    },
+    "agent_grants": {
+      "properties": {
+        "agent_label": {
+          "format": "text",
+          "type": "string"
+        },
+        "auth_user_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "expires_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "issued_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "issued_by": {
+          "default": "desk.actor()",
+          "format": "text",
+          "type": "string"
+        },
+        "key_id": {
+          "description": "Note:\nThis is a Foreign Key to `agent_keys.id`.<fk table='agent_keys' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "pairing_id": {
+          "description": "Note:\nThis is a Foreign Key to `pairing_requests.id`.<fk table='pairing_requests' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "revoked_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "revoked_by": {
+          "format": "text",
+          "type": "string"
+        },
+        "scope": {
+          "format": "text",
+          "type": "string"
+        },
+        "session_id": {
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "source": {
+          "format": "text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "session_id",
+        "scope",
+        "source",
+        "issued_by",
+        "issued_at",
+        "expires_at"
+      ],
+      "type": "object"
+    },
+    "agent_keys": {
+      "properties": {
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "created_by": {
+          "default": "desk.actor()",
+          "format": "text",
+          "type": "string"
+        },
+        "expires_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "key_hash": {
+          "format": "text",
+          "type": "string"
+        },
+        "key_prefix": {
+          "format": "text",
+          "type": "string"
+        },
+        "label": {
+          "format": "text",
+          "type": "string"
+        },
+        "last_used_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "revoked_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "scope": {
+          "format": "text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "key_prefix",
+        "key_hash",
+        "scope",
+        "expires_at",
+        "created_by",
+        "created_at"
+      ],
+      "type": "object"
+    },
+    "alerts": {
+      "properties": {
+        "acknowledged_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "acknowledged_by": {
+          "format": "text",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "created_by": {
+          "default": "desk.actor()",
+          "format": "text",
+          "type": "string"
+        },
+        "detail": {
+          "format": "jsonb"
+        },
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "kind": {
+          "format": "text",
+          "type": "string"
+        },
+        "severity": {
+          "default": "warn",
+          "format": "text",
+          "type": "string"
+        },
+        "status": {
+          "default": "open",
+          "format": "text",
+          "type": "string"
+        },
+        "symbol": {
+          "format": "text",
+          "type": "string"
+        },
+        "title": {
+          "format": "text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "severity",
+        "title",
+        "detail",
+        "status",
+        "created_by",
+        "created_at"
+      ],
+      "type": "object"
+    },
+    "desk_settings": {
+      "properties": {
+        "id": {
+          "default": true,
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "boolean",
+          "type": "boolean"
+        },
+        "mode": {
+          "default": "demo",
+          "format": "text",
+          "type": "string"
+        },
+        "site_url": {
+          "default": "https://invisibleacropolis-ops.github.io/RHDesk",
+          "format": "text",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "mode",
+        "updated_at",
+        "site_url"
+      ],
+      "type": "object"
+    },
+    "events": {
+      "properties": {
+        "action": {
+          "format": "text",
+          "type": "string"
+        },
+        "actor": {
+          "format": "text",
+          "type": "string"
+        },
+        "after": {
+          "format": "jsonb"
+        },
+        "at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "before": {
+          "format": "jsonb"
+        },
+        "entity": {
+          "format": "text",
+          "type": "string"
+        },
+        "entity_id": {
+          "format": "text",
+          "type": "string"
+        },
+        "id": {
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "at",
+        "actor",
+        "entity",
+        "entity_id",
+        "action"
+      ],
+      "type": "object"
+    },
+    "goals": {
+      "properties": {
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "created_by": {
+          "default": "desk.actor()",
+          "format": "text",
+          "type": "string"
+        },
+        "description": {
+          "format": "text",
+          "type": "string"
+        },
+        "horizon": {
+          "format": "text",
+          "type": "string"
+        },
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "status": {
+          "default": "active",
+          "format": "text",
+          "type": "string"
+        },
+        "target": {
+          "format": "jsonb"
+        },
+        "title": {
+          "format": "text",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "target",
+        "status",
+        "created_by",
+        "created_at",
+        "updated_at"
+      ],
+      "type": "object"
+    },
+    "journal": {
+      "properties": {
+        "body": {
+          "format": "text",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "created_by": {
+          "default": "desk.actor()",
+          "format": "text",
+          "type": "string"
+        },
+        "embedding": {
+          "format": "extensions.vector(384)",
+          "type": "string"
+        },
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "kind": {
+          "format": "text",
+          "type": "string"
+        },
+        "mandate_id": {
+          "description": "Note:\nThis is a Foreign Key to `mandates.id`.<fk table='mandates' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "proposal_id": {
+          "description": "Note:\nThis is a Foreign Key to `proposals.id`.<fk table='proposals' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "session_id": {
+          "description": "Note:\nThis is a Foreign Key to `sessions.id`.<fk table='sessions' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "symbols": {
+          "format": "text[]",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "task_id": {
+          "description": "Note:\nThis is a Foreign Key to `tasks.id`.<fk table='tasks' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "body",
+        "symbols",
+        "created_by",
+        "created_at"
+      ],
+      "type": "object"
+    },
+    "loops": {
+      "properties": {
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "created_by": {
+          "default": "desk.actor()",
+          "format": "text",
+          "type": "string"
+        },
+        "description": {
+          "format": "text",
+          "type": "string"
+        },
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "mandate_id": {
+          "description": "Note:\nThis is a Foreign Key to `mandates.id`.<fk table='mandates' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "schedule": {
+          "format": "text",
+          "type": "string"
+        },
+        "status": {
+          "default": "active",
+          "format": "text",
+          "type": "string"
+        },
+        "symbols": {
+          "format": "text[]",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "mandate_id",
+        "description",
+        "symbols",
+        "schedule",
+        "status",
+        "created_by",
+        "created_at",
+        "updated_at"
+      ],
+      "type": "object"
+    },
+    "mandates": {
+      "properties": {
+        "account_id": {
+          "description": "Note:\nThis is a Foreign Key to `accounts.id`.<fk table='accounts' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "approved_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "approved_by": {
+          "format": "text",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "created_by": {
+          "default": "desk.actor()",
+          "format": "text",
+          "type": "string"
+        },
+        "goal_id": {
+          "description": "Note:\nThis is a Foreign Key to `goals.id`.<fk table='goals' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "limits": {
+          "format": "jsonb"
+        },
+        "status": {
+          "default": "draft",
+          "format": "text",
+          "type": "string"
+        },
+        "strategy": {
+          "format": "text",
+          "type": "string"
+        },
+        "title": {
+          "format": "text",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "version": {
+          "default": 1,
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "goal_id",
+        "title",
+        "strategy",
+        "limits",
+        "status",
+        "version",
+        "created_by",
+        "created_at",
+        "updated_at"
+      ],
+      "type": "object"
+    },
+    "orders": {
+      "properties": {
+        "account_id": {
+          "description": "Note:\nThis is a Foreign Key to `accounts.id`.<fk table='accounts' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "asset_class": {
+          "format": "text",
+          "type": "string"
+        },
+        "average_fill_price": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "filled_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "filled_quantity": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "limit_price": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "loop_id": {
+          "description": "Note:\nThis is a Foreign Key to `loops.id`.<fk table='loops' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "notional_usd": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "order_type": {
+          "format": "text",
+          "type": "string"
+        },
+        "origin": {
+          "default": "unknown",
+          "format": "text",
+          "type": "string"
+        },
+        "placed_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "proposal_id": {
+          "description": "Note:\nThis is a Foreign Key to `proposals.id`.<fk table='proposals' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "quantity": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "raw": {
+          "format": "jsonb"
+        },
+        "rh_order_id": {
+          "format": "text",
+          "type": "string"
+        },
+        "side": {
+          "format": "text",
+          "type": "string"
+        },
+        "source": {
+          "format": "text",
+          "type": "string"
+        },
+        "status": {
+          "format": "text",
+          "type": "string"
+        },
+        "stop_price": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "symbol": {
+          "format": "text",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "rh_order_id",
+        "account_id",
+        "symbol",
+        "asset_class",
+        "side",
+        "order_type",
+        "status",
+        "origin",
+        "source",
+        "raw",
+        "created_at",
+        "updated_at"
+      ],
+      "type": "object"
+    },
+    "pairing_requests": {
+      "properties": {
+        "agent_label": {
+          "format": "text",
+          "type": "string"
+        },
+        "code": {
+          "format": "text",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "decided_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "decided_by": {
+          "format": "text",
+          "type": "string"
+        },
+        "expires_at": {
+          "default": "(now() + '00:15:00'::interval)",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "grant_ttl_hours": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "granted_scope": {
+          "format": "text",
+          "type": "string"
+        },
+        "harness": {
+          "format": "text",
+          "type": "string"
+        },
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "model": {
+          "format": "text",
+          "type": "string"
+        },
+        "poll_secret_hash": {
+          "format": "text",
+          "type": "string"
+        },
+        "requested_scope": {
+          "default": "operator",
+          "format": "text",
+          "type": "string"
+        },
+        "session_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "status": {
+          "default": "pending",
+          "format": "text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "code",
+        "poll_secret_hash",
+        "requested_scope",
+        "status",
+        "created_at",
+        "expires_at"
+      ],
+      "type": "object"
+    },
+    "playbook": {
+      "properties": {
+        "body": {
+          "format": "text",
+          "type": "string"
+        },
+        "id": {
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "int64",
+          "type": "integer"
+        },
+        "preferences": {
+          "format": "jsonb"
+        },
+        "published_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "published_by": {
+          "default": "desk.actor()",
+          "format": "text",
+          "type": "string"
+        },
+        "version": {
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "body",
+        "preferences",
+        "published_by",
+        "published_at"
+      ],
+      "type": "object"
+    },
+    "positions": {
+      "properties": {
+        "account_id": {
+          "description": "Note:\nThis is a Foreign Key to `accounts.id`.<fk table='accounts' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "asset_class": {
+          "format": "text",
+          "type": "string"
+        },
+        "average_cost": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "id": {
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "int64",
+          "type": "integer"
+        },
+        "market_value": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "quantity": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "snapshot_id": {
+          "description": "Note:\nThis is a Foreign Key to `snapshots.id`.<fk table='snapshots' column='id'/>",
+          "format": "int64",
+          "type": "integer"
+        },
+        "symbol": {
+          "format": "text",
+          "type": "string"
+        },
+        "unrealized_pl": {
+          "format": "numeric",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "snapshot_id",
+        "account_id",
+        "symbol",
+        "asset_class",
+        "quantity"
+      ],
+      "type": "object"
+    },
+    "proposals": {
+      "properties": {
+        "asset_class": {
+          "format": "text",
+          "type": "string"
+        },
+        "closed_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "confidence": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "created_by": {
+          "default": "desk.actor()",
+          "format": "text",
+          "type": "string"
+        },
+        "decided_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "decided_by": {
+          "format": "text",
+          "type": "string"
+        },
+        "decision_reason": {
+          "format": "text",
+          "type": "string"
+        },
+        "entry_price": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "executed_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "horizon": {
+          "format": "text",
+          "type": "string"
+        },
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "limit_check": {
+          "format": "jsonb"
+        },
+        "mandate_id": {
+          "description": "Note:\nThis is a Foreign Key to `mandates.id`.<fk table='mandates' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "notional_usd": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "order_type": {
+          "format": "text",
+          "type": "string"
+        },
+        "quantity": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "rh_order_id": {
+          "format": "text",
+          "type": "string"
+        },
+        "session_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "side": {
+          "format": "text",
+          "type": "string"
+        },
+        "status": {
+          "format": "text",
+          "type": "string"
+        },
+        "stop_price": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "symbol": {
+          "format": "text",
+          "type": "string"
+        },
+        "target_price": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "thesis": {
+          "format": "text",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "symbol",
+        "asset_class",
+        "side",
+        "order_type",
+        "thesis",
+        "status",
+        "limit_check",
+        "created_by",
+        "created_at",
+        "updated_at"
+      ],
+      "type": "object"
+    },
+    "quotes": {
+      "properties": {
+        "asset_class": {
+          "format": "text",
+          "type": "string"
+        },
+        "id": {
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "int64",
+          "type": "integer"
+        },
+        "price": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "quoted_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "source": {
+          "format": "text",
+          "type": "string"
+        },
+        "symbol": {
+          "format": "text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "symbol",
+        "asset_class",
+        "price",
+        "quoted_at",
+        "source"
+      ],
+      "type": "object"
+    },
+    "reviews": {
+      "properties": {
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "created_by": {
+          "default": "desk.actor()",
+          "format": "text",
+          "type": "string"
+        },
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "lesson_journal_id": {
+          "description": "Note:\nThis is a Foreign Key to `journal.id`.<fk table='journal' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "outcome": {
+          "format": "text",
+          "type": "string"
+        },
+        "proposal_id": {
+          "description": "Note:\nThis is a Foreign Key to `proposals.id`.<fk table='proposals' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "realized_pl": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "thesis_vs_outcome": {
+          "format": "text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "proposal_id",
+        "outcome",
+        "thesis_vs_outcome",
+        "created_by",
+        "created_at"
+      ],
+      "type": "object"
+    },
+    "scouts": {
+      "properties": {
+        "asset_class": {
+          "format": "text",
+          "type": "string"
+        },
+        "conviction": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "created_by": {
+          "default": "desk.actor()",
+          "format": "text",
+          "type": "string"
+        },
+        "embedding": {
+          "format": "extensions.vector(384)",
+          "type": "string"
+        },
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "sections": {
+          "format": "jsonb"
+        },
+        "status": {
+          "default": "watching",
+          "format": "text",
+          "type": "string"
+        },
+        "symbol": {
+          "format": "text",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "updated_by": {
+          "default": "desk.actor()",
+          "format": "text",
+          "type": "string"
+        },
+        "version": {
+          "default": 1,
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "symbol",
+        "asset_class",
+        "status",
+        "sections",
+        "version",
+        "created_by",
+        "updated_by",
+        "created_at",
+        "updated_at"
+      ],
+      "type": "object"
+    },
+    "sessions": {
+      "properties": {
+        "agent_label": {
+          "format": "text",
+          "type": "string"
+        },
+        "capabilities": {
+          "format": "jsonb"
+        },
+        "ended_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "harness": {
+          "format": "text",
+          "type": "string"
+        },
+        "id": {
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "model": {
+          "format": "text",
+          "type": "string"
+        },
+        "next_steps": {
+          "format": "text",
+          "type": "string"
+        },
+        "playbook_version": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "scope": {
+          "format": "text",
+          "type": "string"
+        },
+        "started_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "status": {
+          "default": "active",
+          "format": "text",
+          "type": "string"
+        },
+        "summary": {
+          "format": "text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "scope",
+        "capabilities",
+        "status",
+        "started_at"
+      ],
+      "type": "object"
+    },
+    "snapshots": {
+      "properties": {
+        "account_id": {
+          "description": "Note:\nThis is a Foreign Key to `accounts.id`.<fk table='accounts' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "buying_power": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "cash": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "equity": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "id": {
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "int64",
+          "type": "integer"
+        },
+        "raw": {
+          "format": "jsonb"
+        },
+        "source": {
+          "format": "text",
+          "type": "string"
+        },
+        "sync_run_id": {
+          "description": "Note:\nThis is a Foreign Key to `sync_runs.id`.<fk table='sync_runs' column='id'/>",
+          "format": "int64",
+          "type": "integer"
+        },
+        "taken_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "account_id",
+        "taken_at",
+        "source",
+        "raw",
+        "created_at"
+      ],
+      "type": "object"
+    },
+    "sync_runs": {
+      "properties": {
+        "actor": {
+          "default": "desk.actor()",
+          "format": "text",
+          "type": "string"
+        },
+        "counts": {
+          "format": "jsonb"
+        },
+        "error": {
+          "format": "text",
+          "type": "string"
+        },
+        "finished_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "id": {
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "int64",
+          "type": "integer"
+        },
+        "kind": {
+          "format": "text",
+          "type": "string"
+        },
+        "started_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "status": {
+          "default": "running",
+          "format": "text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "actor",
+        "started_at",
+        "status",
+        "counts"
+      ],
+      "type": "object"
+    },
+    "tasks": {
+      "properties": {
+        "claimed_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "claimed_by_session": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "completed_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "created_by": {
+          "default": "desk.actor()",
+          "format": "text",
+          "type": "string"
+        },
+        "detail": {
+          "format": "text",
+          "type": "string"
+        },
+        "due_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "kind": {
+          "format": "text",
+          "type": "string"
+        },
+        "priority": {
+          "default": 3,
+          "format": "int32",
+          "type": "integer"
+        },
+        "recurrence": {
+          "format": "text",
+          "type": "string"
+        },
+        "result": {
+          "format": "text",
+          "type": "string"
+        },
+        "status": {
+          "default": "open",
+          "format": "text",
+          "type": "string"
+        },
+        "title": {
+          "format": "text",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "kind",
+        "priority",
+        "status",
+        "created_by",
+        "created_at",
+        "updated_at"
+      ],
+      "type": "object"
+    },
+    "transactions": {
+      "properties": {
+        "account_id": {
+          "description": "Note:\nThis is a Foreign Key to `accounts.id`.<fk table='accounts' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "amount": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "description": {
+          "format": "text",
+          "type": "string"
+        },
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "kind": {
+          "format": "text",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "raw": {
+          "format": "jsonb"
+        },
+        "rh_transaction_id": {
+          "format": "text",
+          "type": "string"
+        },
+        "source": {
+          "format": "text",
+          "type": "string"
+        },
+        "symbol": {
+          "format": "text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "rh_transaction_id",
+        "account_id",
+        "kind",
+        "amount",
+        "occurred_at",
+        "source",
+        "raw",
+        "created_at"
+      ],
+      "type": "object"
+    },
+    "watch_triggers": {
+      "properties": {
+        "condition": {
+          "format": "text",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "created_by": {
+          "default": "desk.actor()",
+          "format": "text",
+          "type": "string"
+        },
+        "fired_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "level": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "note": {
+          "format": "text",
+          "type": "string"
+        },
+        "status": {
+          "default": "armed",
+          "format": "text",
+          "type": "string"
+        },
+        "symbol": {
+          "format": "text",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "symbol",
+        "condition",
+        "level",
+        "status",
+        "created_by",
+        "created_at",
+        "updated_at"
+      ],
+      "type": "object"
+    }
+  },
+  "info": {
+    "description": "PostgREST API of RHDesk. Writes are RPCs under /rpc returning {data, next_actions}; reads are table GETs filtered by row-level security. Send headers apikey: <anon_key> and Authorization: Bearer <access_token>. Get a token via agent-auth (see agent.json).",
+    "title": "RHDesk API",
+    "version": "1"
+  },
+  "parameters": {
+    "body.accounts": {
+      "description": "accounts",
+      "in": "body",
+      "name": "accounts",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/accounts"
+      }
+    },
+    "body.agent_grants": {
+      "description": "agent_grants",
+      "in": "body",
+      "name": "agent_grants",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/agent_grants"
+      }
+    },
+    "body.agent_keys": {
+      "description": "agent_keys",
+      "in": "body",
+      "name": "agent_keys",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/agent_keys"
+      }
+    },
+    "body.alerts": {
+      "description": "alerts",
+      "in": "body",
+      "name": "alerts",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/alerts"
+      }
+    },
+    "body.desk_settings": {
+      "description": "desk_settings",
+      "in": "body",
+      "name": "desk_settings",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/desk_settings"
+      }
+    },
+    "body.events": {
+      "description": "events",
+      "in": "body",
+      "name": "events",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/events"
+      }
+    },
+    "body.goals": {
+      "description": "goals",
+      "in": "body",
+      "name": "goals",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/goals"
+      }
+    },
+    "body.journal": {
+      "description": "journal",
+      "in": "body",
+      "name": "journal",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/journal"
+      }
+    },
+    "body.loops": {
+      "description": "loops",
+      "in": "body",
+      "name": "loops",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/loops"
+      }
+    },
+    "body.mandates": {
+      "description": "mandates",
+      "in": "body",
+      "name": "mandates",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/mandates"
+      }
+    },
+    "body.orders": {
+      "description": "orders",
+      "in": "body",
+      "name": "orders",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/orders"
+      }
+    },
+    "body.pairing_requests": {
+      "description": "pairing_requests",
+      "in": "body",
+      "name": "pairing_requests",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/pairing_requests"
+      }
+    },
+    "body.playbook": {
+      "description": "playbook",
+      "in": "body",
+      "name": "playbook",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/playbook"
+      }
+    },
+    "body.positions": {
+      "description": "positions",
+      "in": "body",
+      "name": "positions",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/positions"
+      }
+    },
+    "body.proposals": {
+      "description": "proposals",
+      "in": "body",
+      "name": "proposals",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/proposals"
+      }
+    },
+    "body.quotes": {
+      "description": "quotes",
+      "in": "body",
+      "name": "quotes",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/quotes"
+      }
+    },
+    "body.reviews": {
+      "description": "reviews",
+      "in": "body",
+      "name": "reviews",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/reviews"
+      }
+    },
+    "body.scouts": {
+      "description": "scouts",
+      "in": "body",
+      "name": "scouts",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/scouts"
+      }
+    },
+    "body.sessions": {
+      "description": "sessions",
+      "in": "body",
+      "name": "sessions",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/sessions"
+      }
+    },
+    "body.snapshots": {
+      "description": "snapshots",
+      "in": "body",
+      "name": "snapshots",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/snapshots"
+      }
+    },
+    "body.sync_runs": {
+      "description": "sync_runs",
+      "in": "body",
+      "name": "sync_runs",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/sync_runs"
+      }
+    },
+    "body.tasks": {
+      "description": "tasks",
+      "in": "body",
+      "name": "tasks",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/tasks"
+      }
+    },
+    "body.transactions": {
+      "description": "transactions",
+      "in": "body",
+      "name": "transactions",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/transactions"
+      }
+    },
+    "body.watch_triggers": {
+      "description": "watch_triggers",
+      "in": "body",
+      "name": "watch_triggers",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/watch_triggers"
+      }
+    },
+    "limit": {
+      "description": "Limiting and Pagination",
+      "in": "query",
+      "name": "limit",
+      "required": false,
+      "type": "string"
+    },
+    "offset": {
+      "description": "Limiting and Pagination",
+      "in": "query",
+      "name": "offset",
+      "required": false,
+      "type": "string"
+    },
+    "on_conflict": {
+      "description": "On Conflict",
+      "in": "query",
+      "name": "on_conflict",
+      "required": false,
+      "type": "string"
+    },
+    "order": {
+      "description": "Ordering",
+      "in": "query",
+      "name": "order",
+      "required": false,
+      "type": "string"
+    },
+    "preferCount": {
+      "description": "Preference",
+      "enum": [
+        "count=none"
+      ],
+      "in": "header",
+      "name": "Prefer",
+      "required": false,
+      "type": "string"
+    },
+    "preferParams": {
+      "description": "Preference",
+      "in": "header",
+      "name": "Prefer",
+      "required": false,
+      "type": "string"
+    },
+    "preferPost": {
+      "description": "Preference",
+      "enum": [
+        "return=representation",
+        "return=minimal",
+        "return=none",
+        "resolution=ignore-duplicates",
+        "resolution=merge-duplicates"
+      ],
+      "in": "header",
+      "name": "Prefer",
+      "required": false,
+      "type": "string"
+    },
+    "preferReturn": {
+      "description": "Preference",
+      "enum": [
+        "return=representation",
+        "return=minimal",
+        "return=none"
+      ],
+      "in": "header",
+      "name": "Prefer",
+      "required": false,
+      "type": "string"
+    },
+    "range": {
+      "description": "Limiting and Pagination",
+      "in": "header",
+      "name": "Range",
+      "required": false,
+      "type": "string"
+    },
+    "rangeUnit": {
+      "default": "items",
+      "description": "Limiting and Pagination",
+      "in": "header",
+      "name": "Range-Unit",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.accounts.created_at": {
+      "in": "query",
+      "name": "created_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.accounts.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.accounts.kind": {
+      "in": "query",
+      "name": "kind",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.accounts.masked_number": {
+      "in": "query",
+      "name": "masked_number",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.accounts.nickname": {
+      "in": "query",
+      "name": "nickname",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.accounts.rh_account_ref": {
+      "in": "query",
+      "name": "rh_account_ref",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.accounts.source": {
+      "in": "query",
+      "name": "source",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.accounts.updated_at": {
+      "in": "query",
+      "name": "updated_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_grants.agent_label": {
+      "in": "query",
+      "name": "agent_label",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_grants.auth_user_id": {
+      "in": "query",
+      "name": "auth_user_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_grants.expires_at": {
+      "in": "query",
+      "name": "expires_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_grants.issued_at": {
+      "in": "query",
+      "name": "issued_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_grants.issued_by": {
+      "in": "query",
+      "name": "issued_by",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_grants.key_id": {
+      "in": "query",
+      "name": "key_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_grants.pairing_id": {
+      "in": "query",
+      "name": "pairing_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_grants.revoked_at": {
+      "in": "query",
+      "name": "revoked_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_grants.revoked_by": {
+      "in": "query",
+      "name": "revoked_by",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_grants.scope": {
+      "in": "query",
+      "name": "scope",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_grants.session_id": {
+      "in": "query",
+      "name": "session_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_grants.source": {
+      "in": "query",
+      "name": "source",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_keys.created_at": {
+      "in": "query",
+      "name": "created_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_keys.created_by": {
+      "in": "query",
+      "name": "created_by",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_keys.expires_at": {
+      "in": "query",
+      "name": "expires_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_keys.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_keys.key_hash": {
+      "in": "query",
+      "name": "key_hash",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_keys.key_prefix": {
+      "in": "query",
+      "name": "key_prefix",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_keys.label": {
+      "in": "query",
+      "name": "label",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_keys.last_used_at": {
+      "in": "query",
+      "name": "last_used_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_keys.revoked_at": {
+      "in": "query",
+      "name": "revoked_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_keys.scope": {
+      "in": "query",
+      "name": "scope",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.alerts.acknowledged_at": {
+      "in": "query",
+      "name": "acknowledged_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.alerts.acknowledged_by": {
+      "in": "query",
+      "name": "acknowledged_by",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.alerts.created_at": {
+      "in": "query",
+      "name": "created_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.alerts.created_by": {
+      "in": "query",
+      "name": "created_by",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.alerts.detail": {
+      "in": "query",
+      "name": "detail",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.alerts.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.alerts.kind": {
+      "in": "query",
+      "name": "kind",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.alerts.severity": {
+      "in": "query",
+      "name": "severity",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.alerts.status": {
+      "in": "query",
+      "name": "status",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.alerts.symbol": {
+      "in": "query",
+      "name": "symbol",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.alerts.title": {
+      "in": "query",
+      "name": "title",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.desk_settings.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.desk_settings.mode": {
+      "in": "query",
+      "name": "mode",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.desk_settings.site_url": {
+      "in": "query",
+      "name": "site_url",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.desk_settings.updated_at": {
+      "in": "query",
+      "name": "updated_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.events.action": {
+      "in": "query",
+      "name": "action",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.events.actor": {
+      "in": "query",
+      "name": "actor",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.events.after": {
+      "in": "query",
+      "name": "after",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.events.at": {
+      "in": "query",
+      "name": "at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.events.before": {
+      "in": "query",
+      "name": "before",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.events.entity": {
+      "in": "query",
+      "name": "entity",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.events.entity_id": {
+      "in": "query",
+      "name": "entity_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.events.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.goals.created_at": {
+      "in": "query",
+      "name": "created_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.goals.created_by": {
+      "in": "query",
+      "name": "created_by",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.goals.description": {
+      "in": "query",
+      "name": "description",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.goals.horizon": {
+      "in": "query",
+      "name": "horizon",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.goals.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.goals.status": {
+      "in": "query",
+      "name": "status",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.goals.target": {
+      "in": "query",
+      "name": "target",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.goals.title": {
+      "in": "query",
+      "name": "title",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.goals.updated_at": {
+      "in": "query",
+      "name": "updated_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.journal.body": {
+      "in": "query",
+      "name": "body",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.journal.created_at": {
+      "in": "query",
+      "name": "created_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.journal.created_by": {
+      "in": "query",
+      "name": "created_by",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.journal.embedding": {
+      "in": "query",
+      "name": "embedding",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.journal.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.journal.kind": {
+      "in": "query",
+      "name": "kind",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.journal.mandate_id": {
+      "in": "query",
+      "name": "mandate_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.journal.proposal_id": {
+      "in": "query",
+      "name": "proposal_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.journal.session_id": {
+      "in": "query",
+      "name": "session_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.journal.symbols": {
+      "in": "query",
+      "name": "symbols",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.journal.task_id": {
+      "in": "query",
+      "name": "task_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.loops.created_at": {
+      "in": "query",
+      "name": "created_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.loops.created_by": {
+      "in": "query",
+      "name": "created_by",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.loops.description": {
+      "in": "query",
+      "name": "description",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.loops.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.loops.mandate_id": {
+      "in": "query",
+      "name": "mandate_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.loops.schedule": {
+      "in": "query",
+      "name": "schedule",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.loops.status": {
+      "in": "query",
+      "name": "status",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.loops.symbols": {
+      "in": "query",
+      "name": "symbols",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.loops.updated_at": {
+      "in": "query",
+      "name": "updated_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandates.account_id": {
+      "in": "query",
+      "name": "account_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandates.approved_at": {
+      "in": "query",
+      "name": "approved_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandates.approved_by": {
+      "in": "query",
+      "name": "approved_by",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandates.created_at": {
+      "in": "query",
+      "name": "created_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandates.created_by": {
+      "in": "query",
+      "name": "created_by",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandates.goal_id": {
+      "in": "query",
+      "name": "goal_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandates.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandates.limits": {
+      "in": "query",
+      "name": "limits",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandates.status": {
+      "in": "query",
+      "name": "status",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandates.strategy": {
+      "in": "query",
+      "name": "strategy",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandates.title": {
+      "in": "query",
+      "name": "title",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandates.updated_at": {
+      "in": "query",
+      "name": "updated_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandates.version": {
+      "in": "query",
+      "name": "version",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.orders.account_id": {
+      "in": "query",
+      "name": "account_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.orders.asset_class": {
+      "in": "query",
+      "name": "asset_class",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.orders.average_fill_price": {
+      "in": "query",
+      "name": "average_fill_price",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.orders.created_at": {
+      "in": "query",
+      "name": "created_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.orders.filled_at": {
+      "in": "query",
+      "name": "filled_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.orders.filled_quantity": {
+      "in": "query",
+      "name": "filled_quantity",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.orders.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.orders.limit_price": {
+      "in": "query",
+      "name": "limit_price",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.orders.loop_id": {
+      "in": "query",
+      "name": "loop_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.orders.notional_usd": {
+      "in": "query",
+      "name": "notional_usd",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.orders.order_type": {
+      "in": "query",
+      "name": "order_type",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.orders.origin": {
+      "in": "query",
+      "name": "origin",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.orders.placed_at": {
+      "in": "query",
+      "name": "placed_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.orders.proposal_id": {
+      "in": "query",
+      "name": "proposal_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.orders.quantity": {
+      "in": "query",
+      "name": "quantity",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.orders.raw": {
+      "in": "query",
+      "name": "raw",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.orders.rh_order_id": {
+      "in": "query",
+      "name": "rh_order_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.orders.side": {
+      "in": "query",
+      "name": "side",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.orders.source": {
+      "in": "query",
+      "name": "source",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.orders.status": {
+      "in": "query",
+      "name": "status",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.orders.stop_price": {
+      "in": "query",
+      "name": "stop_price",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.orders.symbol": {
+      "in": "query",
+      "name": "symbol",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.orders.updated_at": {
+      "in": "query",
+      "name": "updated_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pairing_requests.agent_label": {
+      "in": "query",
+      "name": "agent_label",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pairing_requests.code": {
+      "in": "query",
+      "name": "code",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pairing_requests.created_at": {
+      "in": "query",
+      "name": "created_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pairing_requests.decided_at": {
+      "in": "query",
+      "name": "decided_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pairing_requests.decided_by": {
+      "in": "query",
+      "name": "decided_by",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pairing_requests.expires_at": {
+      "in": "query",
+      "name": "expires_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pairing_requests.grant_ttl_hours": {
+      "in": "query",
+      "name": "grant_ttl_hours",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pairing_requests.granted_scope": {
+      "in": "query",
+      "name": "granted_scope",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pairing_requests.harness": {
+      "in": "query",
+      "name": "harness",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pairing_requests.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pairing_requests.model": {
+      "in": "query",
+      "name": "model",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pairing_requests.poll_secret_hash": {
+      "in": "query",
+      "name": "poll_secret_hash",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pairing_requests.requested_scope": {
+      "in": "query",
+      "name": "requested_scope",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pairing_requests.session_id": {
+      "in": "query",
+      "name": "session_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pairing_requests.status": {
+      "in": "query",
+      "name": "status",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.playbook.body": {
+      "in": "query",
+      "name": "body",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.playbook.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.playbook.preferences": {
+      "in": "query",
+      "name": "preferences",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.playbook.published_at": {
+      "in": "query",
+      "name": "published_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.playbook.published_by": {
+      "in": "query",
+      "name": "published_by",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.playbook.version": {
+      "in": "query",
+      "name": "version",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.positions.account_id": {
+      "in": "query",
+      "name": "account_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.positions.asset_class": {
+      "in": "query",
+      "name": "asset_class",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.positions.average_cost": {
+      "in": "query",
+      "name": "average_cost",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.positions.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.positions.market_value": {
+      "in": "query",
+      "name": "market_value",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.positions.quantity": {
+      "in": "query",
+      "name": "quantity",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.positions.snapshot_id": {
+      "in": "query",
+      "name": "snapshot_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.positions.symbol": {
+      "in": "query",
+      "name": "symbol",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.positions.unrealized_pl": {
+      "in": "query",
+      "name": "unrealized_pl",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.proposals.asset_class": {
+      "in": "query",
+      "name": "asset_class",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.proposals.closed_at": {
+      "in": "query",
+      "name": "closed_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.proposals.confidence": {
+      "in": "query",
+      "name": "confidence",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.proposals.created_at": {
+      "in": "query",
+      "name": "created_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.proposals.created_by": {
+      "in": "query",
+      "name": "created_by",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.proposals.decided_at": {
+      "in": "query",
+      "name": "decided_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.proposals.decided_by": {
+      "in": "query",
+      "name": "decided_by",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.proposals.decision_reason": {
+      "in": "query",
+      "name": "decision_reason",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.proposals.entry_price": {
+      "in": "query",
+      "name": "entry_price",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.proposals.executed_at": {
+      "in": "query",
+      "name": "executed_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.proposals.horizon": {
+      "in": "query",
+      "name": "horizon",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.proposals.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.proposals.limit_check": {
+      "in": "query",
+      "name": "limit_check",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.proposals.mandate_id": {
+      "in": "query",
+      "name": "mandate_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.proposals.notional_usd": {
+      "in": "query",
+      "name": "notional_usd",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.proposals.order_type": {
+      "in": "query",
+      "name": "order_type",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.proposals.quantity": {
+      "in": "query",
+      "name": "quantity",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.proposals.rh_order_id": {
+      "in": "query",
+      "name": "rh_order_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.proposals.session_id": {
+      "in": "query",
+      "name": "session_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.proposals.side": {
+      "in": "query",
+      "name": "side",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.proposals.status": {
+      "in": "query",
+      "name": "status",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.proposals.stop_price": {
+      "in": "query",
+      "name": "stop_price",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.proposals.symbol": {
+      "in": "query",
+      "name": "symbol",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.proposals.target_price": {
+      "in": "query",
+      "name": "target_price",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.proposals.thesis": {
+      "in": "query",
+      "name": "thesis",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.proposals.updated_at": {
+      "in": "query",
+      "name": "updated_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.quotes.asset_class": {
+      "in": "query",
+      "name": "asset_class",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.quotes.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.quotes.price": {
+      "in": "query",
+      "name": "price",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.quotes.quoted_at": {
+      "in": "query",
+      "name": "quoted_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.quotes.source": {
+      "in": "query",
+      "name": "source",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.quotes.symbol": {
+      "in": "query",
+      "name": "symbol",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.reviews.created_at": {
+      "in": "query",
+      "name": "created_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.reviews.created_by": {
+      "in": "query",
+      "name": "created_by",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.reviews.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.reviews.lesson_journal_id": {
+      "in": "query",
+      "name": "lesson_journal_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.reviews.outcome": {
+      "in": "query",
+      "name": "outcome",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.reviews.proposal_id": {
+      "in": "query",
+      "name": "proposal_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.reviews.realized_pl": {
+      "in": "query",
+      "name": "realized_pl",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.reviews.thesis_vs_outcome": {
+      "in": "query",
+      "name": "thesis_vs_outcome",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.scouts.asset_class": {
+      "in": "query",
+      "name": "asset_class",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.scouts.conviction": {
+      "in": "query",
+      "name": "conviction",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.scouts.created_at": {
+      "in": "query",
+      "name": "created_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.scouts.created_by": {
+      "in": "query",
+      "name": "created_by",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.scouts.embedding": {
+      "in": "query",
+      "name": "embedding",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.scouts.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.scouts.sections": {
+      "in": "query",
+      "name": "sections",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.scouts.status": {
+      "in": "query",
+      "name": "status",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.scouts.symbol": {
+      "in": "query",
+      "name": "symbol",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.scouts.updated_at": {
+      "in": "query",
+      "name": "updated_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.scouts.updated_by": {
+      "in": "query",
+      "name": "updated_by",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.scouts.version": {
+      "in": "query",
+      "name": "version",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.sessions.agent_label": {
+      "in": "query",
+      "name": "agent_label",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.sessions.capabilities": {
+      "in": "query",
+      "name": "capabilities",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.sessions.ended_at": {
+      "in": "query",
+      "name": "ended_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.sessions.harness": {
+      "in": "query",
+      "name": "harness",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.sessions.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.sessions.model": {
+      "in": "query",
+      "name": "model",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.sessions.next_steps": {
+      "in": "query",
+      "name": "next_steps",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.sessions.playbook_version": {
+      "in": "query",
+      "name": "playbook_version",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.sessions.scope": {
+      "in": "query",
+      "name": "scope",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.sessions.started_at": {
+      "in": "query",
+      "name": "started_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.sessions.status": {
+      "in": "query",
+      "name": "status",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.sessions.summary": {
+      "in": "query",
+      "name": "summary",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.snapshots.account_id": {
+      "in": "query",
+      "name": "account_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.snapshots.buying_power": {
+      "in": "query",
+      "name": "buying_power",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.snapshots.cash": {
+      "in": "query",
+      "name": "cash",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.snapshots.created_at": {
+      "in": "query",
+      "name": "created_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.snapshots.equity": {
+      "in": "query",
+      "name": "equity",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.snapshots.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.snapshots.raw": {
+      "in": "query",
+      "name": "raw",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.snapshots.source": {
+      "in": "query",
+      "name": "source",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.snapshots.sync_run_id": {
+      "in": "query",
+      "name": "sync_run_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.snapshots.taken_at": {
+      "in": "query",
+      "name": "taken_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.sync_runs.actor": {
+      "in": "query",
+      "name": "actor",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.sync_runs.counts": {
+      "in": "query",
+      "name": "counts",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.sync_runs.error": {
+      "in": "query",
+      "name": "error",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.sync_runs.finished_at": {
+      "in": "query",
+      "name": "finished_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.sync_runs.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.sync_runs.kind": {
+      "in": "query",
+      "name": "kind",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.sync_runs.started_at": {
+      "in": "query",
+      "name": "started_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.sync_runs.status": {
+      "in": "query",
+      "name": "status",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.tasks.claimed_at": {
+      "in": "query",
+      "name": "claimed_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.tasks.claimed_by_session": {
+      "in": "query",
+      "name": "claimed_by_session",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.tasks.completed_at": {
+      "in": "query",
+      "name": "completed_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.tasks.created_at": {
+      "in": "query",
+      "name": "created_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.tasks.created_by": {
+      "in": "query",
+      "name": "created_by",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.tasks.detail": {
+      "in": "query",
+      "name": "detail",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.tasks.due_at": {
+      "in": "query",
+      "name": "due_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.tasks.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.tasks.kind": {
+      "in": "query",
+      "name": "kind",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.tasks.priority": {
+      "in": "query",
+      "name": "priority",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.tasks.recurrence": {
+      "in": "query",
+      "name": "recurrence",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.tasks.result": {
+      "in": "query",
+      "name": "result",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.tasks.status": {
+      "in": "query",
+      "name": "status",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.tasks.title": {
+      "in": "query",
+      "name": "title",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.tasks.updated_at": {
+      "in": "query",
+      "name": "updated_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.transactions.account_id": {
+      "in": "query",
+      "name": "account_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.transactions.amount": {
+      "in": "query",
+      "name": "amount",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.transactions.created_at": {
+      "in": "query",
+      "name": "created_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.transactions.description": {
+      "in": "query",
+      "name": "description",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.transactions.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.transactions.kind": {
+      "in": "query",
+      "name": "kind",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.transactions.occurred_at": {
+      "in": "query",
+      "name": "occurred_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.transactions.raw": {
+      "in": "query",
+      "name": "raw",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.transactions.rh_transaction_id": {
+      "in": "query",
+      "name": "rh_transaction_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.transactions.source": {
+      "in": "query",
+      "name": "source",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.transactions.symbol": {
+      "in": "query",
+      "name": "symbol",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.watch_triggers.condition": {
+      "in": "query",
+      "name": "condition",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.watch_triggers.created_at": {
+      "in": "query",
+      "name": "created_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.watch_triggers.created_by": {
+      "in": "query",
+      "name": "created_by",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.watch_triggers.fired_at": {
+      "in": "query",
+      "name": "fired_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.watch_triggers.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.watch_triggers.level": {
+      "in": "query",
+      "name": "level",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.watch_triggers.note": {
+      "in": "query",
+      "name": "note",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.watch_triggers.status": {
+      "in": "query",
+      "name": "status",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.watch_triggers.symbol": {
+      "in": "query",
+      "name": "symbol",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.watch_triggers.updated_at": {
+      "in": "query",
+      "name": "updated_at",
+      "required": false,
+      "type": "string"
+    },
+    "select": {
+      "description": "Filtering Columns",
+      "in": "query",
+      "name": "select",
+      "required": false,
+      "type": "string"
+    }
+  },
+  "paths": {
+    "/accounts": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.accounts.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.accounts.rh_account_ref"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.accounts.masked_number"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.accounts.kind"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.accounts.nickname"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.accounts.source"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.accounts.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.accounts.updated_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/accounts"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "accounts"
+        ]
+      }
+    },
+    "/agent_grants": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.agent_grants.session_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_grants.scope"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_grants.source"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_grants.key_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_grants.pairing_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_grants.auth_user_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_grants.agent_label"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_grants.issued_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_grants.issued_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_grants.expires_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_grants.revoked_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_grants.revoked_by"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/agent_grants"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "agent_grants"
+        ]
+      }
+    },
+    "/agent_keys": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.agent_keys.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_keys.label"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_keys.key_prefix"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_keys.key_hash"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_keys.scope"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_keys.expires_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_keys.revoked_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_keys.last_used_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_keys.created_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_keys.created_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/agent_keys"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "agent_keys"
+        ]
+      }
+    },
+    "/alerts": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.alerts.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.alerts.kind"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.alerts.severity"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.alerts.title"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.alerts.detail"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.alerts.symbol"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.alerts.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.alerts.acknowledged_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.alerts.acknowledged_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.alerts.created_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.alerts.created_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/alerts"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "alerts"
+        ]
+      }
+    },
+    "/desk_settings": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.desk_settings.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.desk_settings.mode"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.desk_settings.updated_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.desk_settings.site_url"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/desk_settings"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "desk_settings"
+        ]
+      }
+    },
+    "/events": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.events.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.events.at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.events.actor"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.events.entity"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.events.entity_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.events.action"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.events.before"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.events.after"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/events"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/goals": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.goals.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.goals.title"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.goals.description"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.goals.target"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.goals.horizon"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.goals.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.goals.created_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.goals.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.goals.updated_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/goals"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "goals"
+        ]
+      }
+    },
+    "/journal": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.journal.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.journal.session_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.journal.kind"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.journal.body"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.journal.symbols"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.journal.proposal_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.journal.mandate_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.journal.task_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.journal.embedding"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.journal.created_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.journal.created_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/journal"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "journal"
+        ]
+      }
+    },
+    "/loops": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.loops.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.loops.mandate_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.loops.description"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.loops.symbols"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.loops.schedule"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.loops.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.loops.created_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.loops.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.loops.updated_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/loops"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "loops"
+        ]
+      }
+    },
+    "/mandates": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.mandates.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.mandates.goal_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.mandates.account_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.mandates.title"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.mandates.strategy"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.mandates.limits"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.mandates.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.mandates.version"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.mandates.approved_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.mandates.approved_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.mandates.created_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.mandates.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.mandates.updated_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/mandates"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "mandates"
+        ]
+      }
+    },
+    "/orders": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.orders.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.orders.rh_order_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.orders.account_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.orders.symbol"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.orders.asset_class"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.orders.side"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.orders.order_type"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.orders.quantity"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.orders.notional_usd"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.orders.limit_price"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.orders.stop_price"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.orders.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.orders.filled_quantity"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.orders.average_fill_price"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.orders.placed_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.orders.filled_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.orders.origin"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.orders.proposal_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.orders.loop_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.orders.source"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.orders.raw"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.orders.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.orders.updated_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/orders"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/pairing_requests": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.pairing_requests.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pairing_requests.code"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pairing_requests.poll_secret_hash"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pairing_requests.agent_label"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pairing_requests.model"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pairing_requests.harness"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pairing_requests.requested_scope"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pairing_requests.granted_scope"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pairing_requests.grant_ttl_hours"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pairing_requests.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pairing_requests.session_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pairing_requests.decided_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pairing_requests.decided_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pairing_requests.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pairing_requests.expires_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/pairing_requests"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "pairing_requests"
+        ]
+      }
+    },
+    "/playbook": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.playbook.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.playbook.version"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.playbook.body"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.playbook.preferences"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.playbook.published_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.playbook.published_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/playbook"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "playbook"
+        ]
+      }
+    },
+    "/positions": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.positions.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.positions.snapshot_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.positions.account_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.positions.symbol"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.positions.asset_class"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.positions.quantity"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.positions.average_cost"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.positions.market_value"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.positions.unrealized_pl"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/positions"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "positions"
+        ]
+      }
+    },
+    "/proposals": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.proposals.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.proposals.mandate_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.proposals.session_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.proposals.symbol"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.proposals.asset_class"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.proposals.side"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.proposals.order_type"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.proposals.quantity"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.proposals.notional_usd"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.proposals.entry_price"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.proposals.target_price"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.proposals.stop_price"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.proposals.horizon"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.proposals.confidence"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.proposals.thesis"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.proposals.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.proposals.limit_check"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.proposals.decided_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.proposals.decided_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.proposals.decision_reason"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.proposals.rh_order_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.proposals.executed_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.proposals.closed_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.proposals.created_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.proposals.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.proposals.updated_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/proposals"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "proposals"
+        ]
+      }
+    },
+    "/quotes": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.quotes.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.quotes.symbol"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.quotes.asset_class"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.quotes.price"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.quotes.quoted_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.quotes.source"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/quotes"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "quotes"
+        ]
+      }
+    },
+    "/reviews": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.reviews.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.reviews.proposal_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.reviews.realized_pl"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.reviews.outcome"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.reviews.thesis_vs_outcome"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.reviews.lesson_journal_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.reviews.created_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.reviews.created_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/reviews"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/rpc/agent_key_issue": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_label": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_scope": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_ttl_days": {
+                  "format": "int32",
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "p_label",
+                "p_scope"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) agent_key_issue"
+        ]
+      }
+    },
+    "/rpc/agent_key_revoke": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_key_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_key_id"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) agent_key_revoke"
+        ]
+      }
+    },
+    "/rpc/alert_ack": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_alert_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_alert_id"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) alert_ack"
+        ]
+      }
+    },
+    "/rpc/brief": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) brief"
+        ]
+      }
+    },
+    "/rpc/go_live": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_confirm": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_confirm"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) go_live"
+        ]
+      }
+    },
+    "/rpc/goal_add": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_description": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_horizon": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_idempotency_key": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_target": {
+                  "format": "jsonb"
+                },
+                "p_title": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_title"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) goal_add"
+        ]
+      }
+    },
+    "/rpc/goal_set_status": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_goal_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "p_status": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_goal_id",
+                "p_status"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) goal_set_status"
+        ]
+      }
+    },
+    "/rpc/grant_revoke": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_session_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_session_id"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) grant_revoke"
+        ]
+      }
+    },
+    "/rpc/ingest_snapshot": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_payload": {
+                  "format": "jsonb"
+                }
+              },
+              "required": [
+                "p_payload"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) ingest_snapshot"
+        ]
+      }
+    },
+    "/rpc/journal_add": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_body": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_idempotency_key": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_kind": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_mandate_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "p_proposal_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "p_symbols": {
+                  "format": "text[]",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "p_task_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_kind",
+                "p_body"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) journal_add"
+        ]
+      }
+    },
+    "/rpc/loop_register": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_description": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_mandate_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "p_schedule": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_symbols": {
+                  "format": "text[]",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              },
+              "required": [
+                "p_mandate_id",
+                "p_description",
+                "p_symbols",
+                "p_schedule"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) loop_register"
+        ]
+      }
+    },
+    "/rpc/loop_retire": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_loop_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_loop_id"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) loop_retire"
+        ]
+      }
+    },
+    "/rpc/mandate_draft": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_account_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "p_goal_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "p_idempotency_key": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_limits": {
+                  "format": "jsonb"
+                },
+                "p_strategy": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_title": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_goal_id",
+                "p_title",
+                "p_strategy",
+                "p_limits"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) mandate_draft"
+        ]
+      }
+    },
+    "/rpc/mandate_revise": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_limits": {
+                  "format": "jsonb"
+                },
+                "p_mandate_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "p_strategy": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_mandate_id",
+                "p_strategy",
+                "p_limits"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) mandate_revise"
+        ]
+      }
+    },
+    "/rpc/mandate_set_status": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_mandate_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "p_status": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_mandate_id",
+                "p_status"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) mandate_set_status"
+        ]
+      }
+    },
+    "/rpc/pairing_approve": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_code": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_scope": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_ttl_hours": {
+                  "format": "int32",
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "p_code"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) pairing_approve"
+        ]
+      }
+    },
+    "/rpc/pairing_deny": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_code": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_code"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) pairing_deny"
+        ]
+      }
+    },
+    "/rpc/playbook_publish": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_body": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_preferences": {
+                  "format": "jsonb"
+                }
+              },
+              "required": [
+                "p_body"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) playbook_publish"
+        ]
+      }
+    },
+    "/rpc/proposal_decide": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_decision": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_proposal_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "p_reason": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_proposal_id",
+                "p_decision",
+                "p_reason"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) proposal_decide"
+        ]
+      }
+    },
+    "/rpc/proposal_executed": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_proposal_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "p_rh_order_id": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_proposal_id",
+                "p_rh_order_id"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) proposal_executed"
+        ]
+      }
+    },
+    "/rpc/proposal_expire": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_proposal_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "p_reason": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_proposal_id",
+                "p_reason"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) proposal_expire"
+        ]
+      }
+    },
+    "/rpc/proposal_review": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_lesson": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_outcome": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_proposal_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "p_realized_pl": {
+                  "format": "numeric",
+                  "type": "number"
+                },
+                "p_thesis_vs_outcome": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_proposal_id",
+                "p_outcome",
+                "p_thesis_vs_outcome"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) proposal_review"
+        ]
+      }
+    },
+    "/rpc/scout_set_section": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_content": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_section": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_symbol": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_symbol",
+                "p_section",
+                "p_content"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) scout_set_section"
+        ]
+      }
+    },
+    "/rpc/scout_upsert": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_asset_class": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_conviction": {
+                  "format": "int32",
+                  "type": "integer"
+                },
+                "p_status": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_symbol": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_symbol",
+                "p_asset_class"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) scout_upsert"
+        ]
+      }
+    },
+    "/rpc/session_end": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_next_steps": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_summary": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_summary"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) session_end"
+        ]
+      }
+    },
+    "/rpc/session_start": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_agent_label": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_capabilities": {
+                  "format": "jsonb"
+                },
+                "p_harness": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_model": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) session_start"
+        ]
+      }
+    },
+    "/rpc/submit_proposal": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_asset_class": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_confidence": {
+                  "format": "numeric",
+                  "type": "number"
+                },
+                "p_entry_price": {
+                  "format": "numeric",
+                  "type": "number"
+                },
+                "p_horizon": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_idempotency_key": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_mandate_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "p_notional_usd": {
+                  "format": "numeric",
+                  "type": "number"
+                },
+                "p_order_type": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_quantity": {
+                  "format": "numeric",
+                  "type": "number"
+                },
+                "p_side": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_stop_price": {
+                  "format": "numeric",
+                  "type": "number"
+                },
+                "p_symbol": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_target_price": {
+                  "format": "numeric",
+                  "type": "number"
+                },
+                "p_thesis": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_symbol",
+                "p_asset_class",
+                "p_side",
+                "p_order_type",
+                "p_thesis"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) submit_proposal"
+        ]
+      }
+    },
+    "/rpc/task_add": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_detail": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_due_at": {
+                  "format": "timestamp with time zone",
+                  "type": "string"
+                },
+                "p_idempotency_key": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_kind": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_priority": {
+                  "format": "int32",
+                  "type": "integer"
+                },
+                "p_recurrence": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_title": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_title"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) task_add"
+        ]
+      }
+    },
+    "/rpc/task_cancel": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_task_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_task_id"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) task_cancel"
+        ]
+      }
+    },
+    "/rpc/task_claim": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_task_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_task_id"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) task_claim"
+        ]
+      }
+    },
+    "/rpc/task_done": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_result": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_task_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_task_id",
+                "p_result"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) task_done"
+        ]
+      }
+    },
+    "/rpc/watch_trigger_add": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_condition": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_level": {
+                  "format": "numeric",
+                  "type": "number"
+                },
+                "p_note": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_symbol": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_symbol",
+                "p_condition",
+                "p_level"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) watch_trigger_add"
+        ]
+      }
+    },
+    "/rpc/watch_trigger_set_status": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_status": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_trigger_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_trigger_id",
+                "p_status"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) watch_trigger_set_status"
+        ]
+      }
+    },
+    "/scouts": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.scouts.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.scouts.symbol"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.scouts.asset_class"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.scouts.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.scouts.conviction"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.scouts.sections"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.scouts.embedding"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.scouts.version"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.scouts.created_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.scouts.updated_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.scouts.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.scouts.updated_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/scouts"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "scouts"
+        ]
+      }
+    },
+    "/sessions": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.sessions.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sessions.agent_label"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sessions.model"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sessions.harness"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sessions.scope"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sessions.capabilities"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sessions.playbook_version"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sessions.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sessions.started_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sessions.ended_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sessions.summary"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sessions.next_steps"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/sessions"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "sessions"
+        ]
+      }
+    },
+    "/snapshots": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.snapshots.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.snapshots.account_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.snapshots.sync_run_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.snapshots.taken_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.snapshots.equity"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.snapshots.cash"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.snapshots.buying_power"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.snapshots.source"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.snapshots.raw"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.snapshots.created_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/snapshots"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "snapshots"
+        ]
+      }
+    },
+    "/sync_runs": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.sync_runs.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sync_runs.kind"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sync_runs.actor"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sync_runs.started_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sync_runs.finished_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sync_runs.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sync_runs.counts"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sync_runs.error"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/sync_runs"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "sync_runs"
+        ]
+      }
+    },
+    "/tasks": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.tasks.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.title"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.detail"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.kind"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.priority"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.due_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.recurrence"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.claimed_by_session"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.claimed_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.completed_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.result"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.created_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.updated_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/tasks"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "tasks"
+        ]
+      }
+    },
+    "/transactions": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.transactions.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.transactions.rh_transaction_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.transactions.account_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.transactions.kind"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.transactions.symbol"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.transactions.amount"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.transactions.occurred_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.transactions.description"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.transactions.source"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.transactions.raw"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.transactions.created_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/transactions"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "transactions"
+        ]
+      }
+    },
+    "/watch_triggers": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.watch_triggers.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.watch_triggers.symbol"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.watch_triggers.condition"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.watch_triggers.level"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.watch_triggers.note"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.watch_triggers.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.watch_triggers.fired_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.watch_triggers.created_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.watch_triggers.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.watch_triggers.updated_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/watch_triggers"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "watch_triggers"
+        ]
+      }
+    }
+  },
+  "produces": [
+    "application/json",
+    "application/vnd.pgrst.object+json;nulls=stripped",
+    "application/vnd.pgrst.object+json",
+    "text/csv"
+  ],
+  "swagger": "2.0",
+  "host": "ypmjwhrvonuwcrpckwkk.supabase.co",
+  "schemes": [
+    "https"
+  ]
+}
