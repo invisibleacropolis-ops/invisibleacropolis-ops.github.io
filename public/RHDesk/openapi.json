@@ -246,6 +246,57 @@
       ],
       "type": "object"
     },
+    "desk_preferences": {
+      "properties": {
+        "ambient": {
+          "default": "flow",
+          "format": "text",
+          "type": "string"
+        },
+        "demo_market": {
+          "default": true,
+          "format": "boolean",
+          "type": "boolean"
+        },
+        "fx_intensity": {
+          "default": "subtle",
+          "format": "text",
+          "type": "string"
+        },
+        "fx_rules": {
+          "format": "jsonb"
+        },
+        "layouts": {
+          "format": "jsonb"
+        },
+        "theme": {
+          "default": "midnight",
+          "format": "text",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "user_id": {
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "user_id",
+        "layouts",
+        "theme",
+        "ambient",
+        "fx_intensity",
+        "fx_rules",
+        "demo_market",
+        "updated_at"
+      ],
+      "type": "object"
+    },
     "desk_settings": {
       "properties": {
         "id": {
@@ -276,6 +327,32 @@
         "updated_at",
         "site_url"
       ],
+      "type": "object"
+    },
+    "equity_series": {
+      "properties": {
+        "account_id": {
+          "description": "Note:\nThis is a Foreign Key to `accounts.id`.<fk table='accounts' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "account_kind": {
+          "format": "text",
+          "type": "string"
+        },
+        "equity": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "source": {
+          "format": "text",
+          "type": "string"
+        },
+        "taken_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
       "type": "object"
     },
     "events": {
@@ -873,6 +950,73 @@
         "asset_class",
         "quantity"
       ],
+      "type": "object"
+    },
+    "positions_current": {
+      "properties": {
+        "account_id": {
+          "description": "Note:\nThis is a Foreign Key to `accounts.id`.<fk table='accounts' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "account_kind": {
+          "format": "text",
+          "type": "string"
+        },
+        "as_of": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "asset_class": {
+          "format": "text",
+          "type": "string"
+        },
+        "average_cost": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "last_price": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "market_value": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "proposal_id": {
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "quantity": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "quoted_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "source": {
+          "format": "text",
+          "type": "string"
+        },
+        "stop_price": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "symbol": {
+          "format": "text",
+          "type": "string"
+        },
+        "target_price": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "unrealized_pl": {
+          "format": "numeric",
+          "type": "number"
+        }
+      },
       "type": "object"
     },
     "proposals": {
@@ -1578,6 +1722,15 @@
         "$ref": "#/definitions/alerts"
       }
     },
+    "body.desk_preferences": {
+      "description": "desk_preferences",
+      "in": "body",
+      "name": "desk_preferences",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/desk_preferences"
+      }
+    },
     "body.desk_settings": {
       "description": "desk_settings",
       "in": "body",
@@ -1585,6 +1738,15 @@
       "required": false,
       "schema": {
         "$ref": "#/definitions/desk_settings"
+      }
+    },
+    "body.equity_series": {
+      "description": "equity_series",
+      "in": "body",
+      "name": "equity_series",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/equity_series"
       }
     },
     "body.events": {
@@ -1666,6 +1828,15 @@
       "required": false,
       "schema": {
         "$ref": "#/definitions/positions"
+      }
+    },
+    "body.positions_current": {
+      "description": "positions_current",
+      "in": "body",
+      "name": "positions_current",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/positions_current"
       }
     },
     "body.proposals": {
@@ -2090,6 +2261,54 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.desk_preferences.ambient": {
+      "in": "query",
+      "name": "ambient",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.desk_preferences.demo_market": {
+      "in": "query",
+      "name": "demo_market",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.desk_preferences.fx_intensity": {
+      "in": "query",
+      "name": "fx_intensity",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.desk_preferences.fx_rules": {
+      "in": "query",
+      "name": "fx_rules",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.desk_preferences.layouts": {
+      "in": "query",
+      "name": "layouts",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.desk_preferences.theme": {
+      "in": "query",
+      "name": "theme",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.desk_preferences.updated_at": {
+      "in": "query",
+      "name": "updated_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.desk_preferences.user_id": {
+      "in": "query",
+      "name": "user_id",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.desk_settings.id": {
       "in": "query",
       "name": "id",
@@ -2111,6 +2330,36 @@
     "rowFilter.desk_settings.updated_at": {
       "in": "query",
       "name": "updated_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.equity_series.account_id": {
+      "in": "query",
+      "name": "account_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.equity_series.account_kind": {
+      "in": "query",
+      "name": "account_kind",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.equity_series.equity": {
+      "in": "query",
+      "name": "equity",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.equity_series.source": {
+      "in": "query",
+      "name": "source",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.equity_series.taken_at": {
+      "in": "query",
+      "name": "taken_at",
       "required": false,
       "type": "string"
     },
@@ -2727,6 +2976,96 @@
       "type": "string"
     },
     "rowFilter.positions.unrealized_pl": {
+      "in": "query",
+      "name": "unrealized_pl",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.positions_current.account_id": {
+      "in": "query",
+      "name": "account_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.positions_current.account_kind": {
+      "in": "query",
+      "name": "account_kind",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.positions_current.as_of": {
+      "in": "query",
+      "name": "as_of",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.positions_current.asset_class": {
+      "in": "query",
+      "name": "asset_class",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.positions_current.average_cost": {
+      "in": "query",
+      "name": "average_cost",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.positions_current.last_price": {
+      "in": "query",
+      "name": "last_price",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.positions_current.market_value": {
+      "in": "query",
+      "name": "market_value",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.positions_current.proposal_id": {
+      "in": "query",
+      "name": "proposal_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.positions_current.quantity": {
+      "in": "query",
+      "name": "quantity",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.positions_current.quoted_at": {
+      "in": "query",
+      "name": "quoted_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.positions_current.source": {
+      "in": "query",
+      "name": "source",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.positions_current.stop_price": {
+      "in": "query",
+      "name": "stop_price",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.positions_current.symbol": {
+      "in": "query",
+      "name": "symbol",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.positions_current.target_price": {
+      "in": "query",
+      "name": "target_price",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.positions_current.unrealized_pl": {
       "in": "query",
       "name": "unrealized_pl",
       "required": false,
@@ -3748,6 +4087,74 @@
         ]
       }
     },
+    "/desk_preferences": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.desk_preferences.user_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.desk_preferences.layouts"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.desk_preferences.theme"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.desk_preferences.ambient"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.desk_preferences.fx_intensity"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.desk_preferences.fx_rules"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.desk_preferences.demo_market"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.desk_preferences.updated_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/desk_preferences"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "desk_preferences"
+        ]
+      }
+    },
     "/desk_settings": {
       "get": {
         "parameters": [
@@ -3801,6 +4208,65 @@
         },
         "tags": [
           "desk_settings"
+        ]
+      }
+    },
+    "/equity_series": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.equity_series.account_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.equity_series.account_kind"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.equity_series.taken_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.equity_series.equity"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.equity_series.source"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/equity_series"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "equity_series"
         ]
       }
     },
@@ -4509,6 +4975,95 @@
         ]
       }
     },
+    "/positions_current": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.positions_current.account_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.positions_current.account_kind"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.positions_current.as_of"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.positions_current.source"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.positions_current.symbol"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.positions_current.asset_class"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.positions_current.quantity"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.positions_current.average_cost"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.positions_current.market_value"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.positions_current.unrealized_pl"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.positions_current.last_price"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.positions_current.quoted_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.positions_current.proposal_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.positions_current.target_price"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.positions_current.stop_price"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/positions_current"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "positions_current"
+        ]
+      }
+    },
     "/proposals": {
       "get": {
         "parameters": [
@@ -5198,6 +5753,36 @@
         ]
       }
     },
+    "/rpc/load_demo": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) load_demo"
+        ]
+      }
+    },
     "/rpc/loop_register": {
       "post": {
         "parameters": [
@@ -5572,6 +6157,74 @@
         },
         "tags": [
           "(rpc) playbook_publish"
+        ]
+      }
+    },
+    "/rpc/prefs_get": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) prefs_get"
+        ]
+      }
+    },
+    "/rpc/prefs_save": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_patch": {
+                  "format": "jsonb"
+                }
+              },
+              "required": [
+                "p_patch"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) prefs_save"
         ]
       }
     },

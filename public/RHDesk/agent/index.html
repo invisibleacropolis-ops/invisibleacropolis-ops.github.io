@@ -106,7 +106,12 @@ submit them with <code>ingest_snapshot</code> (tagged <code>agent-reported</code
 <li>Record decisions and lessons with <code>journal_add</code> as you go.</li>
 <li>Mandates are the human&#39;s standing instructions; do not work around a failed limit check.</li>
 </ol>
-<h2>7. When something fails</h2>
+<h2>7. Using the website instead of the API</h2>
+<p>The Desk at <a href="https://invisibleacropolis-ops.github.io/RHDesk/">https://invisibleacropolis-ops.github.io/RHDesk/</a> is built for agents too: every control has a stable <code>data-testid</code>, decisions take two clicks
+(<code>&lt;id&gt;</code> then <code>&lt;id&gt;-confirm</code>), and every page mirrors exactly what it shows into
+<code>&lt;script type=&quot;application/json&quot; id=&quot;desk-state&quot;&gt;</code>. Read that instead of scraping the screen. The API remains the
+primary interface; the website is for the owner and for agents that only have a browser.</p>
+<h2>8. When something fails</h2>
 <p>Errors look like <code>{&quot;code&quot;:&quot;P0001&quot;,&quot;details&quot;:&quot;&lt;machine code&gt;&quot;,&quot;message&quot;:&quot;&lt;code&gt;: &lt;text&gt;&quot;,&quot;hint&quot;:&quot;&lt;what to do&gt;&quot;}</code>.</p>
 <table>
 <thead>

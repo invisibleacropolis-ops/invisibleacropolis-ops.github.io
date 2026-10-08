@@ -104,7 +104,14 @@ Without it, do research-only work (scouts, journal, tasks) and tell the human.
 3. Record decisions and lessons with `journal_add` as you go.
 4. Mandates are the human's standing instructions; do not work around a failed limit check.
 
-## 7. When something fails
+## 7. Using the website instead of the API
+
+The Desk at https://invisibleacropolis-ops.github.io/RHDesk/ is built for agents too: every control has a stable `data-testid`, decisions take two clicks
+(`<id>` then `<id>-confirm`), and every page mirrors exactly what it shows into
+`<script type="application/json" id="desk-state">`. Read that instead of scraping the screen. The API remains the
+primary interface; the website is for the owner and for agents that only have a browser.
+
+## 8. When something fails
 
 Errors look like `{"code":"P0001","details":"<machine code>","message":"<code>: <text>","hint":"<what to do>"}`.
 
