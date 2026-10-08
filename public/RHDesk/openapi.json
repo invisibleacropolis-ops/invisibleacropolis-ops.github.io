@@ -258,8 +258,13 @@
           "format": "boolean",
           "type": "boolean"
         },
+        "fx_ignore_reduced_motion": {
+          "default": false,
+          "format": "boolean",
+          "type": "boolean"
+        },
         "fx_intensity": {
-          "default": "subtle",
+          "default": "full",
           "format": "text",
           "type": "string"
         },
@@ -268,6 +273,16 @@
         },
         "layouts": {
           "format": "jsonb"
+        },
+        "sound_on": {
+          "default": true,
+          "format": "boolean",
+          "type": "boolean"
+        },
+        "sound_volume": {
+          "default": 0.5,
+          "format": "numeric",
+          "type": "number"
         },
         "theme": {
           "default": "midnight",
@@ -293,7 +308,10 @@
         "fx_intensity",
         "fx_rules",
         "demo_market",
-        "updated_at"
+        "updated_at",
+        "fx_ignore_reduced_motion",
+        "sound_on",
+        "sound_volume"
       ],
       "type": "object"
     },
@@ -2273,6 +2291,12 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.desk_preferences.fx_ignore_reduced_motion": {
+      "in": "query",
+      "name": "fx_ignore_reduced_motion",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.desk_preferences.fx_intensity": {
       "in": "query",
       "name": "fx_intensity",
@@ -2288,6 +2312,18 @@
     "rowFilter.desk_preferences.layouts": {
       "in": "query",
       "name": "layouts",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.desk_preferences.sound_on": {
+      "in": "query",
+      "name": "sound_on",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.desk_preferences.sound_volume": {
+      "in": "query",
+      "name": "sound_volume",
       "required": false,
       "type": "string"
     },
@@ -4113,6 +4149,15 @@
           },
           {
             "$ref": "#/parameters/rowFilter.desk_preferences.updated_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.desk_preferences.fx_ignore_reduced_motion"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.desk_preferences.sound_on"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.desk_preferences.sound_volume"
           },
           {
             "$ref": "#/parameters/select"
