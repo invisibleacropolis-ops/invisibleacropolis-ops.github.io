@@ -1131,6 +1131,10 @@
           "format": "text",
           "type": "string"
         },
+        "embedding": {
+          "format": "extensions.vector(384)",
+          "type": "string"
+        },
         "entry_price": {
           "format": "numeric",
           "type": "number"
@@ -1620,6 +1624,10 @@
         },
         "due_at": {
           "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "embedding": {
+          "format": "extensions.vector(384)",
           "type": "string"
         },
         "id": {
@@ -3350,6 +3358,12 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.proposals.embedding": {
+      "in": "query",
+      "name": "embedding",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.proposals.entry_price": {
       "in": "query",
       "name": "entry_price",
@@ -3887,6 +3901,12 @@
     "rowFilter.tasks.due_at": {
       "in": "query",
       "name": "due_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.tasks.embedding": {
+      "in": "query",
+      "name": "embedding",
       "required": false,
       "type": "string"
     },
@@ -5523,6 +5543,9 @@
             "$ref": "#/parameters/rowFilter.proposals.updated_at"
           },
           {
+            "$ref": "#/parameters/rowFilter.proposals.embedding"
+          },
+          {
             "$ref": "#/parameters/select"
           },
           {
@@ -6406,6 +6429,93 @@
         },
         "tags": [
           "(rpc) mandate_set_status"
+        ]
+      }
+    },
+    "/rpc/memory_match": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_embedding": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_k": {
+                  "format": "int32",
+                  "type": "integer"
+                },
+                "p_sources": {
+                  "format": "text[]",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "p_symbols": {
+                  "format": "text[]",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              },
+              "required": [
+                "p_embedding"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) memory_match"
+        ]
+      }
+    },
+    "/rpc/memory_status": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) memory_status"
         ]
       }
     },
@@ -7787,6 +7897,9 @@
           },
           {
             "$ref": "#/parameters/rowFilter.tasks.updated_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.embedding"
           },
           {
             "$ref": "#/parameters/select"

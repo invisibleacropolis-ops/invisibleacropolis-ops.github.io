@@ -80,11 +80,28 @@ Each item has a `type`:
 | `mcp` | Do this through the Robinhood MCP server; `name` describes the intent (e.g. `robinhood.place_order`). |
 | `wait` | Nothing for you to do until the human acts or another session executes. |
 | `setup` | A capability is missing; `args` say how to set it up. |
+| `function` | Call a Desk edge function: `POST {API_URL}` + `args.path` with your access token (e.g. `memory/index`). |
 
 The last action is always `session_end`. Call it with a summary and next steps before you stop, or the next
 agent starts blind.
 
-## 5. Connect the Robinhood MCP server
+## 5. Remember what earlier sessions learned
+
+The Desk's memory is searchable by meaning. Before you propose a trade, decide something, or research a symbol, ask
+it what earlier sessions recorded:
+
+```http
+POST https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/memory/recall
+Authorization: Bearer <access_token>
+Content-Type: application/json
+
+{"query": "what have we learned about sizing speculative positions?", "k": 5}
+```
+
+Results are journal entries and scouts, nearest first, each with a `similarity`. With the CLI it is
+`desk recall "<question>"`. The brief's `relevant_journal` already ranks entries against what is open now.
+
+## 6. Connect the Robinhood MCP server
 
 Trading and live account reads go through Robinhood's Trading MCP server (`https://agent.robinhood.com/mcp/trading`,
 HTTP transport, OAuth sign-in by the account holder). For example, in Claude Code:
@@ -95,7 +112,7 @@ claude mcp add --transport http robinhood-trading https://agent.robinhood.com/mc
 
 Without it, do research-only work (scouts, journal, tasks) and tell the human.
 
-## 6. Rules that always apply
+## 7. Rules that always apply
 
 1. Place a Robinhood order only for a Desk proposal that is `auto_approved` or `approved`, and only if your scope
    is `operator+execute`. Then immediately call `proposal_executed` with the Robinhood order id.
@@ -103,8 +120,9 @@ Without it, do research-only work (scouts, journal, tasks) and tell the human.
    submit them with `ingest_snapshot` (tagged `agent-reported`).
 3. Record decisions and lessons with `journal_add` as you go.
 4. Mandates are the human's standing instructions; do not work around a failed limit check.
+5. Recall before you propose. Lessons from earlier sessions apply to you.
 
-## 7. Using the website instead of the API
+## 8. Using the website instead of the API
 
 The Desk at https://invisibleacropolis-ops.github.io/RHDesk/ is built for agents too: every control has a stable `data-testid`, decisions take two clicks
 (`<id>` then `<id>-confirm`), and every page mirrors exactly what it shows into
@@ -116,7 +134,7 @@ decisions; an agent never makes them on the owner's behalf. The API remains the 
 the owner and for agents that only have a browser. Through the API, `mandate_utilization` shows how much of each
 mandate's limits is in use and `scout_history` lists every version of a scout.
 
-## 8. When something fails
+## 9. When something fails
 
 Errors look like `{"code":"P0001","details":"<machine code>","message":"<code>: <text>","hint":"<what to do>"}`.
 

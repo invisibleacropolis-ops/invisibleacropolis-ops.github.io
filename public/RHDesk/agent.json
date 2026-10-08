@@ -60,6 +60,28 @@
       }
     }
   },
+  "memory": {
+    "about": "Semantic memory: journal entries and scouts searched by meaning (gte-small embeddings). Send your access token.",
+    "headers": {
+      "Authorization": "Bearer <access_token>",
+      "Content-Type": "application/json"
+    },
+    "recall": {
+      "method": "POST",
+      "url": "https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/memory/recall",
+      "body": {
+        "query": "string",
+        "k": "number (default 8)",
+        "sources": "[\"journal\", \"scout\"] (optional)",
+        "symbols": "[\"AAPL\"] (optional)"
+      }
+    },
+    "index": {
+      "method": "POST",
+      "url": "https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/memory/index",
+      "body": {}
+    }
+  },
   "first_call_after_auth": {
     "rpc": "session_start",
     "args": {
