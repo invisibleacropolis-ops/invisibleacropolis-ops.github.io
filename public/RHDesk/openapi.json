@@ -1311,6 +1311,47 @@
       ],
       "type": "object"
     },
+    "scout_history": {
+      "properties": {
+        "actor": {
+          "format": "text",
+          "type": "string"
+        },
+        "at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "conviction": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "event_id": {
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "int64",
+          "type": "integer"
+        },
+        "scout_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "sections": {
+          "format": "jsonb"
+        },
+        "status": {
+          "format": "text",
+          "type": "string"
+        },
+        "symbol": {
+          "format": "text",
+          "type": "string"
+        },
+        "version": {
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
     "scouts": {
       "properties": {
         "asset_class": {
@@ -1949,6 +1990,15 @@
       "required": false,
       "schema": {
         "$ref": "#/definitions/reviews"
+      }
+    },
+    "body.scout_history": {
+      "description": "scout_history",
+      "in": "body",
+      "name": "scout_history",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/scout_history"
       }
     },
     "body.scouts": {
@@ -3489,6 +3539,60 @@
     "rowFilter.reviews.thesis_vs_outcome": {
       "in": "query",
       "name": "thesis_vs_outcome",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.scout_history.actor": {
+      "in": "query",
+      "name": "actor",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.scout_history.at": {
+      "in": "query",
+      "name": "at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.scout_history.conviction": {
+      "in": "query",
+      "name": "conviction",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.scout_history.event_id": {
+      "in": "query",
+      "name": "event_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.scout_history.scout_id": {
+      "in": "query",
+      "name": "scout_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.scout_history.sections": {
+      "in": "query",
+      "name": "sections",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.scout_history.status": {
+      "in": "query",
+      "name": "status",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.scout_history.symbol": {
+      "in": "query",
+      "name": "symbol",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.scout_history.version": {
+      "in": "query",
+      "name": "version",
       "required": false,
       "type": "string"
     },
@@ -7260,6 +7364,77 @@
         },
         "tags": [
           "(rpc) watch_trigger_set_status"
+        ]
+      }
+    },
+    "/scout_history": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.scout_history.scout_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.scout_history.symbol"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.scout_history.version"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.scout_history.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.scout_history.conviction"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.scout_history.sections"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.scout_history.actor"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.scout_history.at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.scout_history.event_id"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/scout_history"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "scout_history"
         ]
       }
     },
