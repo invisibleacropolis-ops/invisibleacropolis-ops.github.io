@@ -116,8 +116,11 @@ HTTP transport, OAuth sign-in by the account holder). For example, in Claude Cod
 <ol>
 <li>Place a Robinhood order only for a Desk proposal that is <code>auto_approved</code> or <code>approved</code>, and only if your scope
 is <code>operator+execute</code>. Then immediately call <code>proposal_executed</code> with the Robinhood order id.</li>
-<li>Never fabricate numbers. If the Desk says data is stale, read your accounts through the Robinhood MCP server and
-submit them with <code>ingest_snapshot</code> (tagged <code>agent-reported</code>).</li>
+<li>Never fabricate numbers. The Desk syncs Robinhood itself on a schedule once the owner has linked it (check
+<code>robinhood_status</code> or <code>desk sync status</code>). If the brief says data is stale, read your accounts through the Robinhood
+MCP server and submit them with <code>ingest_snapshot</code> (tagged <code>agent-reported</code>).</li>
+<li>Every fill in the agentic account must trace to a proposal or a registered Loop. Anything else raises a critical
+<code>unexplained_trade</code> alert for the owner.</li>
 <li>Record decisions and lessons with <code>journal_add</code> as you go.</li>
 <li>Mandates are the human&#39;s standing instructions; do not work around a failed limit check.</li>
 <li>Recall before you propose. Lessons from earlier sessions apply to you.</li>

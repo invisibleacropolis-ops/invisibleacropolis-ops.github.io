@@ -116,11 +116,14 @@ Without it, do research-only work (scouts, journal, tasks) and tell the human.
 
 1. Place a Robinhood order only for a Desk proposal that is `auto_approved` or `approved`, and only if your scope
    is `operator+execute`. Then immediately call `proposal_executed` with the Robinhood order id.
-2. Never fabricate numbers. If the Desk says data is stale, read your accounts through the Robinhood MCP server and
-   submit them with `ingest_snapshot` (tagged `agent-reported`).
-3. Record decisions and lessons with `journal_add` as you go.
-4. Mandates are the human's standing instructions; do not work around a failed limit check.
-5. Recall before you propose. Lessons from earlier sessions apply to you.
+2. Never fabricate numbers. The Desk syncs Robinhood itself on a schedule once the owner has linked it (check
+   `robinhood_status` or `desk sync status`). If the brief says data is stale, read your accounts through the Robinhood
+   MCP server and submit them with `ingest_snapshot` (tagged `agent-reported`).
+3. Every fill in the agentic account must trace to a proposal or a registered Loop. Anything else raises a critical
+   `unexplained_trade` alert for the owner.
+4. Record decisions and lessons with `journal_add` as you go.
+5. Mandates are the human's standing instructions; do not work around a failed limit check.
+6. Recall before you propose. Lessons from earlier sessions apply to you.
 
 ## 8. Using the website instead of the API
 
