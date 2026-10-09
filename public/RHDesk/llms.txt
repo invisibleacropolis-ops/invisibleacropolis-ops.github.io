@@ -126,6 +126,15 @@ reads it on the site:
 - **Link it:** tag every document with its symbols, and link it to the proposal or mandate it supports, so the
   owner's narrative of the portfolio can quote the evidence.
 
+### Placing orders
+
+With scope `operator+execute`, place an approved or auto-approved proposal's order through the Desk:
+`POST {API_URL}/functions/v1/execute {"proposal_id": "…"}` (CLI: `desk execute <proposal-id>`). The Desk re-checks it,
+places it in the agentic account, and records it; you do not call Robinhood's order tools yourself. It refuses while
+the owner has orders switched off (`trading_disabled`), outside market hours, and for anything not approved. Read
+Robinhood the same way, read-only: `POST {API_URL}/functions/v1/robinhood-read {"tool": "get_equity_quotes",
+"args": {"symbols": ["AAPL"]}}` (CLI: `desk rh get_equity_quotes --args '{"symbols":["AAPL"]}'`).
+
 ### Price charts
 
 `price_chart(p_symbol, p_range)` (CLI: `desk chart AAPL --range 6M`) gives a symbol's bars from Robinhood with what the

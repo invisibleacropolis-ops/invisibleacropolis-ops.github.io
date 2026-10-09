@@ -130,6 +130,12 @@ adds Markdown, the same as the <code>document_add</code> RPC.</li>
 <li><strong>Link it:</strong> tag every document with its symbols, and link it to the proposal or mandate it supports, so the
 owner&#39;s narrative of the portfolio can quote the evidence.</li>
 </ul>
+<h3>Placing orders</h3>
+<p>With scope <code>operator+execute</code>, place an approved or auto-approved proposal&#39;s order through the Desk:
+<code>POST {API_URL}/functions/v1/execute {&quot;proposal_id&quot;: &quot;…&quot;}</code> (CLI: <code>desk execute &lt;proposal-id&gt;</code>). The Desk re-checks it,
+places it in the agentic account, and records it; you do not call Robinhood&#39;s order tools yourself. It refuses while
+the owner has orders switched off (<code>trading_disabled</code>), outside market hours, and for anything not approved. Read
+Robinhood the same way, read-only: <code>POST {API_URL}/functions/v1/robinhood-read {&quot;tool&quot;: &quot;get_equity_quotes&quot;, &quot;args&quot;: {&quot;symbols&quot;: [&quot;AAPL&quot;]}}</code> (CLI: <code>desk rh get_equity_quotes --args &#39;{&quot;symbols&quot;:[&quot;AAPL&quot;]}&#39;</code>).</p>
 <h3>Price charts</h3>
 <p><code>price_chart(p_symbol, p_range)</code> (CLI: <code>desk chart AAPL --range 6M</code>) gives a symbol&#39;s bars from Robinhood with what the
 Desk knows about it: fills, proposal levels, the position&#39;s cost, stop and target, and journal notes. Check it before

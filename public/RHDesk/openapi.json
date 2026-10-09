@@ -329,6 +329,11 @@
     },
     "desk_settings": {
       "properties": {
+        "autopilot": {
+          "default": false,
+          "format": "boolean",
+          "type": "boolean"
+        },
         "id": {
           "default": true,
           "description": "Note:\nThis is a Primary Key.<pk/>",
@@ -345,6 +350,11 @@
           "format": "text",
           "type": "string"
         },
+        "trading_enabled": {
+          "default": false,
+          "format": "boolean",
+          "type": "boolean"
+        },
         "updated_at": {
           "default": "now()",
           "format": "timestamp with time zone",
@@ -355,7 +365,9 @@
         "id",
         "mode",
         "updated_at",
-        "site_url"
+        "site_url",
+        "autopilot",
+        "trading_enabled"
       ],
       "type": "object"
     },
@@ -3058,6 +3070,12 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.desk_settings.autopilot": {
+      "in": "query",
+      "name": "autopilot",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.desk_settings.id": {
       "in": "query",
       "name": "id",
@@ -3073,6 +3091,12 @@
     "rowFilter.desk_settings.site_url": {
       "in": "query",
       "name": "site_url",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.desk_settings.trading_enabled": {
+      "in": "query",
+      "name": "trading_enabled",
       "required": false,
       "type": "string"
     },
@@ -5592,6 +5616,12 @@
             "$ref": "#/parameters/rowFilter.desk_settings.site_url"
           },
           {
+            "$ref": "#/parameters/rowFilter.desk_settings.autopilot"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.desk_settings.trading_enabled"
+          },
+          {
             "$ref": "#/parameters/select"
           },
           {
@@ -7458,6 +7488,76 @@
         ]
       }
     },
+    "/rpc/autopilot_set": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_autopilot": {
+                  "format": "boolean",
+                  "type": "boolean"
+                },
+                "p_trading_enabled": {
+                  "format": "boolean",
+                  "type": "boolean"
+                }
+              },
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) autopilot_set"
+        ]
+      }
+    },
+    "/rpc/autopilot_status": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) autopilot_status"
+        ]
+      }
+    },
     "/rpc/brief": {
       "post": {
         "parameters": [
@@ -9146,6 +9246,45 @@
         },
         "tags": [
           "(rpc) proposal_executed"
+        ]
+      }
+    },
+    "/rpc/proposal_execution_check": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_proposal_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_proposal_id"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) proposal_execution_check"
         ]
       }
     },
