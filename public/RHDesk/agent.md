@@ -98,8 +98,17 @@ Content-Type: application/json
 {"query": "what have we learned about sizing speculative positions?", "k": 5}
 ```
 
-Results are journal entries and scouts, nearest first, each with a `similarity`. With the CLI it is
-`desk recall "<question>"`. The brief's `relevant_journal` already ranks entries against what is open now.
+Results are journal entries, scouts and Research library passages, nearest first, each with a `similarity`. With the
+CLI it is `desk recall "<question>"`. The brief's `relevant_journal` already ranks entries against what is open now.
+
+**Build the Research library as you work.** It holds the real-world material behind every position, and the owner
+reads it on the site:
+- **Save sources:** `desk doc clip <url> --symbols NVDA --tags earnings` saves a web page, the same as
+  `POST /functions/v1/clip`.
+- **Write analysis:** `desk doc add --title "..." --body @analysis.md --symbols NVDA --collection "AI infrastructure"`
+  adds Markdown, the same as the `document_add` RPC.
+- **Link it:** tag every document with its symbols, and link it to the proposal or mandate it supports, so the
+  owner's narrative of the portfolio can quote the evidence.
 
 ## 6. Connect the Robinhood MCP server
 

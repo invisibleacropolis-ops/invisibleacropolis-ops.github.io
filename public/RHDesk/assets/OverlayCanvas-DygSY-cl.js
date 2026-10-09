@@ -1,0 +1,22 @@
+import{_ as e,a as t,b as n,g as r,o as i,s as a}from"./index-Lw3YLmu7.js";import{B as o,T as s,i as c,j as l,l as u,o as d,q as f,r as p,s as m,t as h}from"./react-three-fiber.esm-jrgXD2Wz.js";import{i as g,n as _,r as v,t as y}from"./shared-B1Cda2Zl.js";var b=n(e(),1),x=r(),S=1500,C=6e3,w=16,T=10;function E(e){let t=e*2654435761;return()=>(t=(t^t>>>13)*1274126177,(t>>>0)%1e4/1e4)}var D=`
+  varying vec2 vUv;
+  void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
+`,O=`
+  varying vec2 vUv;
+  uniform vec2 uBox;
+  uniform vec2 uHalf;
+  uniform vec3 uColor;
+  uniform float uTime;
+  uniform float uStrength;
+  void main() {
+    vec2 p = (vUv - 0.5) * uBox;
+    vec2 q = abs(p) - uHalf;
+    float sd = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0);
+    float border = exp(-abs(sd) / 3.0);
+    float haze = sd > 0.0 ? exp(-sd / 18.0) * 0.55 : exp(sd / 10.0) * 0.18;
+    float scan = 0.85 + 0.15 * sin((p.x + uTime * 160.0) * 0.06);
+    float pulse = 0.7 + 0.3 * sin(uTime * 4.2);
+    float a = clamp((border * 1.1 + haze) * pulse * scan * uStrength, 0.0, 1.0);
+    gl_FragColor = vec4(uColor * a, a);
+  }
+`;function k({theme:e,intensity:t}){let{size:n}=c(),r=(0,b.useMemo)(()=>Array.from({length:w},()=>new s(new l(1,1),new o({vertexShader:D,fragmentShader:O,transparent:!0,depthWrite:!1,...y,uniforms:{uBox:{value:new f},uHalf:{value:new f},uColor:{value:new u},uTime:{value:0},uStrength:{value:1}}}))),[]),a=(0,b.useRef)(null);return p(({clock:a})=>{let o=Object.entries(i().sustained);r.forEach((r,i)=>{let s=o[i],c=s?document.querySelector(`[data-fx-anchor="${CSS.escape(s[0])}"]`):null;if(r.visible=!!c,!c||!s)return;let l=c.getBoundingClientRect(),u=l.width+52,d=l.height+52;r.position.set(l.left+l.width/2-n.width/2,n.height/2-(l.top+l.height/2),0),r.scale.set(u,d,1);let f=r.material.uniforms;f.uBox.value.set(u,d),f.uHalf.value.set(l.width/2,l.height/2),f.uColor.value.copy(g(e,s[1])),f.uTime.value=a.elapsedTime,f.uStrength.value=t===`full`?1:.55})}),(0,x.jsx)(`group`,{ref:a,children:r.map((e,t)=>(0,x.jsx)(`primitive`,{object:e},t))})}function A({theme:e,intensity:n}){let r=n===`full`?260:110,{size:a}=c(),o=(0,b.useMemo)(()=>new Float32Array(C*3),[]),s=(0,b.useMemo)(()=>new Float32Array(C*3),[]),l=(0,b.useMemo)(()=>{let e=new m;return e.setAttribute(`position`,new d(o,3)),e.setAttribute(`color`,new d(s,3)),e},[o,s]),u=(0,b.useRef)(null);return p(()=>{let c=performance.now();t(c,S);let d=i().oneShots,f=0;for(let t of d.filter(e=>e.kind===`burst`)){let i=(c-t.born)/S,l=Math.max(0,1-i),u=g(e,t.tone).multiplyScalar(.6+l*1.4),d=E(t.id);for(let e=0;e<r&&f<C;e++,f++){let e=d()*Math.PI*2,r=(60+d()*(n===`full`?360:200))*(1-(1-Math.min(i,1))**3);o[f*3]=t.x-a.width/2+Math.cos(e)*r,o[f*3+1]=a.height/2-t.y+Math.sin(e)*r*.75-i*i*60,s[f*3]=u.r*l,s[f*3+1]=u.g*l,s[f*3+2]=u.b*l}}l.setDrawRange(0,f),l.attributes.position.needsUpdate=!0,l.attributes.color.needsUpdate=!0;let p=u.current;if(!p)return;let m=d.filter(e=>e.kind===`pulse`||e.kind===`burst`);p.children.forEach((t,r)=>{let i=t,o=m[r];if(i.visible=!!o,!o)return;let s=Math.min(1,(c-o.born)/S),l=o.kind===`burst`?180:o.size===`large`?320:110;i.position.set(o.x-a.width/2,a.height/2-o.y,0),i.scale.setScalar(l*(1-(1-s)**2)+6);let u=i.material;u.color.copy(g(e,o.tone)),u.opacity=(1-s)**1.5*(n===`full`?1:.6)})}),(0,x.jsxs)(x.Fragment,{children:[(0,x.jsx)(`points`,{geometry:l,children:(0,x.jsx)(`pointsMaterial`,{size:n===`full`?12:8,map:v(),vertexColors:!0,transparent:!0,depthWrite:!1,...y,sizeAttenuation:!1})}),(0,x.jsx)(`group`,{ref:u,children:Array.from({length:T},(e,t)=>(0,x.jsxs)(`mesh`,{visible:!1,children:[(0,x.jsx)(`ringGeometry`,{args:[.9,1,96]}),(0,x.jsx)(`meshBasicMaterial`,{transparent:!0,depthWrite:!1,...y})]},t))})]})}function j({theme:e,intensity:t}){let n=(0,b.useSyncExternalStore)(a,()=>{let e=i();return e.oneShots.length>0||Object.keys(e.sustained).length>0});return t===`off`?null:(0,x.jsx)(`div`,{className:`fx-overlay`,"aria-hidden":`true`,children:(0,x.jsxs)(h,{frameloop:`demand`,orthographic:!0,camera:{position:[0,0,100],zoom:1},dpr:[1,2],gl:{alpha:!0,antialias:!0,premultipliedAlpha:!0},children:[(0,x.jsx)(_,{intensity:t,active:n}),(0,x.jsx)(k,{theme:e,intensity:t}),(0,x.jsx)(A,{theme:e,intensity:t})]})})}export{j as default};

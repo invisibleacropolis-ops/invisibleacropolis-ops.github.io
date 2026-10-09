@@ -359,6 +359,157 @@
       ],
       "type": "object"
     },
+    "document_chunks": {
+      "properties": {
+        "document_id": {
+          "description": "Note:\nThis is a Foreign Key to `documents.id`.<fk table='documents' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "embedding": {
+          "format": "extensions.vector(384)",
+          "type": "string"
+        },
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "seq": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "text": {
+          "format": "text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "document_id",
+        "seq",
+        "text"
+      ],
+      "type": "object"
+    },
+    "documents": {
+      "properties": {
+        "body": {
+          "format": "text",
+          "type": "string"
+        },
+        "captured_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "collection": {
+          "format": "text",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "created_by": {
+          "default": "desk.actor()",
+          "format": "text",
+          "type": "string"
+        },
+        "goal_id": {
+          "description": "Note:\nThis is a Foreign Key to `goals.id`.<fk table='goals' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "kind": {
+          "format": "text",
+          "type": "string"
+        },
+        "mandate_id": {
+          "description": "Note:\nThis is a Foreign Key to `mandates.id`.<fk table='mandates' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "mime_type": {
+          "format": "text",
+          "type": "string"
+        },
+        "pinned": {
+          "default": false,
+          "format": "boolean",
+          "type": "boolean"
+        },
+        "proposal_id": {
+          "description": "Note:\nThis is a Foreign Key to `proposals.id`.<fk table='proposals' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "size_bytes": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "source_url": {
+          "format": "text",
+          "type": "string"
+        },
+        "status": {
+          "default": "active",
+          "format": "text",
+          "type": "string"
+        },
+        "storage_path": {
+          "format": "text",
+          "type": "string"
+        },
+        "summary": {
+          "format": "text",
+          "type": "string"
+        },
+        "symbols": {
+          "format": "text[]",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "tags": {
+          "format": "text[]",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "title": {
+          "format": "text",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "title",
+        "symbols",
+        "tags",
+        "pinned",
+        "status",
+        "created_by",
+        "created_at",
+        "updated_at"
+      ],
+      "type": "object"
+    },
     "equity_series": {
       "properties": {
         "account_id": {
@@ -1965,6 +2116,24 @@
         "$ref": "#/definitions/desk_settings"
       }
     },
+    "body.document_chunks": {
+      "description": "document_chunks",
+      "in": "body",
+      "name": "document_chunks",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/document_chunks"
+      }
+    },
+    "body.documents": {
+      "description": "documents",
+      "in": "body",
+      "name": "documents",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/documents"
+      }
+    },
     "body.equity_series": {
       "description": "equity_series",
       "in": "body",
@@ -2625,6 +2794,162 @@
       "type": "string"
     },
     "rowFilter.desk_settings.updated_at": {
+      "in": "query",
+      "name": "updated_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.document_chunks.document_id": {
+      "in": "query",
+      "name": "document_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.document_chunks.embedding": {
+      "in": "query",
+      "name": "embedding",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.document_chunks.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.document_chunks.seq": {
+      "in": "query",
+      "name": "seq",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.document_chunks.text": {
+      "in": "query",
+      "name": "text",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.documents.body": {
+      "in": "query",
+      "name": "body",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.documents.captured_at": {
+      "in": "query",
+      "name": "captured_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.documents.collection": {
+      "in": "query",
+      "name": "collection",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.documents.created_at": {
+      "in": "query",
+      "name": "created_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.documents.created_by": {
+      "in": "query",
+      "name": "created_by",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.documents.goal_id": {
+      "in": "query",
+      "name": "goal_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.documents.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.documents.kind": {
+      "in": "query",
+      "name": "kind",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.documents.mandate_id": {
+      "in": "query",
+      "name": "mandate_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.documents.mime_type": {
+      "in": "query",
+      "name": "mime_type",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.documents.pinned": {
+      "in": "query",
+      "name": "pinned",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.documents.proposal_id": {
+      "in": "query",
+      "name": "proposal_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.documents.size_bytes": {
+      "in": "query",
+      "name": "size_bytes",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.documents.source_url": {
+      "in": "query",
+      "name": "source_url",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.documents.status": {
+      "in": "query",
+      "name": "status",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.documents.storage_path": {
+      "in": "query",
+      "name": "storage_path",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.documents.summary": {
+      "in": "query",
+      "name": "summary",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.documents.symbols": {
+      "in": "query",
+      "name": "symbols",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.documents.tags": {
+      "in": "query",
+      "name": "tags",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.documents.title": {
+      "in": "query",
+      "name": "title",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.documents.updated_at": {
       "in": "query",
       "name": "updated_at",
       "required": false,
@@ -4766,6 +5091,172 @@
         ]
       }
     },
+    "/document_chunks": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.document_chunks.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.document_chunks.document_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.document_chunks.seq"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.document_chunks.text"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.document_chunks.embedding"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/document_chunks"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "document_chunks"
+        ]
+      }
+    },
+    "/documents": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.documents.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.documents.kind"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.documents.title"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.documents.summary"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.documents.body"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.documents.source_url"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.documents.storage_path"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.documents.mime_type"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.documents.size_bytes"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.documents.symbols"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.documents.tags"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.documents.collection"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.documents.pinned"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.documents.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.documents.goal_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.documents.mandate_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.documents.proposal_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.documents.captured_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.documents.created_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.documents.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.documents.updated_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/documents"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "documents"
+        ]
+      }
+    },
     "/equity_series": {
       "get": {
         "parameters": [
@@ -6246,6 +6737,146 @@
         },
         "tags": [
           "(rpc) brief"
+        ]
+      }
+    },
+    "/rpc/document_add": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_body": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_captured_at": {
+                  "format": "timestamp with time zone",
+                  "type": "string"
+                },
+                "p_collection": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_idempotency_key": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_kind": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_links": {
+                  "format": "jsonb"
+                },
+                "p_mime_type": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_size_bytes": {
+                  "format": "int64",
+                  "type": "integer"
+                },
+                "p_source_url": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_storage_path": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_summary": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_symbols": {
+                  "format": "text[]",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "p_tags": {
+                  "format": "text[]",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "p_title": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_kind",
+                "p_title"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) document_add"
+        ]
+      }
+    },
+    "/rpc/document_update": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "p_patch": {
+                  "format": "jsonb"
+                }
+              },
+              "required": [
+                "p_id",
+                "p_patch"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) document_update"
         ]
       }
     },

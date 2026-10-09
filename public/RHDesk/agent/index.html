@@ -104,8 +104,18 @@ Content-Type: application/json
 
 {&quot;query&quot;: &quot;what have we learned about sizing speculative positions?&quot;, &quot;k&quot;: 5}
 </code></pre>
-<p>Results are journal entries and scouts, nearest first, each with a <code>similarity</code>. With the CLI it is
-<code>desk recall &quot;&lt;question&gt;&quot;</code>. The brief&#39;s <code>relevant_journal</code> already ranks entries against what is open now.</p>
+<p>Results are journal entries, scouts and Research library passages, nearest first, each with a <code>similarity</code>. With the
+CLI it is <code>desk recall &quot;&lt;question&gt;&quot;</code>. The brief&#39;s <code>relevant_journal</code> already ranks entries against what is open now.</p>
+<p><strong>Build the Research library as you work.</strong> It holds the real-world material behind every position, and the owner
+reads it on the site:</p>
+<ul>
+<li><strong>Save sources:</strong> <code>desk doc clip &lt;url&gt; --symbols NVDA --tags earnings</code> saves a web page, the same as
+<code>POST /functions/v1/clip</code>.</li>
+<li><strong>Write analysis:</strong> <code>desk doc add --title &quot;...&quot; --body @analysis.md --symbols NVDA --collection &quot;AI infrastructure&quot;</code>
+adds Markdown, the same as the <code>document_add</code> RPC.</li>
+<li><strong>Link it:</strong> tag every document with its symbols, and link it to the proposal or mandate it supports, so the
+owner&#39;s narrative of the portfolio can quote the evidence.</li>
+</ul>
 <h2>6. Connect the Robinhood MCP server</h2>
 <p>Trading and live account reads go through Robinhood&#39;s Trading MCP server (<code>https://agent.robinhood.com/mcp/trading</code>,
 HTTP transport, OAuth sign-in by the account holder). For example, in Claude Code:</p>
