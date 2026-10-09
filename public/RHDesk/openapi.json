@@ -253,10 +253,16 @@
           "format": "text",
           "type": "string"
         },
+        "custom_themes": {
+          "format": "jsonb"
+        },
         "demo_market": {
           "default": true,
           "format": "boolean",
           "type": "boolean"
+        },
+        "fx_custom_rules": {
+          "format": "jsonb"
         },
         "fx_ignore_reduced_motion": {
           "default": false,
@@ -269,6 +275,9 @@
           "type": "string"
         },
         "fx_rules": {
+          "format": "jsonb"
+        },
+        "fx_theme_presets": {
           "format": "jsonb"
         },
         "layouts": {
@@ -311,7 +320,10 @@
         "updated_at",
         "fx_ignore_reduced_motion",
         "sound_on",
-        "sound_volume"
+        "sound_volume",
+        "custom_themes",
+        "fx_custom_rules",
+        "fx_theme_presets"
       ],
       "type": "object"
     },
@@ -735,6 +747,28 @@
         "created_by",
         "created_at",
         "updated_at"
+      ],
+      "type": "object"
+    },
+    "market_holidays": {
+      "properties": {
+        "day": {
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "date",
+          "type": "string"
+        },
+        "early_close": {
+          "format": "time without time zone",
+          "type": "string"
+        },
+        "name": {
+          "format": "text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "day",
+        "name"
       ],
       "type": "object"
     },
@@ -1928,6 +1962,15 @@
         "$ref": "#/definitions/mandates"
       }
     },
+    "body.market_holidays": {
+      "description": "market_holidays",
+      "in": "body",
+      "name": "market_holidays",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/market_holidays"
+      }
+    },
     "body.orders": {
       "description": "orders",
       "in": "body",
@@ -2410,9 +2453,21 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.desk_preferences.custom_themes": {
+      "in": "query",
+      "name": "custom_themes",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.desk_preferences.demo_market": {
       "in": "query",
       "name": "demo_market",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.desk_preferences.fx_custom_rules": {
+      "in": "query",
+      "name": "fx_custom_rules",
       "required": false,
       "type": "string"
     },
@@ -2431,6 +2486,12 @@
     "rowFilter.desk_preferences.fx_rules": {
       "in": "query",
       "name": "fx_rules",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.desk_preferences.fx_theme_presets": {
+      "in": "query",
+      "name": "fx_theme_presets",
       "required": false,
       "type": "string"
     },
@@ -2899,6 +2960,24 @@
     "rowFilter.mandates.version": {
       "in": "query",
       "name": "version",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.market_holidays.day": {
+      "in": "query",
+      "name": "day",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.market_holidays.early_close": {
+      "in": "query",
+      "name": "early_close",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.market_holidays.name": {
+      "in": "query",
+      "name": "name",
       "required": false,
       "type": "string"
     },
@@ -4429,6 +4508,15 @@
             "$ref": "#/parameters/rowFilter.desk_preferences.sound_volume"
           },
           {
+            "$ref": "#/parameters/rowFilter.desk_preferences.custom_themes"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.desk_preferences.fx_custom_rules"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.desk_preferences.fx_theme_presets"
+          },
+          {
             "$ref": "#/parameters/select"
           },
           {
@@ -5034,6 +5122,59 @@
         },
         "tags": [
           "mandates"
+        ]
+      }
+    },
+    "/market_holidays": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.market_holidays.day"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.market_holidays.name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.market_holidays.early_close"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/market_holidays"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "market_holidays"
         ]
       }
     },
