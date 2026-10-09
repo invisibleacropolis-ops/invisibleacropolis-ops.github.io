@@ -130,6 +130,12 @@ adds Markdown, the same as the <code>document_add</code> RPC.</li>
 <li><strong>Link it:</strong> tag every document with its symbols, and link it to the proposal or mandate it supports, so the
 owner&#39;s narrative of the portfolio can quote the evidence.</li>
 </ul>
+<h3>The Chronicle</h3>
+<p><code>chronicle(p_from, p_to, p_groups, p_symbol)</code> (CLI: <code>desk chronicle --from 2026-10-01 --groups trades,decisions</code>) is
+the whole record, day by day: money, trades, decisions, mandates, research, sessions and alerts, each with who did it
+and the reasoning behind agent work. <code>provenance(p_entity, p_id)</code> (CLI: <code>desk provenance mandates &lt;id&gt;</code>) explains one
+record. Use them to understand how the Desk got where it is, and write your journal entries knowing they become
+the reasoning other agents and the owner will read.</p>
 <h2>6. Connect the Robinhood MCP server</h2>
 <p>Trading and live account reads go through Robinhood&#39;s Trading MCP server (<code>https://agent.robinhood.com/mcp/trading</code>,
 HTTP transport, OAuth sign-in by the account holder). For example, in Claude Code:</p>

@@ -126,6 +126,14 @@ reads it on the site:
 - **Link it:** tag every document with its symbols, and link it to the proposal or mandate it supports, so the
   owner's narrative of the portfolio can quote the evidence.
 
+### The Chronicle
+
+`chronicle(p_from, p_to, p_groups, p_symbol)` (CLI: `desk chronicle --from 2026-10-01 --groups trades,decisions`) is
+the whole record, day by day: money, trades, decisions, mandates, research, sessions and alerts, each with who did it
+and the reasoning behind agent work. `provenance(p_entity, p_id)` (CLI: `desk provenance mandates <id>`) explains one
+record. Use them to understand how the Desk got where it is, and write your journal entries knowing they become
+the reasoning other agents and the owner will read.
+
 ## 6. Connect the Robinhood MCP server
 
 Trading and live account reads go through Robinhood's Trading MCP server (`https://agent.robinhood.com/mcp/trading`,

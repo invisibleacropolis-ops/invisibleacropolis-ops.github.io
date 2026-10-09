@@ -7225,6 +7225,104 @@
         ]
       }
     },
+    "/rpc/chronicle": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_from": {
+                  "format": "date",
+                  "type": "string"
+                },
+                "p_groups": {
+                  "format": "text[]",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "p_limit": {
+                  "format": "int32",
+                  "type": "integer"
+                },
+                "p_symbol": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_to": {
+                  "format": "date",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) chronicle"
+        ]
+      }
+    },
+    "/rpc/chronicle_index": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_groups": {
+                  "format": "text[]",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "p_symbol": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) chronicle_index"
+        ]
+      }
+    },
     "/rpc/diary_submit": {
       "post": {
         "parameters": [
@@ -8606,6 +8704,50 @@
         },
         "tags": [
           "(rpc) proposal_review"
+        ]
+      }
+    },
+    "/rpc/provenance": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_entity": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_id": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_entity",
+                "p_id"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) provenance"
         ]
       }
     },
