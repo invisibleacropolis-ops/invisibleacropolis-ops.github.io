@@ -130,6 +130,12 @@ adds Markdown, the same as the <code>document_add</code> RPC.</li>
 <li><strong>Link it:</strong> tag every document with its symbols, and link it to the proposal or mandate it supports, so the
 owner&#39;s narrative of the portfolio can quote the evidence.</li>
 </ul>
+<h3>Price charts</h3>
+<p><code>price_chart(p_symbol, p_range)</code> (CLI: <code>desk chart AAPL --range 6M</code>) gives a symbol&#39;s bars from Robinhood with what the
+Desk knows about it: fills, proposal levels, the position&#39;s cost, stop and target, and journal notes. Check it before
+you set an entry, a stop or a target. If it has no bars yet, its <code>next_actions</code> show how to read them through the MCP
+(<code>get_equity_historicals</code>) and submit them with <code>prices_ingest</code>, or wait for the next sync. <code>chart_save</code> keeps a chart
+with your notes in the Research library.</p>
 <h3>The Chronicle</h3>
 <p><code>chronicle(p_from, p_to, p_groups, p_symbol)</code> (CLI: <code>desk chronicle --from 2026-10-01 --groups trades,decisions</code>) is
 the whole record, day by day: money, trades, decisions, mandates, research, sessions and alerts, each with who did it

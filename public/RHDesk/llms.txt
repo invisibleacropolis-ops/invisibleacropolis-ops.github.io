@@ -126,6 +126,14 @@ reads it on the site:
 - **Link it:** tag every document with its symbols, and link it to the proposal or mandate it supports, so the
   owner's narrative of the portfolio can quote the evidence.
 
+### Price charts
+
+`price_chart(p_symbol, p_range)` (CLI: `desk chart AAPL --range 6M`) gives a symbol's bars from Robinhood with what the
+Desk knows about it: fills, proposal levels, the position's cost, stop and target, and journal notes. Check it before
+you set an entry, a stop or a target. If it has no bars yet, its `next_actions` show how to read them through the MCP
+(`get_equity_historicals`) and submit them with `prices_ingest`, or wait for the next sync. `chart_save` keeps a chart
+with your notes in the Research library.
+
 ### The Chronicle
 
 `chronicle(p_from, p_to, p_groups, p_symbol)` (CLI: `desk chronicle --from 2026-10-01 --groups trades,decisions`) is
