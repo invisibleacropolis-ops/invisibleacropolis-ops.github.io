@@ -451,6 +451,11 @@
           "format": "uuid",
           "type": "string"
         },
+        "session_id": {
+          "description": "Note:\nThis is a Foreign Key to `sessions.id`.<fk table='sessions' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
         "size_bytes": {
           "format": "int64",
           "type": "integer"
@@ -986,6 +991,69 @@
       "required": [
         "day",
         "name"
+      ],
+      "type": "object"
+    },
+    "memories": {
+      "properties": {
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "created_by": {
+          "default": "desk.actor()",
+          "format": "text",
+          "type": "string"
+        },
+        "embedding": {
+          "format": "extensions.vector(384)",
+          "type": "string"
+        },
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "importance": {
+          "default": 3,
+          "format": "int32",
+          "type": "integer"
+        },
+        "kind": {
+          "format": "text",
+          "type": "string"
+        },
+        "session_id": {
+          "description": "Note:\nThis is a Foreign Key to `sessions.id`.<fk table='sessions' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "sources": {
+          "format": "jsonb"
+        },
+        "symbols": {
+          "format": "text[]",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "text": {
+          "format": "text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "text",
+        "symbols",
+        "importance",
+        "sources",
+        "created_by",
+        "created_at"
       ],
       "type": "object"
     },
@@ -1679,14 +1747,105 @@
       ],
       "type": "object"
     },
+    "session_reports": {
+      "properties": {
+        "built_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "checks": {
+          "format": "jsonb"
+        },
+        "data": {
+          "format": "jsonb"
+        },
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "markdown": {
+          "format": "text",
+          "type": "string"
+        },
+        "period_end": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "period_start": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "screenshots": {
+          "format": "text[]",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "session_id": {
+          "description": "Note:\nThis is a Foreign Key to `sessions.id`.<fk table='sessions' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "signed_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "signed_by": {
+          "format": "text",
+          "type": "string"
+        },
+        "status": {
+          "default": "draft",
+          "format": "text",
+          "type": "string"
+        },
+        "unverifiable": {
+          "format": "jsonb"
+        },
+        "verification": {
+          "format": "text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "session_id",
+        "status",
+        "period_start",
+        "period_end",
+        "data",
+        "markdown",
+        "checks",
+        "unverifiable",
+        "screenshots",
+        "built_at"
+      ],
+      "type": "object"
+    },
     "sessions": {
       "properties": {
         "agent_label": {
           "format": "text",
           "type": "string"
         },
+        "archived_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
         "capabilities": {
           "format": "jsonb"
+        },
+        "chapter_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "diary_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
         },
         "ended_at": {
           "format": "timestamp with time zone",
@@ -1712,6 +1871,10 @@
         "playbook_version": {
           "format": "int32",
           "type": "integer"
+        },
+        "report_signed_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
         },
         "scope": {
           "format": "text",
@@ -2215,6 +2378,15 @@
         "$ref": "#/definitions/market_holidays"
       }
     },
+    "body.memories": {
+      "description": "memories",
+      "in": "body",
+      "name": "memories",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/memories"
+      }
+    },
     "body.orders": {
       "description": "orders",
       "in": "body",
@@ -2303,6 +2475,15 @@
       "required": false,
       "schema": {
         "$ref": "#/definitions/scouts"
+      }
+    },
+    "body.session_reports": {
+      "description": "session_reports",
+      "in": "body",
+      "name": "session_reports",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/session_reports"
       }
     },
     "body.sessions": {
@@ -2901,6 +3082,12 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.documents.session_id": {
+      "in": "query",
+      "name": "session_id",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.documents.size_bytes": {
       "in": "query",
       "name": "size_bytes",
@@ -3456,6 +3643,66 @@
     "rowFilter.market_holidays.name": {
       "in": "query",
       "name": "name",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memories.created_at": {
+      "in": "query",
+      "name": "created_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memories.created_by": {
+      "in": "query",
+      "name": "created_by",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memories.embedding": {
+      "in": "query",
+      "name": "embedding",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memories.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memories.importance": {
+      "in": "query",
+      "name": "importance",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memories.kind": {
+      "in": "query",
+      "name": "kind",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memories.session_id": {
+      "in": "query",
+      "name": "session_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memories.sources": {
+      "in": "query",
+      "name": "sources",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memories.symbols": {
+      "in": "query",
+      "name": "symbols",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memories.text": {
+      "in": "query",
+      "name": "text",
       "required": false,
       "type": "string"
     },
@@ -4239,15 +4486,117 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.session_reports.built_at": {
+      "in": "query",
+      "name": "built_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.session_reports.checks": {
+      "in": "query",
+      "name": "checks",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.session_reports.data": {
+      "in": "query",
+      "name": "data",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.session_reports.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.session_reports.markdown": {
+      "in": "query",
+      "name": "markdown",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.session_reports.period_end": {
+      "in": "query",
+      "name": "period_end",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.session_reports.period_start": {
+      "in": "query",
+      "name": "period_start",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.session_reports.screenshots": {
+      "in": "query",
+      "name": "screenshots",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.session_reports.session_id": {
+      "in": "query",
+      "name": "session_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.session_reports.signed_at": {
+      "in": "query",
+      "name": "signed_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.session_reports.signed_by": {
+      "in": "query",
+      "name": "signed_by",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.session_reports.status": {
+      "in": "query",
+      "name": "status",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.session_reports.unverifiable": {
+      "in": "query",
+      "name": "unverifiable",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.session_reports.verification": {
+      "in": "query",
+      "name": "verification",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.sessions.agent_label": {
       "in": "query",
       "name": "agent_label",
       "required": false,
       "type": "string"
     },
+    "rowFilter.sessions.archived_at": {
+      "in": "query",
+      "name": "archived_at",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.sessions.capabilities": {
       "in": "query",
       "name": "capabilities",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.sessions.chapter_at": {
+      "in": "query",
+      "name": "chapter_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.sessions.diary_at": {
+      "in": "query",
+      "name": "diary_at",
       "required": false,
       "type": "string"
     },
@@ -4284,6 +4633,12 @@
     "rowFilter.sessions.playbook_version": {
       "in": "query",
       "name": "playbook_version",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.sessions.report_signed_at": {
+      "in": "query",
+      "name": "report_signed_at",
       "required": false,
       "type": "string"
     },
@@ -5217,6 +5572,9 @@
             "$ref": "#/parameters/rowFilter.documents.updated_at"
           },
           {
+            "$ref": "#/parameters/rowFilter.documents.session_id"
+          },
+          {
             "$ref": "#/parameters/select"
           },
           {
@@ -5902,6 +6260,80 @@
         },
         "tags": [
           "market_holidays"
+        ]
+      }
+    },
+    "/memories": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.memories.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memories.session_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memories.kind"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memories.text"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memories.symbols"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memories.importance"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memories.sources"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memories.embedding"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memories.created_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memories.created_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/memories"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "memories"
         ]
       }
     },
@@ -6740,6 +7172,102 @@
         ]
       }
     },
+    "/rpc/chapter_submit": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_markdown": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_session_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "p_summary": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_title": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_session_id",
+                "p_title",
+                "p_markdown"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) chapter_submit"
+        ]
+      }
+    },
+    "/rpc/diary_submit": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_markdown": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_title": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_markdown"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) diary_submit"
+        ]
+      }
+    },
     "/rpc/document_add": {
       "post": {
         "parameters": [
@@ -7531,6 +8059,49 @@
         ]
       }
     },
+    "/rpc/memories_archive": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_items": {
+                  "format": "jsonb"
+                },
+                "p_session_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_session_id",
+                "p_items"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) memories_archive"
+        ]
+      }
+    },
     "/rpc/memory_match": {
       "post": {
         "parameters": [
@@ -7701,6 +8272,36 @@
         },
         "tags": [
           "(rpc) pairing_deny"
+        ]
+      }
+    },
+    "/rpc/pipeline_pending": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) pipeline_pending"
         ]
       }
     },
@@ -8209,6 +8810,81 @@
         },
         "tags": [
           "(rpc) session_end"
+        ]
+      }
+    },
+    "/rpc/session_report_build": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) session_report_build"
+        ]
+      }
+    },
+    "/rpc/session_report_verify": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_checks": {
+                  "format": "jsonb"
+                },
+                "p_screenshots": {
+                  "format": "text[]",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "p_unverifiable": {
+                  "format": "jsonb"
+                }
+              },
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) session_report_verify"
         ]
       }
     },
@@ -8787,6 +9463,92 @@
         ]
       }
     },
+    "/session_reports": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.session_reports.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.session_reports.session_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.session_reports.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.session_reports.verification"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.session_reports.period_start"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.session_reports.period_end"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.session_reports.data"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.session_reports.markdown"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.session_reports.checks"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.session_reports.unverifiable"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.session_reports.screenshots"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.session_reports.built_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.session_reports.signed_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.session_reports.signed_by"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/session_reports"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "session_reports"
+        ]
+      }
+    },
     "/sessions": {
       "get": {
         "parameters": [
@@ -8825,6 +9587,18 @@
           },
           {
             "$ref": "#/parameters/rowFilter.sessions.next_steps"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sessions.report_signed_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sessions.diary_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sessions.archived_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sessions.chapter_at"
           },
           {
             "$ref": "#/parameters/select"

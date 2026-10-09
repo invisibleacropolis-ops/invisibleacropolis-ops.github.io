@@ -95,6 +95,20 @@ and next steps, and recent journal entries.</li>
 </tbody></table>
 <p>The last action is always <code>session_end</code>. Call it with a summary and next steps before you stop, or the next
 agent starts blind.</p>
+<h3>Closing an operator session</h3>
+<p>An <code>operator</code> or <code>operator+execute</code> session cannot end until two things are done, in this order:</p>
+<ol>
+<li><strong>Session Report.</strong> Call <code>session_report_build()</code>, then check its key numbers (account equity and cash, positions,
+fills) against Robinhood through the MCP server, and sign it with <code>session_report_verify</code>:
+<code>p_checks: [{field, desk_value, observed_value, source: &quot;robinhood_mcp&quot;}]</code>. Take screenshots when you can and list
+them in <code>p_screenshots</code>. If you cannot verify, say why in <code>p_unverifiable: [{field, reason}]</code>; never sign numbers you
+did not check as checked. A mismatch marks the report <code>exceptions</code> and alerts the owner.</li>
+<li><strong>Diary.</strong> <code>diary_submit(p_markdown, p_title)</code>: why you did what you did. Decisions, motivations, doubts, lessons.
+The report holds the numbers; the diary holds the reasoning.</li>
+</ol>
+<p>Then <code>session_end</code>. Two overseer agents follow later, each in its own session: an <code>archivist</code> reads the report and
+diary and records long-term memories (<code>memories_archive</code>), then a <code>novelist</code> writes the session&#39;s chapter of
+&quot;Our Story&quot; (<code>chapter_submit</code>). If you were paired as one of them, the brief&#39;s <code>next_actions</code> list your work.</p>
 <h2>5. Remember what earlier sessions learned</h2>
 <p>The Desk&#39;s memory is searchable by meaning. Before you propose a trade, decide something, or research a symbol, ask
 it what earlier sessions recorded:</p>

@@ -85,6 +85,22 @@ Each item has a `type`:
 The last action is always `session_end`. Call it with a summary and next steps before you stop, or the next
 agent starts blind.
 
+### Closing an operator session
+
+An `operator` or `operator+execute` session cannot end until two things are done, in this order:
+
+1. **Session Report.** Call `session_report_build()`, then check its key numbers (account equity and cash, positions,
+   fills) against Robinhood through the MCP server, and sign it with `session_report_verify`:
+   `p_checks: [{field, desk_value, observed_value, source: "robinhood_mcp"}]`. Take screenshots when you can and list
+   them in `p_screenshots`. If you cannot verify, say why in `p_unverifiable: [{field, reason}]`; never sign numbers you
+   did not check as checked. A mismatch marks the report `exceptions` and alerts the owner.
+2. **Diary.** `diary_submit(p_markdown, p_title)`: why you did what you did. Decisions, motivations, doubts, lessons.
+   The report holds the numbers; the diary holds the reasoning.
+
+Then `session_end`. Two overseer agents follow later, each in its own session: an `archivist` reads the report and
+diary and records long-term memories (`memories_archive`), then a `novelist` writes the session's chapter of
+"Our Story" (`chapter_submit`). If you were paired as one of them, the brief's `next_actions` list your work.
+
 ## 5. Remember what earlier sessions learned
 
 The Desk's memory is searchable by meaning. Before you propose a trade, decide something, or research a symbol, ask
