@@ -122,7 +122,9 @@ Without it, do research-only work (scouts, journal, tasks) and tell the human.
 3. Every fill in the agentic account must trace to a proposal or a registered Loop. Anything else raises a critical
    `unexplained_trade` alert for the owner.
 4. Record decisions and lessons with `journal_add` as you go.
-5. Mandates are the human's standing instructions; do not work around a failed limit check.
+5. Mandates are the human's standing instructions; do not work around a failed limit check. Follow each mandate's
+   `direction` (the owner's plain-language steering, e.g. "stay within tech" or "exit by a date unless a condition
+   holds") as part of its rules. Respect `owner_overrides`: never propose a revision that undoes the owner's change.
 6. Recall before you propose. Lessons from earlier sessions apply to you.
 
 ## 8. Using the website instead of the API

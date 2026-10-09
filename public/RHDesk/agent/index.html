@@ -122,7 +122,9 @@ MCP server and submit them with <code>ingest_snapshot</code> (tagged <code>agent
 <li>Every fill in the agentic account must trace to a proposal or a registered Loop. Anything else raises a critical
 <code>unexplained_trade</code> alert for the owner.</li>
 <li>Record decisions and lessons with <code>journal_add</code> as you go.</li>
-<li>Mandates are the human&#39;s standing instructions; do not work around a failed limit check.</li>
+<li>Mandates are the human&#39;s standing instructions; do not work around a failed limit check. Follow each mandate&#39;s
+<code>direction</code> (the owner&#39;s plain-language steering, e.g. &quot;stay within tech&quot; or &quot;exit by a date unless a condition
+holds&quot;) as part of its rules. Respect <code>owner_overrides</code>: never propose a revision that undoes the owner&#39;s change.</li>
 <li>Recall before you propose. Lessons from earlier sessions apply to you.</li>
 </ol>
 <h2>8. Using the website instead of the API</h2>

@@ -615,6 +615,61 @@
       ],
       "type": "object"
     },
+    "mandate_overrides": {
+      "properties": {
+        "after": {
+          "format": "jsonb"
+        },
+        "before": {
+          "format": "jsonb"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "created_by": {
+          "default": "desk.actor()",
+          "format": "text",
+          "type": "string"
+        },
+        "field": {
+          "format": "text",
+          "type": "string"
+        },
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "mandate_id": {
+          "description": "Note:\nThis is a Foreign Key to `mandates.id`.<fk table='mandates' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "note": {
+          "format": "text",
+          "type": "string"
+        },
+        "out_of_bounds": {
+          "format": "boolean",
+          "type": "boolean"
+        },
+        "proposed": {
+          "format": "jsonb"
+        }
+      },
+      "required": [
+        "id",
+        "mandate_id",
+        "field",
+        "out_of_bounds",
+        "created_by",
+        "created_at"
+      ],
+      "type": "object"
+    },
     "mandate_utilization": {
       "properties": {
         "daily_trade_cap": {
@@ -698,6 +753,14 @@
           "format": "text",
           "type": "string"
         },
+        "direction": {
+          "format": "text",
+          "type": "string"
+        },
+        "direction_updated_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
         "goal_id": {
           "description": "Note:\nThis is a Foreign Key to `goals.id`.<fk table='goals' column='id'/>",
           "format": "uuid",
@@ -710,6 +773,9 @@
           "type": "string"
         },
         "limits": {
+          "format": "jsonb"
+        },
+        "proposed_limits": {
           "format": "jsonb"
         },
         "status": {
@@ -1944,6 +2010,15 @@
         "$ref": "#/definitions/loops"
       }
     },
+    "body.mandate_overrides": {
+      "description": "mandate_overrides",
+      "in": "body",
+      "name": "mandate_overrides",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/mandate_overrides"
+      }
+    },
     "body.mandate_utilization": {
       "description": "mandate_utilization",
       "in": "body",
@@ -2807,6 +2882,66 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.mandate_overrides.after": {
+      "in": "query",
+      "name": "after",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandate_overrides.before": {
+      "in": "query",
+      "name": "before",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandate_overrides.created_at": {
+      "in": "query",
+      "name": "created_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandate_overrides.created_by": {
+      "in": "query",
+      "name": "created_by",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandate_overrides.field": {
+      "in": "query",
+      "name": "field",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandate_overrides.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandate_overrides.mandate_id": {
+      "in": "query",
+      "name": "mandate_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandate_overrides.note": {
+      "in": "query",
+      "name": "note",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandate_overrides.out_of_bounds": {
+      "in": "query",
+      "name": "out_of_bounds",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandate_overrides.proposed": {
+      "in": "query",
+      "name": "proposed",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.mandate_utilization.daily_trade_cap": {
       "in": "query",
       "name": "daily_trade_cap",
@@ -2915,6 +3050,18 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.mandates.direction": {
+      "in": "query",
+      "name": "direction",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandates.direction_updated_at": {
+      "in": "query",
+      "name": "direction_updated_at",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.mandates.goal_id": {
       "in": "query",
       "name": "goal_id",
@@ -2930,6 +3077,12 @@
     "rowFilter.mandates.limits": {
       "in": "query",
       "name": "limits",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandates.proposed_limits": {
+      "in": "query",
+      "name": "proposed_limits",
       "required": false,
       "type": "string"
     },
@@ -4959,6 +5112,80 @@
         ]
       }
     },
+    "/mandate_overrides": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.mandate_overrides.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.mandate_overrides.mandate_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.mandate_overrides.field"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.mandate_overrides.before"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.mandate_overrides.after"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.mandate_overrides.proposed"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.mandate_overrides.out_of_bounds"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.mandate_overrides.note"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.mandate_overrides.created_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.mandate_overrides.created_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/mandate_overrides"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "mandate_overrides"
+        ]
+      }
+    },
     "/mandate_utilization": {
       "get": {
         "parameters": [
@@ -5083,6 +5310,15 @@
           },
           {
             "$ref": "#/parameters/rowFilter.mandates.updated_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.mandates.direction"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.mandates.direction_updated_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.mandates.proposed_limits"
           },
           {
             "$ref": "#/parameters/select"
@@ -6481,6 +6717,53 @@
         ]
       }
     },
+    "/rpc/mandate_override": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_limits": {
+                  "format": "jsonb"
+                },
+                "p_mandate_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "p_note": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_mandate_id",
+                "p_limits"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) mandate_override"
+        ]
+      }
+    },
     "/rpc/mandate_revise": {
       "post": {
         "parameters": [
@@ -6526,6 +6809,50 @@
         },
         "tags": [
           "(rpc) mandate_revise"
+        ]
+      }
+    },
+    "/rpc/mandate_set_direction": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_direction": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_mandate_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_mandate_id",
+                "p_direction"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) mandate_set_direction"
         ]
       }
     },
