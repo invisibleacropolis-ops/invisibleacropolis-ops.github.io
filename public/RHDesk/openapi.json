@@ -182,6 +182,259 @@
       ],
       "type": "object"
     },
+    "agent_roles": {
+      "properties": {
+        "credential_checked_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "credential_error": {
+          "format": "text",
+          "type": "string"
+        },
+        "credential_hint": {
+          "format": "text",
+          "type": "string"
+        },
+        "credential_kind": {
+          "format": "text",
+          "type": "string"
+        },
+        "credential_status": {
+          "default": "missing",
+          "format": "text",
+          "type": "string"
+        },
+        "effort": {
+          "default": "high",
+          "format": "text",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "format": "boolean",
+          "type": "boolean"
+        },
+        "functions": {
+          "format": "jsonb"
+        },
+        "max_minutes": {
+          "default": 20,
+          "format": "int32",
+          "type": "integer"
+        },
+        "max_turns": {
+          "default": 40,
+          "format": "int32",
+          "type": "integer"
+        },
+        "model": {
+          "format": "text",
+          "type": "string"
+        },
+        "models": {
+          "format": "jsonb"
+        },
+        "provider": {
+          "default": "anthropic",
+          "format": "text",
+          "type": "string"
+        },
+        "role": {
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "text",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "required": [
+        "role",
+        "enabled",
+        "provider",
+        "model",
+        "effort",
+        "max_turns",
+        "max_minutes",
+        "functions",
+        "credential_status",
+        "models",
+        "updated_at"
+      ],
+      "type": "object"
+    },
+    "agent_runs": {
+      "properties": {
+        "cache_read_tokens": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "cost_usd": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "dispatched_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "error": {
+          "format": "text",
+          "type": "string"
+        },
+        "finished_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "input_tokens": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "log_url": {
+          "format": "text",
+          "type": "string"
+        },
+        "model": {
+          "format": "text",
+          "type": "string"
+        },
+        "output_tokens": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "provider": {
+          "format": "text",
+          "type": "string"
+        },
+        "requested_by": {
+          "default": "desk.actor()",
+          "format": "text",
+          "type": "string"
+        },
+        "role": {
+          "description": "Note:\nThis is a Foreign Key to `agent_roles.role`.<fk table='agent_roles' column='role'/>",
+          "format": "text",
+          "type": "string"
+        },
+        "schedule_id": {
+          "description": "Note:\nThis is a Foreign Key to `agent_schedules.id`.<fk table='agent_schedules' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "session_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "started_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "status": {
+          "default": "queued",
+          "format": "text",
+          "type": "string"
+        },
+        "summary": {
+          "format": "text",
+          "type": "string"
+        },
+        "trigger": {
+          "format": "text",
+          "type": "string"
+        },
+        "turns": {
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "role",
+        "trigger",
+        "status",
+        "requested_by",
+        "created_at"
+      ],
+      "type": "object"
+    },
+    "agent_schedules": {
+      "properties": {
+        "at_time": {
+          "format": "time without time zone",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "format": "boolean",
+          "type": "boolean"
+        },
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "kind": {
+          "format": "text",
+          "type": "string"
+        },
+        "last_fired_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "loop": {
+          "default": true,
+          "format": "boolean",
+          "type": "boolean"
+        },
+        "note": {
+          "format": "text",
+          "type": "string"
+        },
+        "role": {
+          "description": "Note:\nThis is a Foreign Key to `agent_roles.role`.<fk table='agent_roles' column='role'/>",
+          "format": "text",
+          "type": "string"
+        },
+        "run_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "trading_days_only": {
+          "default": true,
+          "format": "boolean",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "role",
+        "kind",
+        "loop",
+        "trading_days_only",
+        "enabled",
+        "created_at"
+      ],
+      "type": "object"
+    },
     "alerts": {
       "properties": {
         "acknowledged_at": {
@@ -2348,6 +2601,33 @@
         "$ref": "#/definitions/agent_keys"
       }
     },
+    "body.agent_roles": {
+      "description": "agent_roles",
+      "in": "body",
+      "name": "agent_roles",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/agent_roles"
+      }
+    },
+    "body.agent_runs": {
+      "description": "agent_runs",
+      "in": "body",
+      "name": "agent_runs",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/agent_runs"
+      }
+    },
+    "body.agent_schedules": {
+      "description": "agent_schedules",
+      "in": "body",
+      "name": "agent_schedules",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/agent_schedules"
+      }
+    },
     "body.alerts": {
       "description": "alerts",
       "in": "body",
@@ -2917,6 +3197,288 @@
     "rowFilter.agent_keys.scope": {
       "in": "query",
       "name": "scope",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_roles.credential_checked_at": {
+      "in": "query",
+      "name": "credential_checked_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_roles.credential_error": {
+      "in": "query",
+      "name": "credential_error",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_roles.credential_hint": {
+      "in": "query",
+      "name": "credential_hint",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_roles.credential_kind": {
+      "in": "query",
+      "name": "credential_kind",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_roles.credential_status": {
+      "in": "query",
+      "name": "credential_status",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_roles.effort": {
+      "in": "query",
+      "name": "effort",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_roles.enabled": {
+      "in": "query",
+      "name": "enabled",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_roles.functions": {
+      "in": "query",
+      "name": "functions",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_roles.max_minutes": {
+      "in": "query",
+      "name": "max_minutes",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_roles.max_turns": {
+      "in": "query",
+      "name": "max_turns",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_roles.model": {
+      "in": "query",
+      "name": "model",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_roles.models": {
+      "in": "query",
+      "name": "models",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_roles.provider": {
+      "in": "query",
+      "name": "provider",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_roles.role": {
+      "in": "query",
+      "name": "role",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_roles.updated_at": {
+      "in": "query",
+      "name": "updated_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_runs.cache_read_tokens": {
+      "in": "query",
+      "name": "cache_read_tokens",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_runs.cost_usd": {
+      "in": "query",
+      "name": "cost_usd",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_runs.created_at": {
+      "in": "query",
+      "name": "created_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_runs.dispatched_at": {
+      "in": "query",
+      "name": "dispatched_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_runs.error": {
+      "in": "query",
+      "name": "error",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_runs.finished_at": {
+      "in": "query",
+      "name": "finished_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_runs.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_runs.input_tokens": {
+      "in": "query",
+      "name": "input_tokens",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_runs.log_url": {
+      "in": "query",
+      "name": "log_url",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_runs.model": {
+      "in": "query",
+      "name": "model",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_runs.output_tokens": {
+      "in": "query",
+      "name": "output_tokens",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_runs.provider": {
+      "in": "query",
+      "name": "provider",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_runs.requested_by": {
+      "in": "query",
+      "name": "requested_by",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_runs.role": {
+      "in": "query",
+      "name": "role",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_runs.schedule_id": {
+      "in": "query",
+      "name": "schedule_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_runs.session_id": {
+      "in": "query",
+      "name": "session_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_runs.started_at": {
+      "in": "query",
+      "name": "started_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_runs.status": {
+      "in": "query",
+      "name": "status",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_runs.summary": {
+      "in": "query",
+      "name": "summary",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_runs.trigger": {
+      "in": "query",
+      "name": "trigger",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_runs.turns": {
+      "in": "query",
+      "name": "turns",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_schedules.at_time": {
+      "in": "query",
+      "name": "at_time",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_schedules.created_at": {
+      "in": "query",
+      "name": "created_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_schedules.enabled": {
+      "in": "query",
+      "name": "enabled",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_schedules.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_schedules.kind": {
+      "in": "query",
+      "name": "kind",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_schedules.last_fired_at": {
+      "in": "query",
+      "name": "last_fired_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_schedules.loop": {
+      "in": "query",
+      "name": "loop",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_schedules.note": {
+      "in": "query",
+      "name": "note",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_schedules.role": {
+      "in": "query",
+      "name": "role",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_schedules.run_at": {
+      "in": "query",
+      "name": "run_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_schedules.trading_days_only": {
+      "in": "query",
+      "name": "trading_days_only",
       "required": false,
       "type": "string"
     },
@@ -5437,6 +5999,279 @@
         ]
       }
     },
+    "/agent_roles": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.agent_roles.role"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_roles.enabled"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_roles.provider"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_roles.model"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_roles.effort"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_roles.max_turns"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_roles.max_minutes"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_roles.functions"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_roles.credential_kind"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_roles.credential_hint"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_roles.credential_status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_roles.credential_checked_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_roles.credential_error"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_roles.models"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_roles.updated_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/agent_roles"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "agent_roles"
+        ]
+      }
+    },
+    "/agent_runs": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.agent_runs.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_runs.role"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_runs.trigger"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_runs.schedule_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_runs.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_runs.requested_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_runs.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_runs.dispatched_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_runs.started_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_runs.finished_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_runs.session_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_runs.provider"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_runs.model"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_runs.turns"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_runs.input_tokens"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_runs.output_tokens"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_runs.cache_read_tokens"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_runs.cost_usd"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_runs.summary"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_runs.error"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_runs.log_url"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/agent_runs"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "agent_runs"
+        ]
+      }
+    },
+    "/agent_schedules": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.agent_schedules.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_schedules.role"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_schedules.kind"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_schedules.at_time"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_schedules.run_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_schedules.loop"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_schedules.trading_days_only"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_schedules.enabled"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_schedules.last_fired_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_schedules.note"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_schedules.created_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/agent_schedules"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "agent_schedules"
+        ]
+      }
+    },
     "/alerts": {
       "get": {
         "parameters": [
@@ -7362,6 +8197,343 @@
         ]
       }
     },
+    "/rpc/agent_credential_checked": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_error": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_models": {
+                  "format": "jsonb"
+                },
+                "p_ok": {
+                  "format": "boolean",
+                  "type": "boolean"
+                },
+                "p_role": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_role",
+                "p_ok"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) agent_credential_checked"
+        ]
+      }
+    },
+    "/rpc/agent_credential_copy": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_from": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_to": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_from",
+                "p_to"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) agent_credential_copy"
+        ]
+      }
+    },
+    "/rpc/agent_credential_for": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_role": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_role"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) agent_credential_for"
+        ]
+      }
+    },
+    "/rpc/agent_credential_set": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_kind": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_role": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_secret": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_role",
+                "p_secret"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) agent_credential_set"
+        ]
+      }
+    },
+    "/rpc/agent_dashboard": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_role": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_role"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) agent_dashboard"
+        ]
+      }
+    },
+    "/rpc/agent_github_checked": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_error": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_ok": {
+                  "format": "boolean",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "p_ok"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) agent_github_checked"
+        ]
+      }
+    },
+    "/rpc/agent_github_for": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) agent_github_for"
+        ]
+      }
+    },
+    "/rpc/agent_github_set": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_repo": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_token": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_token"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) agent_github_set"
+        ]
+      }
+    },
     "/rpc/agent_key_issue": {
       "post": {
         "parameters": [
@@ -7446,6 +8618,452 @@
         },
         "tags": [
           "(rpc) agent_key_revoke"
+        ]
+      }
+    },
+    "/rpc/agent_role_update": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_patch": {
+                  "format": "jsonb"
+                },
+                "p_role": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_role",
+                "p_patch"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) agent_role_update"
+        ]
+      }
+    },
+    "/rpc/agent_run_cancel": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_run_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_run_id"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) agent_run_cancel"
+        ]
+      }
+    },
+    "/rpc/agent_run_claim": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_claim_hash": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_run_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_run_id",
+                "p_claim_hash"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) agent_run_claim"
+        ]
+      }
+    },
+    "/rpc/agent_run_dispatched": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_error": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_run_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_run_id"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) agent_run_dispatched"
+        ]
+      }
+    },
+    "/rpc/agent_run_dispatching": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_claim_hash": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_run_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_run_id",
+                "p_claim_hash"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) agent_run_dispatching"
+        ]
+      }
+    },
+    "/rpc/agent_run_finish": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_result": {
+                  "format": "jsonb"
+                },
+                "p_run_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "p_session_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_run_id",
+                "p_session_id",
+                "p_result"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) agent_run_finish"
+        ]
+      }
+    },
+    "/rpc/agent_run_now": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_role": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_role"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) agent_run_now"
+        ]
+      }
+    },
+    "/rpc/agent_schedule_add": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_at_time": {
+                  "format": "time without time zone",
+                  "type": "string"
+                },
+                "p_kind": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_loop": {
+                  "format": "boolean",
+                  "type": "boolean"
+                },
+                "p_note": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_role": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_run_at": {
+                  "format": "timestamp with time zone",
+                  "type": "string"
+                },
+                "p_trading_days_only": {
+                  "format": "boolean",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "p_role",
+                "p_kind"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) agent_schedule_add"
+        ]
+      }
+    },
+    "/rpc/agent_schedule_remove": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_id"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) agent_schedule_remove"
+        ]
+      }
+    },
+    "/rpc/agent_schedule_update": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "p_patch": {
+                  "format": "jsonb"
+                }
+              },
+              "required": [
+                "p_id",
+                "p_patch"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) agent_schedule_update"
         ]
       }
     },
