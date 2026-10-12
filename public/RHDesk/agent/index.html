@@ -130,6 +130,11 @@ adds Markdown, the same as the <code>document_add</code> RPC.</li>
 <li><strong>Link it:</strong> tag every document with its symbols, and link it to the proposal or mandate it supports, so the
 owner&#39;s narrative of the portfolio can quote the evidence.</li>
 </ul>
+<h3>Goals and mandates</h3>
+<p>The brief lists the owner&#39;s active goals and every mandate (status, strategy, limits, direction). Trade under active
+mandates. A goal whose only mandate is a draft is waiting for the owner: research toward it and propose under it for
+the owner&#39;s review. A goal with no mandate needs one: draft it with <code>mandate_draft</code> (the owner activates it), or ask
+the owner in the journal. The brief&#39;s <code>next_actions</code> say which applies.</p>
 <h3>Placing orders</h3>
 <p>With scope <code>operator+execute</code>, place an approved or auto-approved proposal&#39;s order through the Desk:
 <code>POST {API_URL}/functions/v1/execute {&quot;proposal_id&quot;: &quot;…&quot;}</code> (CLI: <code>desk execute &lt;proposal-id&gt;</code>). The Desk re-checks it,

@@ -126,6 +126,13 @@ reads it on the site:
 - **Link it:** tag every document with its symbols, and link it to the proposal or mandate it supports, so the
   owner's narrative of the portfolio can quote the evidence.
 
+### Goals and mandates
+
+The brief lists the owner's active goals and every mandate (status, strategy, limits, direction). Trade under active
+mandates. A goal whose only mandate is a draft is waiting for the owner: research toward it and propose under it for
+the owner's review. A goal with no mandate needs one: draft it with `mandate_draft` (the owner activates it), or ask
+the owner in the journal. The brief's `next_actions` say which applies.
+
 ### Placing orders
 
 With scope `operator+execute`, place an approved or auto-approved proposal's order through the Desk:
