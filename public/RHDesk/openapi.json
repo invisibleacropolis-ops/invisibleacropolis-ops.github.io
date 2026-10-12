@@ -862,6 +862,10 @@
     },
     "goals": {
       "properties": {
+        "archived_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
         "created_at": {
           "default": "now()",
           "format": "timestamp with time zone",
@@ -1171,6 +1175,10 @@
         },
         "approved_by": {
           "format": "text",
+          "type": "string"
+        },
+        "archived_at": {
+          "format": "timestamp with time zone",
           "type": "string"
         },
         "created_at": {
@@ -3926,6 +3934,12 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.goals.archived_at": {
+      "in": "query",
+      "name": "archived_at",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.goals.created_at": {
       "in": "query",
       "name": "created_at",
@@ -4253,6 +4267,12 @@
     "rowFilter.mandates.approved_by": {
       "in": "query",
       "name": "approved_by",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.mandates.archived_at": {
+      "in": "query",
+      "name": "archived_at",
       "required": false,
       "type": "string"
     },
@@ -6842,6 +6862,9 @@
             "$ref": "#/parameters/rowFilter.goals.updated_at"
           },
           {
+            "$ref": "#/parameters/rowFilter.goals.archived_at"
+          },
+          {
             "$ref": "#/parameters/select"
           },
           {
@@ -7237,6 +7260,9 @@
           },
           {
             "$ref": "#/parameters/rowFilter.mandates.proposed_limits"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.mandates.archived_at"
           },
           {
             "$ref": "#/parameters/select"
@@ -9788,6 +9814,49 @@
         ]
       }
     },
+    "/rpc/goal_archive": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_archived": {
+                  "format": "boolean",
+                  "type": "boolean"
+                },
+                "p_goal_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_goal_id"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) goal_archive"
+        ]
+      }
+    },
     "/rpc/goal_set_status": {
       "post": {
         "parameters": [
@@ -10099,6 +10168,49 @@
         },
         "tags": [
           "(rpc) loop_retire"
+        ]
+      }
+    },
+    "/rpc/mandate_archive": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_archived": {
+                  "format": "boolean",
+                  "type": "boolean"
+                },
+                "p_mandate_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_mandate_id"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) mandate_archive"
         ]
       }
     },
