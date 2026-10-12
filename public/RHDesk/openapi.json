@@ -582,6 +582,11 @@
     },
     "desk_settings": {
       "properties": {
+        "auto_approve_agents": {
+          "default": false,
+          "format": "boolean",
+          "type": "boolean"
+        },
         "autopilot": {
           "default": false,
           "format": "boolean",
@@ -620,7 +625,8 @@
         "updated_at",
         "site_url",
         "autopilot",
-        "trading_enabled"
+        "trading_enabled",
+        "auto_approve_agents"
       ],
       "type": "object"
     },
@@ -3632,6 +3638,12 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.desk_settings.auto_approve_agents": {
+      "in": "query",
+      "name": "auto_approve_agents",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.desk_settings.autopilot": {
       "in": "query",
       "name": "autopilot",
@@ -6457,6 +6469,9 @@
             "$ref": "#/parameters/rowFilter.desk_settings.trading_enabled"
           },
           {
+            "$ref": "#/parameters/rowFilter.desk_settings.auto_approve_agents"
+          },
+          {
             "$ref": "#/parameters/select"
           },
           {
@@ -9142,6 +9157,45 @@
         },
         "tags": [
           "(rpc) alert_ack"
+        ]
+      }
+    },
+    "/rpc/auto_approve_set": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_on": {
+                  "format": "boolean",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "p_on"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) auto_approve_set"
         ]
       }
     },
