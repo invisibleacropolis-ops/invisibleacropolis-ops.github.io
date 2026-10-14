@@ -142,6 +142,14 @@ the owner has orders switched off (`trading_disabled`), outside market hours, an
 Robinhood the same way, read-only: `POST {API_URL}/functions/v1/robinhood-read {"tool": "get_equity_quotes",
 "args": {"symbols": ["AAPL"]}}` (CLI: `desk rh get_equity_quotes --args '{"symbols":["AAPL"]}'`).
 
+### Free Trading
+
+When the owner turns Free Trading on, an `operator+execute` agent trades on its own judgment: place orders directly with
+`POST {API_URL}/functions/v1/execute/trade {"symbol":"SPY","side":"buy","type":"market","dollar_amount":40,"thesis":"…"}`
+(also limit, stop_market and stop_limit, buys and sells) and cancel open ones with `execute/cancel {"order_id":"…"}`.
+No approval is involved; the Desk checks only the owner's hard caps and says which one when it refuses. Check
+`autopilot_status` for `free_trading`, the caps and today's usage.
+
 ### Price charts
 
 `price_chart(p_symbol, p_range)` (CLI: `desk chart AAPL --range 6M`) gives a symbol's bars from Robinhood with what the

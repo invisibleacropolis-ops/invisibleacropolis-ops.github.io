@@ -592,6 +592,14 @@
           "format": "boolean",
           "type": "boolean"
         },
+        "free_caps": {
+          "format": "jsonb"
+        },
+        "free_trading": {
+          "default": false,
+          "format": "boolean",
+          "type": "boolean"
+        },
         "id": {
           "default": true,
           "description": "Note:\nThis is a Primary Key.<pk/>",
@@ -626,7 +634,9 @@
         "site_url",
         "autopilot",
         "trading_enabled",
-        "auto_approve_agents"
+        "auto_approve_agents",
+        "free_trading",
+        "free_caps"
       ],
       "type": "object"
     },
@@ -3658,6 +3668,18 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.desk_settings.free_caps": {
+      "in": "query",
+      "name": "free_caps",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.desk_settings.free_trading": {
+      "in": "query",
+      "name": "free_trading",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.desk_settings.id": {
       "in": "query",
       "name": "id",
@@ -6490,6 +6512,12 @@
           },
           {
             "$ref": "#/parameters/rowFilter.desk_settings.auto_approve_agents"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.desk_settings.free_trading"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.desk_settings.free_caps"
           },
           {
             "$ref": "#/parameters/select"
@@ -9718,6 +9746,167 @@
         },
         "tags": [
           "(rpc) document_update"
+        ]
+      }
+    },
+    "/rpc/free_trade_begin": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_asset_class": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_limit_price": {
+                  "format": "numeric",
+                  "type": "number"
+                },
+                "p_mandate_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "p_notional_usd": {
+                  "format": "numeric",
+                  "type": "number"
+                },
+                "p_quantity": {
+                  "format": "numeric",
+                  "type": "number"
+                },
+                "p_side": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_stop_price": {
+                  "format": "numeric",
+                  "type": "number"
+                },
+                "p_symbol": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_thesis": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_type": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_symbol",
+                "p_side",
+                "p_type",
+                "p_thesis"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) free_trade_begin"
+        ]
+      }
+    },
+    "/rpc/free_trade_failed": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_error": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_proposal_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_proposal_id",
+                "p_error"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) free_trade_failed"
+        ]
+      }
+    },
+    "/rpc/free_trading_set": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_caps": {
+                  "format": "jsonb"
+                },
+                "p_on": {
+                  "format": "boolean",
+                  "type": "boolean"
+                }
+              },
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) free_trading_set"
         ]
       }
     },
