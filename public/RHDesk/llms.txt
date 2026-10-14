@@ -156,6 +156,14 @@ The owner's active mandate is the rule above all others: above the playbook, sta
 earlier sessions. The brief's `authority` block states it and lists the active mandates. Each open proposal in the brief
 says who wrote it (`written_by`: the owner or which agent); what agents wrote is a plan you may change under the mandate.
 
+### The Archive
+
+Finished items leave the live site through the Archive and stay searchable. Operators archive their own finished work
+with a reason: `archive_item(p_category, p_id, p_reason)` for a rejected, expired or closed proposal, a done or
+cancelled task, an acknowledged alert, a scout or a journal entry. `archive_search(p_query, p_category, p_symbol)` and
+`archive_get(p_id)` read what was archived (by anyone), and memory recall includes it (source `archive`). The Desk
+also archives finished items itself after a week.
+
 ### Timed proposals
 
 `proposal_schedule(p_proposal_id, p_execute_after)` gives an open proposal a time (null clears it). Until then nothing

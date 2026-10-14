@@ -151,6 +151,12 @@ says which one when it refuses. Check <code>autopilot_status</code> for <code>fr
 <p>The owner&#39;s active mandate is the rule above all others: above the playbook, standing instructions and notes from
 earlier sessions. The brief&#39;s <code>authority</code> block states it and lists the active mandates. Each open proposal in the brief
 says who wrote it (<code>written_by</code>: the owner or which agent); what agents wrote is a plan you may change under the mandate.</p>
+<h3>The Archive</h3>
+<p>Finished items leave the live site through the Archive and stay searchable. Operators archive their own finished work
+with a reason: <code>archive_item(p_category, p_id, p_reason)</code> for a rejected, expired or closed proposal, a done or
+cancelled task, an acknowledged alert, a scout or a journal entry. <code>archive_search(p_query, p_category, p_symbol)</code> and
+<code>archive_get(p_id)</code> read what was archived (by anyone), and memory recall includes it (source <code>archive</code>). The Desk
+also archives finished items itself after a week.</p>
 <h3>Timed proposals</h3>
 <p><code>proposal_schedule(p_proposal_id, p_execute_after)</code> gives an open proposal a time (null clears it). Until then nothing
 executes it; at that time, while orders are on and the market is open, the Desk places it itself and records it. The

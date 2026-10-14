@@ -125,6 +125,10 @@
     },
     "agent_keys": {
       "properties": {
+        "archived_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
         "created_at": {
           "default": "now()",
           "format": "timestamp with time zone",
@@ -268,6 +272,10 @@
     },
     "agent_runs": {
       "properties": {
+        "archived_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
         "cache_read_tokens": {
           "format": "int64",
           "type": "integer"
@@ -372,6 +380,10 @@
     },
     "agent_schedules": {
       "properties": {
+        "archived_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
         "at_time": {
           "format": "time without time zone",
           "type": "string"
@@ -445,6 +457,10 @@
           "format": "text",
           "type": "string"
         },
+        "archived_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
         "created_at": {
           "default": "now()",
           "format": "timestamp with time zone",
@@ -496,6 +512,74 @@
         "status",
         "created_by",
         "created_at"
+      ],
+      "type": "object"
+    },
+    "archive": {
+      "properties": {
+        "archived_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "archived_by": {
+          "format": "text",
+          "type": "string"
+        },
+        "category": {
+          "format": "text",
+          "type": "string"
+        },
+        "embedding": {
+          "format": "extensions.vector(384)",
+          "type": "string"
+        },
+        "entity_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "reason": {
+          "format": "text",
+          "type": "string"
+        },
+        "search": {
+          "format": "tsvector",
+          "type": "string"
+        },
+        "snapshot": {
+          "format": "jsonb"
+        },
+        "summary": {
+          "format": "text",
+          "type": "string"
+        },
+        "symbols": {
+          "format": "text[]",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "title": {
+          "format": "text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "category",
+        "entity_id",
+        "title",
+        "symbols",
+        "snapshot",
+        "archived_by",
+        "archived_at"
       ],
       "type": "object"
     },
@@ -587,6 +671,16 @@
           "format": "boolean",
           "type": "boolean"
         },
+        "auto_archive": {
+          "default": true,
+          "format": "boolean",
+          "type": "boolean"
+        },
+        "auto_archive_days": {
+          "default": 7,
+          "format": "int32",
+          "type": "integer"
+        },
         "autopilot": {
           "default": false,
           "format": "boolean",
@@ -636,7 +730,9 @@
         "trading_enabled",
         "auto_approve_agents",
         "free_trading",
-        "free_caps"
+        "free_caps",
+        "auto_archive",
+        "auto_archive_days"
       ],
       "type": "object"
     },
@@ -676,6 +772,10 @@
     },
     "documents": {
       "properties": {
+        "archived_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
         "body": {
           "format": "text",
           "type": "string"
@@ -699,6 +799,10 @@
         "created_by": {
           "default": "desk.actor()",
           "format": "text",
+          "type": "string"
+        },
+        "file_deleted_at": {
+          "format": "timestamp with time zone",
           "type": "string"
         },
         "goal_id": {
@@ -931,6 +1035,10 @@
     },
     "journal": {
       "properties": {
+        "archived_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
         "body": {
           "format": "text",
           "type": "string"
@@ -1789,6 +1897,10 @@
     },
     "proposals": {
       "properties": {
+        "archived_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
         "asset_class": {
           "format": "text",
           "type": "string"
@@ -2062,6 +2174,10 @@
     },
     "scouts": {
       "properties": {
+        "archived_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
         "asset_class": {
           "format": "text",
           "type": "string"
@@ -2395,6 +2511,10 @@
     },
     "tasks": {
       "properties": {
+        "archived_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
         "claimed_at": {
           "format": "timestamp with time zone",
           "type": "string"
@@ -2671,6 +2791,15 @@
       "required": false,
       "schema": {
         "$ref": "#/definitions/alerts"
+      }
+    },
+    "body.archive": {
+      "description": "archive",
+      "in": "body",
+      "name": "archive",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/archive"
       }
     },
     "body.desk_preferences": {
@@ -3176,6 +3305,12 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.agent_keys.archived_at": {
+      "in": "query",
+      "name": "archived_at",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.agent_keys.created_at": {
       "in": "query",
       "name": "created_at",
@@ -3326,6 +3461,12 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.agent_runs.archived_at": {
+      "in": "query",
+      "name": "archived_at",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.agent_runs.cache_read_tokens": {
       "in": "query",
       "name": "cache_read_tokens",
@@ -3452,6 +3593,12 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.agent_schedules.archived_at": {
+      "in": "query",
+      "name": "archived_at",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.agent_schedules.at_time": {
       "in": "query",
       "name": "at_time",
@@ -3530,6 +3677,12 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.alerts.archived_at": {
+      "in": "query",
+      "name": "archived_at",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.alerts.created_at": {
       "in": "query",
       "name": "created_at",
@@ -3579,6 +3732,78 @@
       "type": "string"
     },
     "rowFilter.alerts.title": {
+      "in": "query",
+      "name": "title",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive.archived_at": {
+      "in": "query",
+      "name": "archived_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive.archived_by": {
+      "in": "query",
+      "name": "archived_by",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive.category": {
+      "in": "query",
+      "name": "category",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive.embedding": {
+      "in": "query",
+      "name": "embedding",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive.entity_id": {
+      "in": "query",
+      "name": "entity_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive.reason": {
+      "in": "query",
+      "name": "reason",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive.search": {
+      "in": "query",
+      "name": "search",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive.snapshot": {
+      "in": "query",
+      "name": "snapshot",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive.summary": {
+      "in": "query",
+      "name": "summary",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive.symbols": {
+      "in": "query",
+      "name": "symbols",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive.title": {
       "in": "query",
       "name": "title",
       "required": false,
@@ -3674,6 +3899,18 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.desk_settings.auto_archive": {
+      "in": "query",
+      "name": "auto_archive",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.desk_settings.auto_archive_days": {
+      "in": "query",
+      "name": "auto_archive_days",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.desk_settings.autopilot": {
       "in": "query",
       "name": "autopilot",
@@ -3752,6 +3989,12 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.documents.archived_at": {
+      "in": "query",
+      "name": "archived_at",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.documents.body": {
       "in": "query",
       "name": "body",
@@ -3785,6 +4028,12 @@
     "rowFilter.documents.created_by": {
       "in": "query",
       "name": "created_by",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.documents.file_deleted_at": {
+      "in": "query",
+      "name": "file_deleted_at",
       "required": false,
       "type": "string"
     },
@@ -4025,6 +4274,12 @@
     "rowFilter.goals.updated_at": {
       "in": "query",
       "name": "updated_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.journal.archived_at": {
+      "in": "query",
+      "name": "archived_at",
       "required": false,
       "type": "string"
     },
@@ -4952,6 +5207,12 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.proposals.archived_at": {
+      "in": "query",
+      "name": "archived_at",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.proposals.asset_class": {
       "in": "query",
       "name": "asset_class",
@@ -5267,6 +5528,12 @@
     "rowFilter.scout_history.version": {
       "in": "query",
       "name": "version",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.scouts.archived_at": {
+      "in": "query",
+      "name": "archived_at",
       "required": false,
       "type": "string"
     },
@@ -5627,6 +5894,12 @@
     "rowFilter.sync_runs.status": {
       "in": "query",
       "name": "status",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.tasks.archived_at": {
+      "in": "query",
+      "name": "archived_at",
       "required": false,
       "type": "string"
     },
@@ -6043,6 +6316,9 @@
             "$ref": "#/parameters/rowFilter.agent_keys.created_at"
           },
           {
+            "$ref": "#/parameters/rowFilter.agent_keys.archived_at"
+          },
+          {
             "$ref": "#/parameters/select"
           },
           {
@@ -6239,6 +6515,9 @@
             "$ref": "#/parameters/rowFilter.agent_runs.log_url"
           },
           {
+            "$ref": "#/parameters/rowFilter.agent_runs.archived_at"
+          },
+          {
             "$ref": "#/parameters/select"
           },
           {
@@ -6314,6 +6593,9 @@
           },
           {
             "$ref": "#/parameters/rowFilter.agent_schedules.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_schedules.archived_at"
           },
           {
             "$ref": "#/parameters/select"
@@ -6393,6 +6675,9 @@
             "$ref": "#/parameters/rowFilter.alerts.created_at"
           },
           {
+            "$ref": "#/parameters/rowFilter.alerts.archived_at"
+          },
+          {
             "$ref": "#/parameters/select"
           },
           {
@@ -6430,6 +6715,86 @@
         },
         "tags": [
           "alerts"
+        ]
+      }
+    },
+    "/archive": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.archive.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive.category"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive.entity_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive.title"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive.summary"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive.symbols"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive.snapshot"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive.reason"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive.archived_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive.archived_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive.search"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive.embedding"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/archive"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "archive"
         ]
       }
     },
@@ -6548,6 +6913,12 @@
           },
           {
             "$ref": "#/parameters/rowFilter.desk_settings.free_caps"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.desk_settings.auto_archive"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.desk_settings.auto_archive_days"
           },
           {
             "$ref": "#/parameters/select"
@@ -6720,6 +7091,12 @@
           },
           {
             "$ref": "#/parameters/rowFilter.documents.chart"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.documents.archived_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.documents.file_deleted_at"
           },
           {
             "$ref": "#/parameters/select"
@@ -6998,6 +7375,9 @@
           },
           {
             "$ref": "#/parameters/rowFilter.journal.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.journal.archived_at"
           },
           {
             "$ref": "#/parameters/select"
@@ -8135,6 +8515,9 @@
             "$ref": "#/parameters/rowFilter.proposals.execute_attempted_at"
           },
           {
+            "$ref": "#/parameters/rowFilter.proposals.archived_at"
+          },
+          {
             "$ref": "#/parameters/select"
           },
           {
@@ -9253,6 +9636,302 @@
         ]
       }
     },
+    "/rpc/archive_finished": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_category": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_role": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_category"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) archive_finished"
+        ]
+      }
+    },
+    "/rpc/archive_get": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_id"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) archive_get"
+        ]
+      }
+    },
+    "/rpc/archive_item": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_category": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "p_reason": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_category",
+                "p_id"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) archive_item"
+        ]
+      }
+    },
+    "/rpc/archive_restore": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_category": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_category",
+                "p_id"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) archive_restore"
+        ]
+      }
+    },
+    "/rpc/archive_search": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_before": {
+                  "format": "timestamp with time zone",
+                  "type": "string"
+                },
+                "p_category": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_limit": {
+                  "format": "int32",
+                  "type": "integer"
+                },
+                "p_query": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_symbol": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) archive_search"
+        ]
+      }
+    },
+    "/rpc/archive_settings_set": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_auto": {
+                  "format": "boolean",
+                  "type": "boolean"
+                },
+                "p_days": {
+                  "format": "int32",
+                  "type": "integer"
+                }
+              },
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) archive_settings_set"
+        ]
+      }
+    },
+    "/rpc/archive_status": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) archive_status"
+        ]
+      }
+    },
     "/rpc/auto_approve_set": {
       "post": {
         "parameters": [
@@ -9785,6 +10464,75 @@
         },
         "tags": [
           "(rpc) document_update"
+        ]
+      }
+    },
+    "/rpc/file_deleted": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_path": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_path"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) file_deleted"
+        ]
+      }
+    },
+    "/rpc/files_list": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) files_list"
         ]
       }
     },
@@ -12756,6 +13504,9 @@
             "$ref": "#/parameters/rowFilter.scouts.updated_at"
           },
           {
+            "$ref": "#/parameters/rowFilter.scouts.archived_at"
+          },
+          {
             "$ref": "#/parameters/select"
           },
           {
@@ -13166,6 +13917,9 @@
           },
           {
             "$ref": "#/parameters/rowFilter.tasks.embedding"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.tasks.archived_at"
           },
           {
             "$ref": "#/parameters/select"
