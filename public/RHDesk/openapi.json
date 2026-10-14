@@ -1831,6 +1831,18 @@
           "format": "numeric",
           "type": "number"
         },
+        "execute_after": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "execute_attempted_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "execute_error": {
+          "format": "text",
+          "type": "string"
+        },
         "executed_at": {
           "format": "timestamp with time zone",
           "type": "string"
@@ -5000,6 +5012,24 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.proposals.execute_after": {
+      "in": "query",
+      "name": "execute_after",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.proposals.execute_attempted_at": {
+      "in": "query",
+      "name": "execute_attempted_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.proposals.execute_error": {
+      "in": "query",
+      "name": "execute_error",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.proposals.executed_at": {
       "in": "query",
       "name": "executed_at",
@@ -8094,6 +8124,15 @@
           },
           {
             "$ref": "#/parameters/rowFilter.proposals.embedding"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.proposals.execute_after"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.proposals.execute_error"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.proposals.execute_attempted_at"
           },
           {
             "$ref": "#/parameters/select"
@@ -11738,6 +11777,124 @@
         },
         "tags": [
           "(rpc) proposal_review"
+        ]
+      }
+    },
+    "/rpc/proposal_schedule": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_execute_after": {
+                  "format": "timestamp with time zone",
+                  "type": "string"
+                },
+                "p_proposal_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_proposal_id",
+                "p_execute_after"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) proposal_schedule"
+        ]
+      }
+    },
+    "/rpc/proposal_schedule_failed": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_error": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_proposal_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_proposal_id",
+                "p_error"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) proposal_schedule_failed"
+        ]
+      }
+    },
+    "/rpc/proposals_due": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) proposals_due"
         ]
       }
     },

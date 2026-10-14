@@ -147,8 +147,21 @@ Robinhood the same way, read-only: `POST {API_URL}/functions/v1/robinhood-read {
 When the owner turns Free Trading on, an `operator+execute` agent trades on its own judgment: place orders directly with
 `POST {API_URL}/functions/v1/execute/trade {"symbol":"SPY","side":"buy","type":"market","dollar_amount":40,"thesis":"…"}`
 (also limit, stop_market and stop_limit, buys and sells) and cancel open ones with `execute/cancel {"order_id":"…"}`.
-No approval is involved; the Desk checks only the owner's hard caps and says which one when it refuses. Check
-`autopilot_status` for `free_trading`, the caps and today's usage.
+No approval is involved; the Desk checks the owner's hard caps and the active mandate's limits (the stricter wins) and
+says which one when it refuses. Check `autopilot_status` for `free_trading`, the caps and today's usage.
+
+### The mandate comes first
+
+The owner's active mandate is the rule above all others: above the playbook, standing instructions and notes from
+earlier sessions. The brief's `authority` block states it and lists the active mandates. Each open proposal in the brief
+says who wrote it (`written_by`: the owner or which agent); what agents wrote is a plan you may change under the mandate.
+
+### Timed proposals
+
+`proposal_schedule(p_proposal_id, p_execute_after)` gives an open proposal a time (null clears it). Until then nothing
+executes it; at that time, while orders are on and the market is open, the Desk places it itself and records it. The
+brief shows `execute_after` and any `execute_error`, and its next_actions say the Desk will place it instead of asking
+you to.
 
 ### Price charts
 

@@ -145,8 +145,17 @@ Robinhood the same way, read-only: <code>POST {API_URL}/functions/v1/robinhood-r
 <p>When the owner turns Free Trading on, an <code>operator+execute</code> agent trades on its own judgment: place orders directly with
 <code>POST {API_URL}/functions/v1/execute/trade {&quot;symbol&quot;:&quot;SPY&quot;,&quot;side&quot;:&quot;buy&quot;,&quot;type&quot;:&quot;market&quot;,&quot;dollar_amount&quot;:40,&quot;thesis&quot;:&quot;…&quot;}</code>
 (also limit, stop_market and stop_limit, buys and sells) and cancel open ones with <code>execute/cancel {&quot;order_id&quot;:&quot;…&quot;}</code>.
-No approval is involved; the Desk checks only the owner&#39;s hard caps and says which one when it refuses. Check
-<code>autopilot_status</code> for <code>free_trading</code>, the caps and today&#39;s usage.</p>
+No approval is involved; the Desk checks the owner&#39;s hard caps and the active mandate&#39;s limits (the stricter wins) and
+says which one when it refuses. Check <code>autopilot_status</code> for <code>free_trading</code>, the caps and today&#39;s usage.</p>
+<h3>The mandate comes first</h3>
+<p>The owner&#39;s active mandate is the rule above all others: above the playbook, standing instructions and notes from
+earlier sessions. The brief&#39;s <code>authority</code> block states it and lists the active mandates. Each open proposal in the brief
+says who wrote it (<code>written_by</code>: the owner or which agent); what agents wrote is a plan you may change under the mandate.</p>
+<h3>Timed proposals</h3>
+<p><code>proposal_schedule(p_proposal_id, p_execute_after)</code> gives an open proposal a time (null clears it). Until then nothing
+executes it; at that time, while orders are on and the market is open, the Desk places it itself and records it. The
+brief shows <code>execute_after</code> and any <code>execute_error</code>, and its next_actions say the Desk will place it instead of asking
+you to.</p>
 <h3>Price charts</h3>
 <p><code>price_chart(p_symbol, p_range)</code> (CLI: <code>desk chart AAPL --range 6M</code>) gives a symbol&#39;s bars from Robinhood with what the
 Desk knows about it: fills, proposal levels, the position&#39;s cost, stop and target, and journal notes. Check it before
