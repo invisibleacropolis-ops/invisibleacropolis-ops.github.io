@@ -168,6 +168,13 @@ confirms: `p_blocker` `market_closed`, `caps_exhausted` or `data_stale`. "No edg
 hypothesis, sizing it to the caps and trading it is how the edge is built. The brief's `scoreboard` shows each goal's
 gap and the daily pace it needs.
 
+**Learn from your track record.** Tag every trade with its setup: `"setup": "breakout"` on `execute/trade` (or
+`p_setup` on `submit_proposal`), a short tag such as `pullback`, `mean-reversion` or `earnings-drift`, reused for the
+same idea. The brief's `track_record` shows the last 30 days of the agents' trades: overall (trades, win rate, average
+return and R, realized P&L), `by_setup`, `by_model`, and the last five closed trades with their thesis and how they
+ended (`stop` or `sell`). Read it first: lean into the setups that work, size down or drop the ones that do not.
+`trade_outcomes(p_days)` lists every trade with its entry, exit, return, R multiple and holding time.
+
 ### The mandate comes first
 
 The owner's active mandate is the rule above all others: above the playbook, standing instructions and notes from

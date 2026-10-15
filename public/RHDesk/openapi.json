@@ -2192,6 +2192,10 @@
           "format": "uuid",
           "type": "string"
         },
+        "setup": {
+          "format": "text",
+          "type": "string"
+        },
         "side": {
           "format": "text",
           "type": "string"
@@ -5793,6 +5797,12 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.proposals.setup": {
+      "in": "query",
+      "name": "setup",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.proposals.side": {
       "in": "query",
       "name": "side",
@@ -9206,6 +9216,9 @@
             "$ref": "#/parameters/rowFilter.proposals.protect_status"
           },
           {
+            "$ref": "#/parameters/rowFilter.proposals.setup"
+          },
+          {
             "$ref": "#/parameters/select"
           },
           {
@@ -10995,6 +11008,10 @@
                 "p_quantity": {
                   "format": "numeric",
                   "type": "number"
+                },
+                "p_setup": {
+                  "format": "text",
+                  "type": "string"
                 },
                 "p_side": {
                   "format": "text",
@@ -13357,6 +13374,10 @@
                   "format": "numeric",
                   "type": "number"
                 },
+                "p_setup": {
+                  "format": "text",
+                  "type": "string"
+                },
                 "p_side": {
                   "format": "text",
                   "type": "string"
@@ -13589,6 +13610,78 @@
         },
         "tags": [
           "(rpc) task_done"
+        ]
+      }
+    },
+    "/rpc/track_record": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_days": {
+                  "format": "int32",
+                  "type": "integer"
+                }
+              },
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) track_record"
+        ]
+      }
+    },
+    "/rpc/trade_outcomes": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_days": {
+                  "format": "int32",
+                  "type": "integer"
+                }
+              },
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) trade_outcomes"
         ]
       }
     },

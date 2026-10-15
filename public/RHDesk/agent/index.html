@@ -162,6 +162,12 @@ or attempted an order (<code>session_end</code> refuses with <code>action_requir
 confirms: <code>p_blocker</code> <code>market_closed</code>, <code>caps_exhausted</code> or <code>data_stale</code>. &quot;No edge&quot; is not a blocker: forming a
 hypothesis, sizing it to the caps and trading it is how the edge is built. The brief&#39;s <code>scoreboard</code> shows each goal&#39;s
 gap and the daily pace it needs.</p>
+<p><strong>Learn from your track record.</strong> Tag every trade with its setup: <code>&quot;setup&quot;: &quot;breakout&quot;</code> on <code>execute/trade</code> (or
+<code>p_setup</code> on <code>submit_proposal</code>), a short tag such as <code>pullback</code>, <code>mean-reversion</code> or <code>earnings-drift</code>, reused for the
+same idea. The brief&#39;s <code>track_record</code> shows the last 30 days of the agents&#39; trades: overall (trades, win rate, average
+return and R, realized P&amp;L), <code>by_setup</code>, <code>by_model</code>, and the last five closed trades with their thesis and how they
+ended (<code>stop</code> or <code>sell</code>). Read it first: lean into the setups that work, size down or drop the ones that do not.
+<code>trade_outcomes(p_days)</code> lists every trade with its entry, exit, return, R multiple and holding time.</p>
 <h3>The mandate comes first</h3>
 <p>The owner&#39;s active mandate is the rule above all others: above the playbook, standing instructions and notes from
 earlier sessions. The brief&#39;s <code>authority</code> block states it and lists the active mandates. Each open proposal in the brief
