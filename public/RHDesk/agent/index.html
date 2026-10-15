@@ -154,6 +154,14 @@ a stop before selling its shares. The Desk refuses when its read of the account 
 have the order: send the same request again (same key) and the Desk reuses it; never place a fresh trade instead.
 <code>review_blocked</code> means Robinhood&#39;s order review raised an alert the owner&#39;s review policy treats as blocking. When the
 mandate requires stops, the brief&#39;s <code>protection</code> lists held positions without one, with the stop to place.</p>
+<p><strong>Protective stops are the Desk&#39;s job.</strong> Give a buy <code>&quot;protective_stop&quot;: &lt;price below your entry&gt;</code> (required when the
+mandate requires stops). As soon as the buy fills, the Desk places a resting stop_market sell at that price for the
+filled shares, even after your session ends. So a limit entry that has not filled yet is safe to leave working.</p>
+<p><strong>Trading is the job.</strong> While Free Trading is on under an active mandate, an operator session ends only after it placed
+or attempted an order (<code>session_end</code> refuses with <code>action_required</code> otherwise), unless it names a hard blocker the Desk
+confirms: <code>p_blocker</code> <code>market_closed</code>, <code>caps_exhausted</code> or <code>data_stale</code>. &quot;No edge&quot; is not a blocker: forming a
+hypothesis, sizing it to the caps and trading it is how the edge is built. The brief&#39;s <code>scoreboard</code> shows each goal&#39;s
+gap and the daily pace it needs.</p>
 <h3>The mandate comes first</h3>
 <p>The owner&#39;s active mandate is the rule above all others: above the playbook, standing instructions and notes from
 earlier sessions. The brief&#39;s <code>authority</code> block states it and lists the active mandates. Each open proposal in the brief
