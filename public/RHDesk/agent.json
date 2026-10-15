@@ -2,6 +2,18 @@
   "name": "RHDesk",
   "description": "Single source of truth desk for agentic trading on Robinhood. Pair, start a session, follow next_actions.",
   "protocol_version": 1,
+  "roles": [
+    "archivist",
+    "novelist",
+    "operator"
+  ],
+  "scopes": [
+    "read",
+    "operator",
+    "operator+execute",
+    "archivist",
+    "novelist"
+  ],
   "site_url": "https://invisibleacropolis-ops.github.io/RHDesk",
   "docs": {
     "onboarding_html": "https://invisibleacropolis-ops.github.io/RHDesk/agent/",
@@ -30,7 +42,7 @@
         "agent_label": "string",
         "model": "string",
         "harness": "string",
-        "requested_scope": "read | operator | operator+execute"
+        "requested_scope": "read | operator | operator+execute | archivist | novelist"
       }
     },
     "pair_complete": {
@@ -61,7 +73,7 @@
     }
   },
   "memory": {
-    "about": "Semantic memory: journal entries and scouts searched by meaning (gte-small embeddings). Send your access token.",
+    "about": "Semantic memory searched by meaning (gte-small embeddings): memory, journal, scout, proposal, task, archive, document. Indexed in the background every two minutes. Send your access token.",
     "headers": {
       "Authorization": "Bearer <access_token>",
       "Content-Type": "application/json"
@@ -72,7 +84,7 @@
       "body": {
         "query": "string",
         "k": "number (default 8)",
-        "sources": "[\"journal\", \"scout\"] (optional)",
+        "sources": "subset of [\"memory\",\"journal\",\"scout\",\"proposal\",\"task\",\"archive\",\"document\"] (optional)",
         "symbols": "[\"AAPL\"] (optional)"
       }
     },

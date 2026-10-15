@@ -323,6 +323,10 @@
           "format": "int64",
           "type": "integer"
         },
+        "price_version": {
+          "format": "text",
+          "type": "string"
+        },
         "provider": {
           "format": "text",
           "type": "string"
@@ -583,6 +587,49 @@
       ],
       "type": "object"
     },
+    "broker_reads": {
+      "properties": {
+        "args": {
+          "format": "jsonb"
+        },
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "read_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "read_by": {
+          "default": "desk.actor()",
+          "format": "text",
+          "type": "string"
+        },
+        "result": {
+          "format": "jsonb"
+        },
+        "session_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "tool": {
+          "format": "text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "tool",
+        "args",
+        "result",
+        "read_by",
+        "read_at"
+      ],
+      "type": "object"
+    },
     "desk_preferences": {
       "properties": {
         "ambient": {
@@ -705,6 +752,11 @@
           "format": "text",
           "type": "string"
         },
+        "review_policy": {
+          "default": "block_errors",
+          "format": "text",
+          "type": "string"
+        },
         "site_url": {
           "default": "https://invisibleacropolis-ops.github.io/RHDesk",
           "format": "text",
@@ -732,7 +784,8 @@
         "free_trading",
         "free_caps",
         "auto_archive",
-        "auto_archive_days"
+        "auto_archive_days",
+        "review_policy"
       ],
       "type": "object"
     },
@@ -1457,6 +1510,67 @@
       ],
       "type": "object"
     },
+    "order_cancels": {
+      "properties": {
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "error": {
+          "format": "text",
+          "type": "string"
+        },
+        "finished_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "proposal_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "requested_by": {
+          "default": "desk.actor()",
+          "format": "text",
+          "type": "string"
+        },
+        "result": {
+          "format": "jsonb"
+        },
+        "rh_order_id": {
+          "format": "text",
+          "type": "string"
+        },
+        "session_id": {
+          "default": "desk.session_id()",
+          "format": "uuid",
+          "type": "string"
+        },
+        "status": {
+          "default": "requested",
+          "format": "text",
+          "type": "string"
+        },
+        "symbol": {
+          "format": "text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "rh_order_id",
+        "status",
+        "requested_by",
+        "created_at"
+      ],
+      "type": "object"
+    },
     "orders": {
       "properties": {
         "account_id": {
@@ -1870,12 +1984,20 @@
     },
     "price_series": {
       "properties": {
+        "failed_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
         "fetched_at": {
           "format": "timestamp with time zone",
           "type": "string"
         },
         "interval": {
           "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "text",
+          "type": "string"
+        },
+        "last_error": {
           "format": "text",
           "type": "string"
         },
@@ -1904,6 +2026,9 @@
         "asset_class": {
           "format": "text",
           "type": "string"
+        },
+        "broker_review": {
+          "format": "jsonb"
         },
         "closed_at": {
           "format": "timestamp with time zone",
@@ -1969,6 +2094,10 @@
           "format": "uuid",
           "type": "string"
         },
+        "idempotency_key": {
+          "format": "text",
+          "type": "string"
+        },
         "limit_check": {
           "format": "jsonb"
         },
@@ -1982,6 +2111,10 @@
           "type": "number"
         },
         "order_type": {
+          "format": "text",
+          "type": "string"
+        },
+        "placement": {
           "format": "text",
           "type": "string"
         },
@@ -2471,6 +2604,9 @@
         "counts": {
           "format": "jsonb"
         },
+        "coverage": {
+          "format": "jsonb"
+        },
         "error": {
           "format": "text",
           "type": "string"
@@ -2505,7 +2641,8 @@
         "actor",
         "started_at",
         "status",
-        "counts"
+        "counts",
+        "coverage"
       ],
       "type": "object"
     },
@@ -2802,6 +2939,15 @@
         "$ref": "#/definitions/archive"
       }
     },
+    "body.broker_reads": {
+      "description": "broker_reads",
+      "in": "body",
+      "name": "broker_reads",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/broker_reads"
+      }
+    },
     "body.desk_preferences": {
       "description": "desk_preferences",
       "in": "body",
@@ -2926,6 +3072,15 @@
       "required": false,
       "schema": {
         "$ref": "#/definitions/memories"
+      }
+    },
+    "body.order_cancels": {
+      "description": "order_cancels",
+      "in": "body",
+      "name": "order_cancels",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/order_cancels"
       }
     },
     "body.orders": {
@@ -3533,6 +3688,12 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.agent_runs.price_version": {
+      "in": "query",
+      "name": "price_version",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.agent_runs.provider": {
       "in": "query",
       "name": "provider",
@@ -3809,6 +3970,48 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.broker_reads.args": {
+      "in": "query",
+      "name": "args",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.broker_reads.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.broker_reads.read_at": {
+      "in": "query",
+      "name": "read_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.broker_reads.read_by": {
+      "in": "query",
+      "name": "read_by",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.broker_reads.result": {
+      "in": "query",
+      "name": "result",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.broker_reads.session_id": {
+      "in": "query",
+      "name": "session_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.broker_reads.tool": {
+      "in": "query",
+      "name": "tool",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.desk_preferences.ambient": {
       "in": "query",
       "name": "ambient",
@@ -3938,6 +4141,12 @@
     "rowFilter.desk_settings.mode": {
       "in": "query",
       "name": "mode",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.desk_settings.review_policy": {
+      "in": "query",
+      "name": "review_policy",
       "required": false,
       "type": "string"
     },
@@ -4721,6 +4930,72 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.order_cancels.created_at": {
+      "in": "query",
+      "name": "created_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.order_cancels.error": {
+      "in": "query",
+      "name": "error",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.order_cancels.finished_at": {
+      "in": "query",
+      "name": "finished_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.order_cancels.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.order_cancels.proposal_id": {
+      "in": "query",
+      "name": "proposal_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.order_cancels.requested_by": {
+      "in": "query",
+      "name": "requested_by",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.order_cancels.result": {
+      "in": "query",
+      "name": "result",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.order_cancels.rh_order_id": {
+      "in": "query",
+      "name": "rh_order_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.order_cancels.session_id": {
+      "in": "query",
+      "name": "session_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.order_cancels.status": {
+      "in": "query",
+      "name": "status",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.order_cancels.symbol": {
+      "in": "query",
+      "name": "symbol",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.orders.account_id": {
       "in": "query",
       "name": "account_id",
@@ -5183,6 +5458,12 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.price_series.failed_at": {
+      "in": "query",
+      "name": "failed_at",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.price_series.fetched_at": {
       "in": "query",
       "name": "fetched_at",
@@ -5192,6 +5473,12 @@
     "rowFilter.price_series.interval": {
       "in": "query",
       "name": "interval",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.price_series.last_error": {
+      "in": "query",
+      "name": "last_error",
       "required": false,
       "type": "string"
     },
@@ -5216,6 +5503,12 @@
     "rowFilter.proposals.asset_class": {
       "in": "query",
       "name": "asset_class",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.proposals.broker_review": {
+      "in": "query",
+      "name": "broker_review",
       "required": false,
       "type": "string"
     },
@@ -5309,6 +5602,12 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.proposals.idempotency_key": {
+      "in": "query",
+      "name": "idempotency_key",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.proposals.limit_check": {
       "in": "query",
       "name": "limit_check",
@@ -5330,6 +5629,12 @@
     "rowFilter.proposals.order_type": {
       "in": "query",
       "name": "order_type",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.proposals.placement": {
+      "in": "query",
+      "name": "placement",
       "required": false,
       "type": "string"
     },
@@ -5858,6 +6163,12 @@
     "rowFilter.sync_runs.counts": {
       "in": "query",
       "name": "counts",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.sync_runs.coverage": {
+      "in": "query",
+      "name": "coverage",
       "required": false,
       "type": "string"
     },
@@ -6518,6 +6829,9 @@
             "$ref": "#/parameters/rowFilter.agent_runs.archived_at"
           },
           {
+            "$ref": "#/parameters/rowFilter.agent_runs.price_version"
+          },
+          {
             "$ref": "#/parameters/select"
           },
           {
@@ -6798,6 +7112,71 @@
         ]
       }
     },
+    "/broker_reads": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.broker_reads.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.broker_reads.session_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.broker_reads.tool"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.broker_reads.args"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.broker_reads.result"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.broker_reads.read_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.broker_reads.read_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/broker_reads"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "broker_reads"
+        ]
+      }
+    },
     "/desk_preferences": {
       "get": {
         "parameters": [
@@ -6919,6 +7298,9 @@
           },
           {
             "$ref": "#/parameters/rowFilter.desk_settings.auto_archive_days"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.desk_settings.review_policy"
           },
           {
             "$ref": "#/parameters/select"
@@ -7870,6 +8252,83 @@
         ]
       }
     },
+    "/order_cancels": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.order_cancels.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.order_cancels.rh_order_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.order_cancels.symbol"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.order_cancels.proposal_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.order_cancels.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.order_cancels.result"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.order_cancels.error"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.order_cancels.session_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.order_cancels.requested_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.order_cancels.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.order_cancels.finished_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/order_cancels"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "order_cancels"
+        ]
+      }
+    },
     "/orders": {
       "get": {
         "parameters": [
@@ -8381,6 +8840,12 @@
             "$ref": "#/parameters/rowFilter.price_series.requested_at"
           },
           {
+            "$ref": "#/parameters/rowFilter.price_series.last_error"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.price_series.failed_at"
+          },
+          {
             "$ref": "#/parameters/select"
           },
           {
@@ -8516,6 +8981,15 @@
           },
           {
             "$ref": "#/parameters/rowFilter.proposals.archived_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.proposals.placement"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.proposals.idempotency_key"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.proposals.broker_review"
           },
           {
             "$ref": "#/parameters/select"
@@ -8688,57 +9162,6 @@
         ]
       }
     },
-    "/rpc/agent_credential_checked": {
-      "post": {
-        "parameters": [
-          {
-            "in": "body",
-            "name": "args",
-            "required": true,
-            "schema": {
-              "properties": {
-                "p_error": {
-                  "format": "text",
-                  "type": "string"
-                },
-                "p_models": {
-                  "format": "jsonb"
-                },
-                "p_ok": {
-                  "format": "boolean",
-                  "type": "boolean"
-                },
-                "p_role": {
-                  "format": "text",
-                  "type": "string"
-                }
-              },
-              "required": [
-                "p_role",
-                "p_ok"
-              ],
-              "type": "object"
-            }
-          },
-          {
-            "$ref": "#/parameters/preferParams"
-          }
-        ],
-        "produces": [
-          "application/json",
-          "application/vnd.pgrst.object+json;nulls=stripped",
-          "application/vnd.pgrst.object+json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "tags": [
-          "(rpc) agent_credential_checked"
-        ]
-      }
-    },
     "/rpc/agent_credential_copy": {
       "post": {
         "parameters": [
@@ -8780,45 +9203,6 @@
         },
         "tags": [
           "(rpc) agent_credential_copy"
-        ]
-      }
-    },
-    "/rpc/agent_credential_for": {
-      "post": {
-        "parameters": [
-          {
-            "in": "body",
-            "name": "args",
-            "required": true,
-            "schema": {
-              "properties": {
-                "p_role": {
-                  "format": "text",
-                  "type": "string"
-                }
-              },
-              "required": [
-                "p_role"
-              ],
-              "type": "object"
-            }
-          },
-          {
-            "$ref": "#/parameters/preferParams"
-          }
-        ],
-        "produces": [
-          "application/json",
-          "application/vnd.pgrst.object+json;nulls=stripped",
-          "application/vnd.pgrst.object+json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "tags": [
-          "(rpc) agent_credential_for"
         ]
       }
     },
@@ -8906,79 +9290,6 @@
         },
         "tags": [
           "(rpc) agent_dashboard"
-        ]
-      }
-    },
-    "/rpc/agent_github_checked": {
-      "post": {
-        "parameters": [
-          {
-            "in": "body",
-            "name": "args",
-            "required": true,
-            "schema": {
-              "properties": {
-                "p_error": {
-                  "format": "text",
-                  "type": "string"
-                },
-                "p_ok": {
-                  "format": "boolean",
-                  "type": "boolean"
-                }
-              },
-              "required": [
-                "p_ok"
-              ],
-              "type": "object"
-            }
-          },
-          {
-            "$ref": "#/parameters/preferParams"
-          }
-        ],
-        "produces": [
-          "application/json",
-          "application/vnd.pgrst.object+json;nulls=stripped",
-          "application/vnd.pgrst.object+json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "tags": [
-          "(rpc) agent_github_checked"
-        ]
-      }
-    },
-    "/rpc/agent_github_for": {
-      "post": {
-        "parameters": [
-          {
-            "in": "body",
-            "name": "args",
-            "required": true,
-            "schema": {
-              "type": "object"
-            }
-          },
-          {
-            "$ref": "#/parameters/preferParams"
-          }
-        ],
-        "produces": [
-          "application/json",
-          "application/vnd.pgrst.object+json;nulls=stripped",
-          "application/vnd.pgrst.object+json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "tags": [
-          "(rpc) agent_github_for"
         ]
       }
     },
@@ -9230,185 +9541,6 @@
         },
         "tags": [
           "(rpc) agent_run_cancel"
-        ]
-      }
-    },
-    "/rpc/agent_run_claim": {
-      "post": {
-        "parameters": [
-          {
-            "in": "body",
-            "name": "args",
-            "required": true,
-            "schema": {
-              "properties": {
-                "p_claim_hash": {
-                  "format": "text",
-                  "type": "string"
-                },
-                "p_run_id": {
-                  "format": "uuid",
-                  "type": "string"
-                }
-              },
-              "required": [
-                "p_run_id",
-                "p_claim_hash"
-              ],
-              "type": "object"
-            }
-          },
-          {
-            "$ref": "#/parameters/preferParams"
-          }
-        ],
-        "produces": [
-          "application/json",
-          "application/vnd.pgrst.object+json;nulls=stripped",
-          "application/vnd.pgrst.object+json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "tags": [
-          "(rpc) agent_run_claim"
-        ]
-      }
-    },
-    "/rpc/agent_run_dispatched": {
-      "post": {
-        "parameters": [
-          {
-            "in": "body",
-            "name": "args",
-            "required": true,
-            "schema": {
-              "properties": {
-                "p_error": {
-                  "format": "text",
-                  "type": "string"
-                },
-                "p_run_id": {
-                  "format": "uuid",
-                  "type": "string"
-                }
-              },
-              "required": [
-                "p_run_id"
-              ],
-              "type": "object"
-            }
-          },
-          {
-            "$ref": "#/parameters/preferParams"
-          }
-        ],
-        "produces": [
-          "application/json",
-          "application/vnd.pgrst.object+json;nulls=stripped",
-          "application/vnd.pgrst.object+json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "tags": [
-          "(rpc) agent_run_dispatched"
-        ]
-      }
-    },
-    "/rpc/agent_run_dispatching": {
-      "post": {
-        "parameters": [
-          {
-            "in": "body",
-            "name": "args",
-            "required": true,
-            "schema": {
-              "properties": {
-                "p_claim_hash": {
-                  "format": "text",
-                  "type": "string"
-                },
-                "p_run_id": {
-                  "format": "uuid",
-                  "type": "string"
-                }
-              },
-              "required": [
-                "p_run_id",
-                "p_claim_hash"
-              ],
-              "type": "object"
-            }
-          },
-          {
-            "$ref": "#/parameters/preferParams"
-          }
-        ],
-        "produces": [
-          "application/json",
-          "application/vnd.pgrst.object+json;nulls=stripped",
-          "application/vnd.pgrst.object+json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "tags": [
-          "(rpc) agent_run_dispatching"
-        ]
-      }
-    },
-    "/rpc/agent_run_finish": {
-      "post": {
-        "parameters": [
-          {
-            "in": "body",
-            "name": "args",
-            "required": true,
-            "schema": {
-              "properties": {
-                "p_result": {
-                  "format": "jsonb"
-                },
-                "p_run_id": {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                "p_session_id": {
-                  "format": "uuid",
-                  "type": "string"
-                }
-              },
-              "required": [
-                "p_run_id",
-                "p_session_id",
-                "p_result"
-              ],
-              "type": "object"
-            }
-          },
-          {
-            "$ref": "#/parameters/preferParams"
-          }
-        ],
-        "produces": [
-          "application/json",
-          "application/vnd.pgrst.object+json;nulls=stripped",
-          "application/vnd.pgrst.object+json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "tags": [
-          "(rpc) agent_run_finish"
         ]
       }
     },
@@ -10071,6 +10203,53 @@
         ]
       }
     },
+    "/rpc/broker_read_record": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_args": {
+                  "format": "jsonb"
+                },
+                "p_result": {
+                  "format": "jsonb"
+                },
+                "p_tool": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_tool",
+                "p_args",
+                "p_result"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) broker_read_record"
+        ]
+      }
+    },
     "/rpc/chapter_submit": {
       "post": {
         "parameters": [
@@ -10281,6 +10460,36 @@
         },
         "tags": [
           "(rpc) chronicle_index"
+        ]
+      }
+    },
+    "/rpc/clip_check": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) clip_check"
         ]
       }
     },
@@ -10546,6 +10755,10 @@
             "schema": {
               "properties": {
                 "p_asset_class": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_idempotency_key": {
                   "format": "text",
                   "type": "string"
                 },
@@ -11564,226 +11777,6 @@
         ]
       }
     },
-    "/rpc/openai_signin_begin": {
-      "post": {
-        "parameters": [
-          {
-            "in": "body",
-            "name": "args",
-            "required": true,
-            "schema": {
-              "properties": {
-                "p_nonce": {
-                  "format": "text",
-                  "type": "string"
-                },
-                "p_state": {
-                  "format": "text",
-                  "type": "string"
-                },
-                "p_verifier": {
-                  "format": "text",
-                  "type": "string"
-                }
-              },
-              "required": [
-                "p_state",
-                "p_nonce",
-                "p_verifier"
-              ],
-              "type": "object"
-            }
-          },
-          {
-            "$ref": "#/parameters/preferParams"
-          }
-        ],
-        "produces": [
-          "application/json",
-          "application/vnd.pgrst.object+json;nulls=stripped",
-          "application/vnd.pgrst.object+json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "tags": [
-          "(rpc) openai_signin_begin"
-        ]
-      }
-    },
-    "/rpc/openai_signin_clear": {
-      "post": {
-        "parameters": [
-          {
-            "in": "body",
-            "name": "args",
-            "required": true,
-            "schema": {
-              "type": "object"
-            }
-          },
-          {
-            "$ref": "#/parameters/preferParams"
-          }
-        ],
-        "produces": [
-          "application/json",
-          "application/vnd.pgrst.object+json;nulls=stripped",
-          "application/vnd.pgrst.object+json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "tags": [
-          "(rpc) openai_signin_clear"
-        ]
-      }
-    },
-    "/rpc/openai_signin_failed": {
-      "post": {
-        "parameters": [
-          {
-            "in": "body",
-            "name": "args",
-            "required": true,
-            "schema": {
-              "properties": {
-                "p_error": {
-                  "format": "text",
-                  "type": "string"
-                },
-                "p_terminal": {
-                  "format": "boolean",
-                  "type": "boolean"
-                }
-              },
-              "required": [
-                "p_error"
-              ],
-              "type": "object"
-            }
-          },
-          {
-            "$ref": "#/parameters/preferParams"
-          }
-        ],
-        "produces": [
-          "application/json",
-          "application/vnd.pgrst.object+json;nulls=stripped",
-          "application/vnd.pgrst.object+json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "tags": [
-          "(rpc) openai_signin_failed"
-        ]
-      }
-    },
-    "/rpc/openai_signin_models": {
-      "post": {
-        "parameters": [
-          {
-            "in": "body",
-            "name": "args",
-            "required": true,
-            "schema": {
-              "properties": {
-                "p_models": {
-                  "format": "jsonb"
-                }
-              },
-              "required": [
-                "p_models"
-              ],
-              "type": "object"
-            }
-          },
-          {
-            "$ref": "#/parameters/preferParams"
-          }
-        ],
-        "produces": [
-          "application/json",
-          "application/vnd.pgrst.object+json;nulls=stripped",
-          "application/vnd.pgrst.object+json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "tags": [
-          "(rpc) openai_signin_models"
-        ]
-      }
-    },
-    "/rpc/openai_signin_pending": {
-      "post": {
-        "parameters": [
-          {
-            "in": "body",
-            "name": "args",
-            "required": true,
-            "schema": {
-              "type": "object"
-            }
-          },
-          {
-            "$ref": "#/parameters/preferParams"
-          }
-        ],
-        "produces": [
-          "application/json",
-          "application/vnd.pgrst.object+json;nulls=stripped",
-          "application/vnd.pgrst.object+json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "tags": [
-          "(rpc) openai_signin_pending"
-        ]
-      }
-    },
-    "/rpc/openai_signin_refresh_lock": {
-      "post": {
-        "parameters": [
-          {
-            "in": "body",
-            "name": "args",
-            "required": true,
-            "schema": {
-              "type": "object"
-            }
-          },
-          {
-            "$ref": "#/parameters/preferParams"
-          }
-        ],
-        "produces": [
-          "application/json",
-          "application/vnd.pgrst.object+json;nulls=stripped",
-          "application/vnd.pgrst.object+json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "tags": [
-          "(rpc) openai_signin_refresh_lock"
-        ]
-      }
-    },
     "/rpc/openai_signin_status": {
       "post": {
         "parameters": [
@@ -11814,7 +11807,7 @@
         ]
       }
     },
-    "/rpc/openai_signin_store": {
+    "/rpc/order_cancel_begin": {
       "post": {
         "parameters": [
           {
@@ -11823,34 +11816,13 @@
             "required": true,
             "schema": {
               "properties": {
-                "p_client_id": {
+                "p_rh_order_id": {
                   "format": "text",
                   "type": "string"
-                },
-                "p_email": {
-                  "format": "text",
-                  "type": "string"
-                },
-                "p_expires_in": {
-                  "format": "int32",
-                  "type": "integer"
-                },
-                "p_scopes": {
-                  "format": "text",
-                  "type": "string"
-                },
-                "p_sub": {
-                  "format": "text",
-                  "type": "string"
-                },
-                "p_tokens": {
-                  "format": "jsonb"
                 }
               },
               "required": [
-                "p_tokens",
-                "p_expires_in",
-                "p_scopes"
+                "p_rh_order_id"
               ],
               "type": "object"
             }
@@ -11870,11 +11842,11 @@
           }
         },
         "tags": [
-          "(rpc) openai_signin_store"
+          "(rpc) order_cancel_begin"
         ]
       }
     },
-    "/rpc/openai_signin_tokens": {
+    "/rpc/order_cancel_finished": {
       "post": {
         "parameters": [
           {
@@ -11882,6 +11854,27 @@
             "name": "args",
             "required": true,
             "schema": {
+              "properties": {
+                "p_cancel_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "p_error": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_ok": {
+                  "format": "boolean",
+                  "type": "boolean"
+                },
+                "p_result": {
+                  "format": "jsonb"
+                }
+              },
+              "required": [
+                "p_cancel_id",
+                "p_ok"
+              ],
               "type": "object"
             }
           },
@@ -11900,7 +11893,7 @@
           }
         },
         "tags": [
-          "(rpc) openai_signin_tokens"
+          "(rpc) order_cancel_finished"
         ]
       }
     },
@@ -12173,36 +12166,6 @@
         ]
       }
     },
-    "/rpc/price_targets": {
-      "post": {
-        "parameters": [
-          {
-            "in": "body",
-            "name": "args",
-            "required": true,
-            "schema": {
-              "type": "object"
-            }
-          },
-          {
-            "$ref": "#/parameters/preferParams"
-          }
-        ],
-        "produces": [
-          "application/json",
-          "application/vnd.pgrst.object+json;nulls=stripped",
-          "application/vnd.pgrst.object+json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "tags": [
-          "(rpc) price_targets"
-        ]
-      }
-    },
     "/rpc/prices_ingest": {
       "post": {
         "parameters": [
@@ -12357,6 +12320,9 @@
                   "format": "uuid",
                   "type": "string"
                 },
+                "p_review": {
+                  "format": "jsonb"
+                },
                 "p_rh_order_id": {
                   "format": "text",
                   "type": "string"
@@ -12471,6 +12437,57 @@
         ]
       }
     },
+    "/rpc/proposal_place_failed": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_error": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_proposal_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "p_review": {
+                  "format": "jsonb"
+                },
+                "p_uncertain": {
+                  "format": "boolean",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "p_proposal_id",
+                "p_error"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) proposal_place_failed"
+        ]
+      }
+    },
     "/rpc/proposal_review": {
       "post": {
         "parameters": [
@@ -12572,80 +12589,6 @@
         ]
       }
     },
-    "/rpc/proposal_schedule_failed": {
-      "post": {
-        "parameters": [
-          {
-            "in": "body",
-            "name": "args",
-            "required": true,
-            "schema": {
-              "properties": {
-                "p_error": {
-                  "format": "text",
-                  "type": "string"
-                },
-                "p_proposal_id": {
-                  "format": "uuid",
-                  "type": "string"
-                }
-              },
-              "required": [
-                "p_proposal_id",
-                "p_error"
-              ],
-              "type": "object"
-            }
-          },
-          {
-            "$ref": "#/parameters/preferParams"
-          }
-        ],
-        "produces": [
-          "application/json",
-          "application/vnd.pgrst.object+json;nulls=stripped",
-          "application/vnd.pgrst.object+json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "tags": [
-          "(rpc) proposal_schedule_failed"
-        ]
-      }
-    },
-    "/rpc/proposals_due": {
-      "post": {
-        "parameters": [
-          {
-            "in": "body",
-            "name": "args",
-            "required": true,
-            "schema": {
-              "type": "object"
-            }
-          },
-          {
-            "$ref": "#/parameters/preferParams"
-          }
-        ],
-        "produces": [
-          "application/json",
-          "application/vnd.pgrst.object+json;nulls=stripped",
-          "application/vnd.pgrst.object+json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "tags": [
-          "(rpc) proposals_due"
-        ]
-      }
-    },
     "/rpc/provenance": {
       "post": {
         "parameters": [
@@ -12687,6 +12630,45 @@
         },
         "tags": [
           "(rpc) provenance"
+        ]
+      }
+    },
+    "/rpc/review_policy_set": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_policy": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_policy"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) review_policy_set"
         ]
       }
     },
@@ -13827,6 +13809,9 @@
             "$ref": "#/parameters/rowFilter.sync_runs.error"
           },
           {
+            "$ref": "#/parameters/rowFilter.sync_runs.coverage"
+          },
+          {
             "$ref": "#/parameters/select"
           },
           {
@@ -14121,6 +14106,60 @@
     "text/csv"
   ],
   "swagger": "2.0",
+  "x-desk-contract": {
+    "agent_roles": [
+      "archivist",
+      "novelist",
+      "operator"
+    ],
+    "alert_kinds": [
+      "unexplained_trade",
+      "mandate_breach",
+      "stop_hit",
+      "target_hit",
+      "watch_trigger",
+      "stale_sync",
+      "token_expired",
+      "unprotected_position",
+      "order_uncertain"
+    ],
+    "archive_categories": [
+      "goal",
+      "mandate",
+      "task",
+      "proposal",
+      "document",
+      "journal",
+      "alert",
+      "scout",
+      "agent_run",
+      "agent_key",
+      "schedule"
+    ],
+    "grant_scopes": [
+      "read",
+      "operator",
+      "operator+execute",
+      "archivist",
+      "novelist"
+    ],
+    "memory_sources": [
+      "memory",
+      "journal",
+      "scout",
+      "proposal",
+      "task",
+      "archive",
+      "document"
+    ],
+    "pairing_scopes": [
+      "read",
+      "operator",
+      "operator+execute",
+      "archivist",
+      "novelist"
+    ]
+  },
   "host": "ypmjwhrvonuwcrpckwkk.supabase.co",
   "schemes": [
     "https"

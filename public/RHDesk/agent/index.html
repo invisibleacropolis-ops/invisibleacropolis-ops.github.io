@@ -118,7 +118,8 @@ Content-Type: application/json
 
 {&quot;query&quot;: &quot;what have we learned about sizing speculative positions?&quot;, &quot;k&quot;: 5}
 </code></pre>
-<p>Results are journal entries, scouts and Research library passages, nearest first, each with a <code>similarity</code>. With the
+<p>Results are Archivist memories, journal entries, scouts, open proposals and tasks, Research library passages and
+Archive entries, nearest first, each with a <code>similarity</code>. With the
 CLI it is <code>desk recall &quot;&lt;question&gt;&quot;</code>. The brief&#39;s <code>relevant_journal</code> already ranks entries against what is open now.</p>
 <p><strong>Build the Research library as you work.</strong> It holds the real-world material behind every position, and the owner
 reads it on the site:</p>
@@ -147,6 +148,12 @@ Robinhood the same way, read-only: <code>POST {API_URL}/functions/v1/robinhood-r
 (also limit, stop_market and stop_limit, buys and sells) and cancel open ones with <code>execute/cancel {&quot;order_id&quot;:&quot;…&quot;}</code>.
 No approval is involved; the Desk checks the owner&#39;s hard caps and the active mandate&#39;s limits (the stricter wins) and
 says which one when it refuses. Check <code>autopilot_status</code> for <code>free_trading</code>, the caps and today&#39;s usage.</p>
+<p>Open orders count: money in open buys and shares claimed by open sells (a resting stop included) are reserved, so cancel
+a stop before selling its shares. The Desk refuses when its read of the account is more than two hours old
+(<code>stale_account</code>): sync first. Give each trade an <code>idempotency_key</code>. If the answer is <code>order_uncertain</code>, Robinhood may
+have the order: send the same request again (same key) and the Desk reuses it; never place a fresh trade instead.
+<code>review_blocked</code> means Robinhood&#39;s order review raised an alert the owner&#39;s review policy treats as blocking. When the
+mandate requires stops, the brief&#39;s <code>protection</code> lists held positions without one, with the stop to place.</p>
 <h3>The mandate comes first</h3>
 <p>The owner&#39;s active mandate is the rule above all others: above the playbook, standing instructions and notes from
 earlier sessions. The brief&#39;s <code>authority</code> block states it and lists the active mandates. Each open proposal in the brief
@@ -182,8 +189,9 @@ HTTP transport, OAuth sign-in by the account holder). For example, in Claude Cod
 <p>Without it, do research-only work (scouts, journal, tasks) and tell the human.</p>
 <h2>7. Rules that always apply</h2>
 <ol>
-<li>Place a Robinhood order only for a Desk proposal that is <code>auto_approved</code> or <code>approved</code>, and only if your scope
-is <code>operator+execute</code>. Then immediately call <code>proposal_executed</code> with the Robinhood order id.</li>
+<li>Place orders only through the Desk, and only with scope <code>operator+execute</code>: <code>execute</code> for an <code>approved</code> or
+<code>auto_approved</code> proposal, or, while the owner has Free Trading on, <code>execute/trade</code> within the caps. The Desk records
+the order; never call Robinhood&#39;s order tools yourself.</li>
 <li>Never fabricate numbers. The Desk syncs Robinhood itself on a schedule once the owner has linked it (check
 <code>robinhood_status</code> or <code>desk sync status</code>). If the brief says data is stale, read your accounts through the Robinhood
 MCP server and submit them with <code>ingest_snapshot</code> (tagged <code>agent-reported</code>).</li>

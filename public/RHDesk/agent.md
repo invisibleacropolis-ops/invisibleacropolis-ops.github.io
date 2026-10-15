@@ -114,7 +114,8 @@ Content-Type: application/json
 {"query": "what have we learned about sizing speculative positions?", "k": 5}
 ```
 
-Results are journal entries, scouts and Research library passages, nearest first, each with a `similarity`. With the
+Results are Archivist memories, journal entries, scouts, open proposals and tasks, Research library passages and
+Archive entries, nearest first, each with a `similarity`. With the
 CLI it is `desk recall "<question>"`. The brief's `relevant_journal` already ranks entries against what is open now.
 
 **Build the Research library as you work.** It holds the real-world material behind every position, and the owner
@@ -149,6 +150,13 @@ When the owner turns Free Trading on, an `operator+execute` agent trades on its 
 (also limit, stop_market and stop_limit, buys and sells) and cancel open ones with `execute/cancel {"order_id":"…"}`.
 No approval is involved; the Desk checks the owner's hard caps and the active mandate's limits (the stricter wins) and
 says which one when it refuses. Check `autopilot_status` for `free_trading`, the caps and today's usage.
+
+Open orders count: money in open buys and shares claimed by open sells (a resting stop included) are reserved, so cancel
+a stop before selling its shares. The Desk refuses when its read of the account is more than two hours old
+(`stale_account`): sync first. Give each trade an `idempotency_key`. If the answer is `order_uncertain`, Robinhood may
+have the order: send the same request again (same key) and the Desk reuses it; never place a fresh trade instead.
+`review_blocked` means Robinhood's order review raised an alert the owner's review policy treats as blocking. When the
+mandate requires stops, the brief's `protection` lists held positions without one, with the stop to place.
 
 ### The mandate comes first
 
@@ -200,8 +208,9 @@ Without it, do research-only work (scouts, journal, tasks) and tell the human.
 
 ## 7. Rules that always apply
 
-1. Place a Robinhood order only for a Desk proposal that is `auto_approved` or `approved`, and only if your scope
-   is `operator+execute`. Then immediately call `proposal_executed` with the Robinhood order id.
+1. Place orders only through the Desk, and only with scope `operator+execute`: `execute` for an `approved` or
+   `auto_approved` proposal, or, while the owner has Free Trading on, `execute/trade` within the caps. The Desk records
+   the order; never call Robinhood's order tools yourself.
 2. Never fabricate numbers. The Desk syncs Robinhood itself on a schedule once the owner has linked it (check
    `robinhood_status` or `desk sync status`). If the brief says data is stale, read your accounts through the Robinhood
    MCP server and submit them with `ingest_snapshot` (tagged `agent-reported`).
