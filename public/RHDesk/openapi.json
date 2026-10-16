@@ -618,6 +618,11 @@
         "tool": {
           "format": "text",
           "type": "string"
+        },
+        "trusted": {
+          "default": false,
+          "format": "boolean",
+          "type": "boolean"
         }
       },
       "required": [
@@ -626,7 +631,8 @@
         "args",
         "result",
         "read_by",
-        "read_at"
+        "read_at",
+        "trusted"
       ],
       "type": "object"
     },
@@ -733,6 +739,10 @@
           "format": "boolean",
           "type": "boolean"
         },
+        "entry_loss_date": {
+          "format": "date",
+          "type": "string"
+        },
         "free_caps": {
           "format": "jsonb"
         },
@@ -751,6 +761,11 @@
           "default": "demo",
           "format": "text",
           "type": "string"
+        },
+        "pause_entries": {
+          "default": false,
+          "format": "boolean",
+          "type": "boolean"
         },
         "require_action": {
           "default": true,
@@ -791,7 +806,8 @@
         "auto_archive",
         "auto_archive_days",
         "review_policy",
-        "require_action"
+        "require_action",
+        "pause_entries"
       ],
       "type": "object"
     },
@@ -1863,6 +1879,91 @@
       ],
       "type": "object"
     },
+    "position_operations": {
+      "properties": {
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "error": {
+          "format": "text",
+          "type": "string"
+        },
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "idempotency_key": {
+          "format": "text",
+          "type": "string"
+        },
+        "lease_token": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "lease_until": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "limit_price": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "operation": {
+          "format": "text",
+          "type": "string"
+        },
+        "proposal_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "quantity": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "session_id": {
+          "default": "desk.session_id()",
+          "format": "uuid",
+          "type": "string"
+        },
+        "status": {
+          "default": "working",
+          "format": "text",
+          "type": "string"
+        },
+        "stop_price": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "symbol": {
+          "format": "text",
+          "type": "string"
+        },
+        "thesis": {
+          "format": "text",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "idempotency_key",
+        "symbol",
+        "operation",
+        "thesis",
+        "status",
+        "created_at",
+        "updated_at"
+      ],
+      "type": "object"
+    },
     "positions": {
       "properties": {
         "account_id": {
@@ -2170,6 +2271,10 @@
         },
         "placement": {
           "format": "text",
+          "type": "string"
+        },
+        "placement_token": {
+          "format": "uuid",
           "type": "string"
         },
         "protect_status": {
@@ -2543,6 +2648,13 @@
           "format": "timestamp with time zone",
           "type": "string"
         },
+        "decision": {
+          "format": "jsonb"
+        },
+        "decision_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
         "diary_at": {
           "format": "timestamp with time zone",
           "type": "string"
@@ -2657,6 +2769,67 @@
         "source",
         "raw",
         "created_at"
+      ],
+      "type": "object"
+    },
+    "strategies": {
+      "properties": {
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "evidence": {
+          "format": "jsonb"
+        },
+        "hypothesis": {
+          "format": "text",
+          "type": "string"
+        },
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "mandate_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "review_condition": {
+          "format": "text",
+          "type": "string"
+        },
+        "session_id": {
+          "default": "desk.session_id()",
+          "format": "uuid",
+          "type": "string"
+        },
+        "status": {
+          "default": "researching",
+          "format": "text",
+          "type": "string"
+        },
+        "title": {
+          "format": "text",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "mandate_id",
+        "title",
+        "hypothesis",
+        "evidence",
+        "review_condition",
+        "status",
+        "created_at",
+        "updated_at"
       ],
       "type": "object"
     },
@@ -3185,6 +3358,15 @@
         "$ref": "#/definitions/playbook"
       }
     },
+    "body.position_operations": {
+      "description": "position_operations",
+      "in": "body",
+      "name": "position_operations",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/position_operations"
+      }
+    },
     "body.positions": {
       "description": "positions",
       "in": "body",
@@ -3291,6 +3473,15 @@
       "required": false,
       "schema": {
         "$ref": "#/definitions/snapshots"
+      }
+    },
+    "body.strategies": {
+      "description": "strategies",
+      "in": "body",
+      "name": "strategies",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/strategies"
       }
     },
     "body.sync_runs": {
@@ -4087,6 +4278,12 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.broker_reads.trusted": {
+      "in": "query",
+      "name": "trusted",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.desk_preferences.ambient": {
       "in": "query",
       "name": "ambient",
@@ -4195,6 +4392,12 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.desk_settings.entry_loss_date": {
+      "in": "query",
+      "name": "entry_loss_date",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.desk_settings.free_caps": {
       "in": "query",
       "name": "free_caps",
@@ -4216,6 +4419,12 @@
     "rowFilter.desk_settings.mode": {
       "in": "query",
       "name": "mode",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.desk_settings.pause_entries": {
+      "in": "query",
+      "name": "pause_entries",
       "required": false,
       "type": "string"
     },
@@ -5389,6 +5598,102 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.position_operations.created_at": {
+      "in": "query",
+      "name": "created_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.position_operations.error": {
+      "in": "query",
+      "name": "error",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.position_operations.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.position_operations.idempotency_key": {
+      "in": "query",
+      "name": "idempotency_key",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.position_operations.lease_token": {
+      "in": "query",
+      "name": "lease_token",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.position_operations.lease_until": {
+      "in": "query",
+      "name": "lease_until",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.position_operations.limit_price": {
+      "in": "query",
+      "name": "limit_price",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.position_operations.operation": {
+      "in": "query",
+      "name": "operation",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.position_operations.proposal_id": {
+      "in": "query",
+      "name": "proposal_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.position_operations.quantity": {
+      "in": "query",
+      "name": "quantity",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.position_operations.session_id": {
+      "in": "query",
+      "name": "session_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.position_operations.status": {
+      "in": "query",
+      "name": "status",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.position_operations.stop_price": {
+      "in": "query",
+      "name": "stop_price",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.position_operations.symbol": {
+      "in": "query",
+      "name": "symbol",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.position_operations.thesis": {
+      "in": "query",
+      "name": "thesis",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.position_operations.updated_at": {
+      "in": "query",
+      "name": "updated_at",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.positions.account_id": {
       "in": "query",
       "name": "account_id",
@@ -5764,6 +6069,12 @@
     "rowFilter.proposals.placement": {
       "in": "query",
       "name": "placement",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.proposals.placement_token": {
+      "in": "query",
+      "name": "placement_token",
       "required": false,
       "type": "string"
     },
@@ -6169,6 +6480,18 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.sessions.decision": {
+      "in": "query",
+      "name": "decision",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.sessions.decision_at": {
+      "in": "query",
+      "name": "decision_at",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.sessions.diary_at": {
       "in": "query",
       "name": "diary_at",
@@ -6298,6 +6621,66 @@
     "rowFilter.snapshots.taken_at": {
       "in": "query",
       "name": "taken_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.strategies.created_at": {
+      "in": "query",
+      "name": "created_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.strategies.evidence": {
+      "in": "query",
+      "name": "evidence",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.strategies.hypothesis": {
+      "in": "query",
+      "name": "hypothesis",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.strategies.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.strategies.mandate_id": {
+      "in": "query",
+      "name": "mandate_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.strategies.review_condition": {
+      "in": "query",
+      "name": "review_condition",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.strategies.session_id": {
+      "in": "query",
+      "name": "session_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.strategies.status": {
+      "in": "query",
+      "name": "status",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.strategies.title": {
+      "in": "query",
+      "name": "title",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.strategies.updated_at": {
+      "in": "query",
+      "name": "updated_at",
       "required": false,
       "type": "string"
     },
@@ -7284,6 +7667,9 @@
             "$ref": "#/parameters/rowFilter.broker_reads.read_at"
           },
           {
+            "$ref": "#/parameters/rowFilter.broker_reads.trusted"
+          },
+          {
             "$ref": "#/parameters/select"
           },
           {
@@ -7451,6 +7837,12 @@
           },
           {
             "$ref": "#/parameters/rowFilter.desk_settings.require_action"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.desk_settings.pause_entries"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.desk_settings.entry_loss_date"
           },
           {
             "$ref": "#/parameters/select"
@@ -8811,6 +9203,98 @@
         ]
       }
     },
+    "/position_operations": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.position_operations.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.position_operations.idempotency_key"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.position_operations.session_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.position_operations.symbol"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.position_operations.operation"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.position_operations.quantity"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.position_operations.stop_price"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.position_operations.limit_price"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.position_operations.thesis"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.position_operations.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.position_operations.proposal_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.position_operations.error"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.position_operations.lease_token"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.position_operations.lease_until"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.position_operations.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.position_operations.updated_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/position_operations"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "position_operations"
+        ]
+      }
+    },
     "/positions": {
       "get": {
         "parameters": [
@@ -9217,6 +9701,9 @@
           },
           {
             "$ref": "#/parameters/rowFilter.proposals.setup"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.proposals.placement_token"
           },
           {
             "$ref": "#/parameters/select"
@@ -10430,53 +10917,6 @@
         ]
       }
     },
-    "/rpc/broker_read_record": {
-      "post": {
-        "parameters": [
-          {
-            "in": "body",
-            "name": "args",
-            "required": true,
-            "schema": {
-              "properties": {
-                "p_args": {
-                  "format": "jsonb"
-                },
-                "p_result": {
-                  "format": "jsonb"
-                },
-                "p_tool": {
-                  "format": "text",
-                  "type": "string"
-                }
-              },
-              "required": [
-                "p_tool",
-                "p_args",
-                "p_result"
-              ],
-              "type": "object"
-            }
-          },
-          {
-            "$ref": "#/parameters/preferParams"
-          }
-        ],
-        "produces": [
-          "application/json",
-          "application/vnd.pgrst.object+json;nulls=stripped",
-          "application/vnd.pgrst.object+json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "tags": [
-          "(rpc) broker_read_record"
-        ]
-      }
-    },
     "/rpc/chapter_submit": {
       "post": {
         "parameters": [
@@ -10720,6 +11160,63 @@
         ]
       }
     },
+    "/rpc/decision_record": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_action": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_evidence": {
+                  "format": "jsonb"
+                },
+                "p_next_review": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_position_plan": {
+                  "format": "jsonb"
+                },
+                "p_reasoning": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_action",
+                "p_reasoning",
+                "p_evidence",
+                "p_position_plan",
+                "p_next_review"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) decision_record"
+        ]
+      }
+    },
     "/rpc/diary_submit": {
       "post": {
         "parameters": [
@@ -10900,6 +11397,75 @@
         },
         "tags": [
           "(rpc) document_update"
+        ]
+      }
+    },
+    "/rpc/entries_pause_set": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_on": {
+                  "format": "boolean",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "p_on"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) entries_pause_set"
+        ]
+      }
+    },
+    "/rpc/execution_capabilities": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) execution_capabilities"
         ]
       }
     },
@@ -11673,9 +12239,7 @@
               },
               "required": [
                 "p_goal_id",
-                "p_title",
-                "p_strategy",
-                "p_limits"
+                "p_title"
               ],
               "type": "object"
             }
@@ -12042,6 +12606,36 @@
         ]
       }
     },
+    "/rpc/operator_access": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) operator_access"
+        ]
+      }
+    },
     "/rpc/order_attempt_log": {
       "post": {
         "parameters": [
@@ -12131,57 +12725,6 @@
         },
         "tags": [
           "(rpc) order_cancel_begin"
-        ]
-      }
-    },
-    "/rpc/order_cancel_finished": {
-      "post": {
-        "parameters": [
-          {
-            "in": "body",
-            "name": "args",
-            "required": true,
-            "schema": {
-              "properties": {
-                "p_cancel_id": {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                "p_error": {
-                  "format": "text",
-                  "type": "string"
-                },
-                "p_ok": {
-                  "format": "boolean",
-                  "type": "boolean"
-                },
-                "p_result": {
-                  "format": "jsonb"
-                }
-              },
-              "required": [
-                "p_cancel_id",
-                "p_ok"
-              ],
-              "type": "object"
-            }
-          },
-          {
-            "$ref": "#/parameters/preferParams"
-          }
-        ],
-        "produces": [
-          "application/json",
-          "application/vnd.pgrst.object+json;nulls=stripped",
-          "application/vnd.pgrst.object+json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "tags": [
-          "(rpc) order_cancel_finished"
         ]
       }
     },
@@ -12340,6 +12883,160 @@
         },
         "tags": [
           "(rpc) playbook_publish"
+        ]
+      }
+    },
+    "/rpc/position_manage_begin": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_idempotency_key": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_limit_price": {
+                  "format": "numeric",
+                  "type": "number"
+                },
+                "p_operation": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_quantity": {
+                  "format": "numeric",
+                  "type": "number"
+                },
+                "p_stop_price": {
+                  "format": "numeric",
+                  "type": "number"
+                },
+                "p_symbol": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_thesis": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_symbol",
+                "p_operation",
+                "p_thesis",
+                "p_idempotency_key"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) position_manage_begin"
+        ]
+      }
+    },
+    "/rpc/position_manage_order": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_lease": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "p_operation_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_operation_id",
+                "p_lease"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) position_manage_order"
+        ]
+      }
+    },
+    "/rpc/position_manage_renew": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_lease": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "p_operation_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_operation_id",
+                "p_lease"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) position_manage_renew"
         ]
       }
     },
@@ -12595,53 +13292,6 @@
         ]
       }
     },
-    "/rpc/proposal_executed": {
-      "post": {
-        "parameters": [
-          {
-            "in": "body",
-            "name": "args",
-            "required": true,
-            "schema": {
-              "properties": {
-                "p_proposal_id": {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                "p_review": {
-                  "format": "jsonb"
-                },
-                "p_rh_order_id": {
-                  "format": "text",
-                  "type": "string"
-                }
-              },
-              "required": [
-                "p_proposal_id",
-                "p_rh_order_id"
-              ],
-              "type": "object"
-            }
-          },
-          {
-            "$ref": "#/parameters/preferParams"
-          }
-        ],
-        "produces": [
-          "application/json",
-          "application/vnd.pgrst.object+json;nulls=stripped",
-          "application/vnd.pgrst.object+json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "tags": [
-          "(rpc) proposal_executed"
-        ]
-      }
-    },
     "/rpc/proposal_execution_check": {
       "post": {
         "parameters": [
@@ -12725,7 +13375,7 @@
         ]
       }
     },
-    "/rpc/proposal_place_failed": {
+    "/rpc/proposal_place_authorize": {
       "post": {
         "parameters": [
           {
@@ -12734,25 +13384,18 @@
             "required": true,
             "schema": {
               "properties": {
-                "p_error": {
-                  "format": "text",
-                  "type": "string"
-                },
                 "p_proposal_id": {
                   "format": "uuid",
                   "type": "string"
                 },
-                "p_review": {
-                  "format": "jsonb"
-                },
-                "p_uncertain": {
-                  "format": "boolean",
-                  "type": "boolean"
+                "p_token": {
+                  "format": "uuid",
+                  "type": "string"
                 }
               },
               "required": [
                 "p_proposal_id",
-                "p_error"
+                "p_token"
               ],
               "type": "object"
             }
@@ -12772,7 +13415,7 @@
           }
         },
         "tags": [
-          "(rpc) proposal_place_failed"
+          "(rpc) proposal_place_authorize"
         ]
       }
     },
@@ -12957,6 +13600,36 @@
         },
         "tags": [
           "(rpc) require_action_set"
+        ]
+      }
+    },
+    "/rpc/research_access": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) research_access"
         ]
       }
     },
@@ -13326,6 +13999,72 @@
         },
         "tags": [
           "(rpc) session_start"
+        ]
+      }
+    },
+    "/rpc/strategy_record": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_evidence": {
+                  "format": "jsonb"
+                },
+                "p_hypothesis": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_mandate_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "p_review_condition": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_status": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_strategy_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "p_title": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_mandate_id",
+                "p_title",
+                "p_hypothesis",
+                "p_evidence",
+                "p_review_condition"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) strategy_record"
         ]
       }
     },
@@ -14074,6 +14813,12 @@
             "$ref": "#/parameters/rowFilter.sessions.chapter_at"
           },
           {
+            "$ref": "#/parameters/rowFilter.sessions.decision"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.sessions.decision_at"
+          },
+          {
             "$ref": "#/parameters/select"
           },
           {
@@ -14185,6 +14930,80 @@
         },
         "tags": [
           "snapshots"
+        ]
+      }
+    },
+    "/strategies": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.strategies.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.strategies.mandate_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.strategies.title"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.strategies.hypothesis"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.strategies.evidence"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.strategies.review_condition"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.strategies.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.strategies.session_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.strategies.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.strategies.updated_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/strategies"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "strategies"
         ]
       }
     },
