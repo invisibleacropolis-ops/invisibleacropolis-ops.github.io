@@ -587,6 +587,232 @@
       ],
       "type": "object"
     },
+    "archive_jobs": {
+      "properties": {
+        "attempts": {
+          "default": 0,
+          "format": "int32",
+          "type": "integer"
+        },
+        "claim_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "claimed_by_session": {
+          "description": "Note:\nThis is a Foreign Key to `sessions.id`.<fk table='sessions' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "completed_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "last_error": {
+          "format": "text",
+          "type": "string"
+        },
+        "lease_until": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "source_id": {
+          "description": "Note:\nThis is a Foreign Key to `archive_sources.id`.<fk table='archive_sources' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "status": {
+          "default": "eligible",
+          "format": "text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "source_id",
+        "status",
+        "attempts",
+        "created_at"
+      ],
+      "type": "object"
+    },
+    "archive_receipts": {
+      "properties": {
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "job_id": {
+          "description": "Note:\nThis is a Foreign Key to `archive_jobs.id`.<fk table='archive_jobs' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "legacy_adapter": {
+          "default": false,
+          "format": "boolean",
+          "type": "boolean"
+        },
+        "memory_ids": {
+          "format": "uuid[]",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "model": {
+          "format": "text",
+          "type": "string"
+        },
+        "outcome": {
+          "format": "text",
+          "type": "string"
+        },
+        "playbook_version": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "reason": {
+          "format": "text",
+          "type": "string"
+        },
+        "request_hash": {
+          "format": "text",
+          "type": "string"
+        },
+        "request_key": {
+          "format": "text",
+          "type": "string"
+        },
+        "run_id": {
+          "description": "Note:\nThis is a Foreign Key to `agent_runs.id`.<fk table='agent_runs' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "source_hash": {
+          "format": "text",
+          "type": "string"
+        },
+        "source_id": {
+          "description": "Note:\nThis is a Foreign Key to `archive_sources.id`.<fk table='archive_sources' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "worker_session_id": {
+          "description": "Note:\nThis is a Foreign Key to `sessions.id`.<fk table='sessions' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "job_id",
+        "source_id",
+        "request_key",
+        "request_hash",
+        "source_hash",
+        "outcome",
+        "memory_ids",
+        "worker_session_id",
+        "legacy_adapter",
+        "created_at"
+      ],
+      "type": "object"
+    },
+    "archive_sources": {
+      "properties": {
+        "content_hash": {
+          "format": "text",
+          "type": "string"
+        },
+        "correction_reason": {
+          "format": "text",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "created_by": {
+          "default": "desk.actor()",
+          "format": "text",
+          "type": "string"
+        },
+        "diary_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "diary_snapshot": {
+          "format": "jsonb"
+        },
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "origin": {
+          "format": "text",
+          "type": "string"
+        },
+        "report_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "report_snapshot": {
+          "format": "jsonb"
+        },
+        "revision": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "session_id": {
+          "description": "Note:\nThis is a Foreign Key to `sessions.id`.<fk table='sessions' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "session_snapshot": {
+          "format": "jsonb"
+        },
+        "verification": {
+          "format": "text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "session_id",
+        "revision",
+        "content_hash",
+        "report_id",
+        "diary_id",
+        "report_snapshot",
+        "diary_snapshot",
+        "session_snapshot",
+        "verification",
+        "origin",
+        "created_at",
+        "created_by"
+      ],
+      "type": "object"
+    },
     "broker_reads": {
       "properties": {
         "args": {
@@ -847,6 +1073,11 @@
     },
     "documents": {
       "properties": {
+        "archive_source_id": {
+          "description": "Note:\nThis is a Foreign Key to `archive_sources.id`.<fk table='archive_sources' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
         "archived_at": {
           "format": "timestamp with time zone",
           "type": "string"
@@ -1471,6 +1702,21 @@
     },
     "memories": {
       "properties": {
+        "archive_receipt_id": {
+          "description": "Note:\nThis is a Foreign Key to `archive_receipts.id`.<fk table='archive_receipts' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "archive_source_id": {
+          "description": "Note:\nThis is a Foreign Key to `archive_sources.id`.<fk table='archive_sources' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "assertion_status": {
+          "default": "legacy_unclassified",
+          "format": "text",
+          "type": "string"
+        },
         "created_at": {
           "default": "now()",
           "format": "timestamp with time zone",
@@ -1496,7 +1742,27 @@
           "format": "int32",
           "type": "integer"
         },
+        "item_key": {
+          "format": "text",
+          "type": "string"
+        },
         "kind": {
+          "format": "text",
+          "type": "string"
+        },
+        "legacy_sources": {
+          "format": "jsonb"
+        },
+        "observed_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "provenance_status": {
+          "default": "legacy_unvalidated",
+          "format": "text",
+          "type": "string"
+        },
+        "review_condition": {
           "format": "text",
           "type": "string"
         },
@@ -1508,6 +1774,16 @@
         "sources": {
           "format": "jsonb"
         },
+        "status": {
+          "default": "current",
+          "format": "text",
+          "type": "string"
+        },
+        "superseded_by": {
+          "description": "Note:\nThis is a Foreign Key to `archive_sources.id`.<fk table='archive_sources' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
         "symbols": {
           "format": "text[]",
           "items": {
@@ -1516,6 +1792,10 @@
           "type": "array"
         },
         "text": {
+          "format": "text",
+          "type": "string"
+        },
+        "verification_status": {
           "format": "text",
           "type": "string"
         }
@@ -1528,7 +1808,11 @@
         "importance",
         "sources",
         "created_by",
-        "created_at"
+        "created_at",
+        "assertion_status",
+        "provenance_status",
+        "status",
+        "legacy_sources"
       ],
       "type": "object"
     },
@@ -3178,6 +3462,33 @@
         "$ref": "#/definitions/archive"
       }
     },
+    "body.archive_jobs": {
+      "description": "archive_jobs",
+      "in": "body",
+      "name": "archive_jobs",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/archive_jobs"
+      }
+    },
+    "body.archive_receipts": {
+      "description": "archive_receipts",
+      "in": "body",
+      "name": "archive_receipts",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/archive_receipts"
+      }
+    },
+    "body.archive_sources": {
+      "description": "archive_sources",
+      "in": "body",
+      "name": "archive_sources",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/archive_sources"
+      }
+    },
     "body.broker_reads": {
       "description": "broker_reads",
       "in": "body",
@@ -4236,6 +4547,240 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.archive_jobs.attempts": {
+      "in": "query",
+      "name": "attempts",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_jobs.claim_id": {
+      "in": "query",
+      "name": "claim_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_jobs.claimed_by_session": {
+      "in": "query",
+      "name": "claimed_by_session",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_jobs.completed_at": {
+      "in": "query",
+      "name": "completed_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_jobs.created_at": {
+      "in": "query",
+      "name": "created_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_jobs.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_jobs.last_error": {
+      "in": "query",
+      "name": "last_error",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_jobs.lease_until": {
+      "in": "query",
+      "name": "lease_until",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_jobs.source_id": {
+      "in": "query",
+      "name": "source_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_jobs.status": {
+      "in": "query",
+      "name": "status",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_receipts.created_at": {
+      "in": "query",
+      "name": "created_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_receipts.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_receipts.job_id": {
+      "in": "query",
+      "name": "job_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_receipts.legacy_adapter": {
+      "in": "query",
+      "name": "legacy_adapter",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_receipts.memory_ids": {
+      "in": "query",
+      "name": "memory_ids",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_receipts.model": {
+      "in": "query",
+      "name": "model",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_receipts.outcome": {
+      "in": "query",
+      "name": "outcome",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_receipts.playbook_version": {
+      "in": "query",
+      "name": "playbook_version",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_receipts.reason": {
+      "in": "query",
+      "name": "reason",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_receipts.request_hash": {
+      "in": "query",
+      "name": "request_hash",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_receipts.request_key": {
+      "in": "query",
+      "name": "request_key",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_receipts.run_id": {
+      "in": "query",
+      "name": "run_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_receipts.source_hash": {
+      "in": "query",
+      "name": "source_hash",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_receipts.source_id": {
+      "in": "query",
+      "name": "source_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_receipts.worker_session_id": {
+      "in": "query",
+      "name": "worker_session_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_sources.content_hash": {
+      "in": "query",
+      "name": "content_hash",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_sources.correction_reason": {
+      "in": "query",
+      "name": "correction_reason",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_sources.created_at": {
+      "in": "query",
+      "name": "created_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_sources.created_by": {
+      "in": "query",
+      "name": "created_by",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_sources.diary_id": {
+      "in": "query",
+      "name": "diary_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_sources.diary_snapshot": {
+      "in": "query",
+      "name": "diary_snapshot",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_sources.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_sources.origin": {
+      "in": "query",
+      "name": "origin",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_sources.report_id": {
+      "in": "query",
+      "name": "report_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_sources.report_snapshot": {
+      "in": "query",
+      "name": "report_snapshot",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_sources.revision": {
+      "in": "query",
+      "name": "revision",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_sources.session_id": {
+      "in": "query",
+      "name": "session_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_sources.session_snapshot": {
+      "in": "query",
+      "name": "session_snapshot",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_sources.verification": {
+      "in": "query",
+      "name": "verification",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.broker_reads.args": {
       "in": "query",
       "name": "args",
@@ -4485,6 +5030,12 @@
     "rowFilter.document_chunks.text": {
       "in": "query",
       "name": "text",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.documents.archive_source_id": {
+      "in": "query",
+      "name": "archive_source_id",
       "required": false,
       "type": "string"
     },
@@ -5160,6 +5711,24 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.memories.archive_receipt_id": {
+      "in": "query",
+      "name": "archive_receipt_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memories.archive_source_id": {
+      "in": "query",
+      "name": "archive_source_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memories.assertion_status": {
+      "in": "query",
+      "name": "assertion_status",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.memories.created_at": {
       "in": "query",
       "name": "created_at",
@@ -5190,9 +5759,39 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.memories.item_key": {
+      "in": "query",
+      "name": "item_key",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.memories.kind": {
       "in": "query",
       "name": "kind",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memories.legacy_sources": {
+      "in": "query",
+      "name": "legacy_sources",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memories.observed_at": {
+      "in": "query",
+      "name": "observed_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memories.provenance_status": {
+      "in": "query",
+      "name": "provenance_status",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memories.review_condition": {
+      "in": "query",
+      "name": "review_condition",
       "required": false,
       "type": "string"
     },
@@ -5208,6 +5807,18 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.memories.status": {
+      "in": "query",
+      "name": "status",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memories.superseded_by": {
+      "in": "query",
+      "name": "superseded_by",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.memories.symbols": {
       "in": "query",
       "name": "symbols",
@@ -5217,6 +5828,12 @@
     "rowFilter.memories.text": {
       "in": "query",
       "name": "text",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memories.verification_status": {
+      "in": "query",
+      "name": "verification_status",
       "required": false,
       "type": "string"
     },
@@ -7642,6 +8259,255 @@
         ]
       }
     },
+    "/archive_jobs": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.archive_jobs.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_jobs.source_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_jobs.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_jobs.claim_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_jobs.claimed_by_session"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_jobs.lease_until"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_jobs.attempts"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_jobs.last_error"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_jobs.completed_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_jobs.created_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/archive_jobs"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "archive_jobs"
+        ]
+      }
+    },
+    "/archive_receipts": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.archive_receipts.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_receipts.job_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_receipts.source_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_receipts.request_key"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_receipts.request_hash"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_receipts.source_hash"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_receipts.outcome"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_receipts.reason"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_receipts.memory_ids"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_receipts.worker_session_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_receipts.run_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_receipts.model"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_receipts.playbook_version"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_receipts.legacy_adapter"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_receipts.created_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/archive_receipts"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "archive_receipts"
+        ]
+      }
+    },
+    "/archive_sources": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.archive_sources.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_sources.session_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_sources.revision"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_sources.content_hash"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_sources.report_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_sources.diary_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_sources.report_snapshot"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_sources.diary_snapshot"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_sources.session_snapshot"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_sources.verification"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_sources.origin"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_sources.correction_reason"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_sources.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_sources.created_by"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/archive_sources"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "archive_sources"
+        ]
+      }
+    },
     "/broker_reads": {
       "get": {
         "parameters": [
@@ -8021,6 +8887,9 @@
           },
           {
             "$ref": "#/parameters/rowFilter.documents.file_deleted_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.documents.archive_source_id"
           },
           {
             "$ref": "#/parameters/select"
@@ -8752,6 +9621,39 @@
           },
           {
             "$ref": "#/parameters/rowFilter.memories.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memories.archive_source_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memories.archive_receipt_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memories.item_key"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memories.assertion_status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memories.verification_status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memories.provenance_status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memories.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memories.superseded_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memories.review_condition"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memories.observed_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memories.legacy_sources"
           },
           {
             "$ref": "#/parameters/select"
@@ -10482,6 +11384,110 @@
         ]
       }
     },
+    "/rpc/archive_claim": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_lease_seconds": {
+                  "format": "int32",
+                  "type": "integer"
+                },
+                "p_session_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_session_id"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) archive_claim"
+        ]
+      }
+    },
+    "/rpc/archive_commit": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_claim_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "p_idempotency_key": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_items": {
+                  "format": "jsonb"
+                },
+                "p_outcome": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_reason": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_source_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_source_id",
+                "p_claim_id",
+                "p_items",
+                "p_idempotency_key"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) archive_commit"
+        ]
+      }
+    },
     "/rpc/archive_finished": {
       "post": {
         "parameters": [
@@ -10609,6 +11615,103 @@
         },
         "tags": [
           "(rpc) archive_item"
+        ]
+      }
+    },
+    "/rpc/archive_job_retry": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_reason": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_source_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_source_id",
+                "p_reason"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) archive_job_retry"
+        ]
+      }
+    },
+    "/rpc/archive_release": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_blocked": {
+                  "format": "boolean",
+                  "type": "boolean"
+                },
+                "p_claim_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "p_reason": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_source_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_source_id",
+                "p_claim_id",
+                "p_reason"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) archive_release"
         ]
       }
     },
@@ -10745,6 +11848,106 @@
         },
         "tags": [
           "(rpc) archive_settings_set"
+        ]
+      }
+    },
+    "/rpc/archive_source": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_limit": {
+                  "format": "int32",
+                  "type": "integer"
+                },
+                "p_offset": {
+                  "format": "int32",
+                  "type": "integer"
+                },
+                "p_section": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_source_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_source_id"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) archive_source"
+        ]
+      }
+    },
+    "/rpc/archive_source_correct": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_markdown": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_reason": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_source_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_source_id",
+                "p_markdown",
+                "p_reason"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) archive_source_correct"
         ]
       }
     },
@@ -10967,6 +12170,59 @@
         },
         "tags": [
           "(rpc) chapter_submit"
+        ]
+      }
+    },
+    "/rpc/chapter_submit_revision": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_markdown": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_source_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "p_summary": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_title": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_source_id",
+                "p_title",
+                "p_markdown"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) chapter_submit_revision"
         ]
       }
     },

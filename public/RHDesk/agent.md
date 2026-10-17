@@ -135,14 +135,41 @@ Finish operational work before taking the report boundary:
    Rebuild an unsigned report if operations change. Leave uncertain outcomes, working orders and protection gaps in
    the handoff; a signed report does not mean every order has filled or every holding is protected.
 
-An `archivist` later reads ended sessions' reports and diaries into `memories_archive`; a `novelist` writes each
-waiting chapter using `chapter_submit`. Each overseer performs only its own step and ends its session.
+An `archivist` later claims immutable input revisions, reads their reports and diaries, and commits attributed
+memories or an explicit no-memory review. A `novelist` writes each waiting chapter using `chapter_submit_revision`.
+Each overseer performs only its own step and ends its session.
 
 **Pipeline workers:** start your own session before writing. Refresh `pipeline_capabilities()` during the run;
 the owner's `archive` or `chapters` switch is enforced by the server on direct calls as well as by the runner.
-Read source IDs from suggested actions' `context`; only `args` belong in the RPC call. Archive items must be a real,
-non-empty JSON array grounded in the source report/diary, with uncertainty preserved. If evidence or authorization
-is missing, leave the source pending and report its ID/reason in your close-out; do not invent memories to finish.
+Read source IDs from suggested actions' `context`; only `args` belong in the RPC call. The Archivist protocol is:
+
+1. `archive_claim(p_session_id)` leases the source's current revision (default 900 seconds, maximum 1800).
+   The source Operator session ID differs from your worker session ID. Keep the returned source ID and claim ID.
+   An existing live claim is replayed without extending its lease; `already_completed` means inspect the result.
+2. `archive_source(p_source_id)` gives the manifest. Read `report` and `diary` with `p_section`, following
+   `next_offset` until each section's `complete` is true. Offsets count Unicode characters, not UTF-16 code units.
+3. `archive_commit(p_source_id, p_claim_id, p_items, p_idempotency_key)` commits the whole result atomically.
+   Each item needs a unique `key`, `kind`, `text`, `assertion` and typed `sources`; optional symbols/importance,
+   actual `observed_at` and `review_condition`. Risk items need a concrete review condition. Example source:
+   `{type:"diary", source_id:"<revision>", id:"<diary>", start:0, end:120}`. Report references use
+   `{type:"report", source_id:"<revision>", id:"<report>", field:"equity"}` or a supported report section.
+   `assertion` is `reported`, `verified`, `inference`, `unresolved` or `preference`. Only a matching bound broker
+   check supports a verified canonical report field; signing or a diary does not establish verification.
+4. If no durable lesson/event warrants a memory, commit `p_items:[]`, `p_outcome:"reviewed_no_memory"` and a
+   substantive `p_reason` (40–2000 characters). This stores a review receipt and permits the narrative step.
+5. Retry a lost response with the exact same key/content to recover the original receipt. Changed content under
+   that key is refused. Expired leases require a fresh claim; changed sources require reading the new revision.
+   Use `archive_release(p_source_id,p_claim_id,p_reason,p_blocked)` to defer or block unfinished work, even after
+   archive-off. Blocked jobs need the owner's `archive_job_retry` after the blocker is resolved.
+
+CLI commands are `desk archive claim`, `source`, `commit`, `release`; `desk help archive commit` shows the flags.
+Owners use `desk archive correct --source <current-revision> --body @diary.md --reason "..."` to create a correction
+revision. Ended reports/diaries cannot be silently rewritten. Corrections retain old inputs/receipts, supersede old
+memories and reopen the affected pipeline steps. New broker observations belong in a new Operator session/report.
+Legacy `memories_archive` and `chapter_submit` accept only first-revision work; new clients must use the explicit
+revision contracts. Legacy memories are identified as whole-input source-bound records, not validated precise citations.
+
+If evidence or authorization is missing, release unfinished claims and report their IDs/reasons; do not invent memories.
 Operator reports, diaries and general Task mutations are outside your role. End with `session_end`, describing actual
 progress and remaining work; global background indexing need not finish first. An ended pipeline worker needs a new
 grant for new work and cannot reopen its old session.
@@ -161,7 +188,10 @@ Content-Type: application/json
 ```
 
 Results are Archivist memories, journal entries, scouts, Research library passages and Archive entries, nearest
-first, each with a `similarity`. Open proposal/task vectors help rank journals in the brief; they are not direct
+first, each with a `similarity`. Memory results include typed sources, assertion/verification/provenance status,
+source revision/hash and receipt identity where available. Historical unvalidated memories are labelled as such.
+Normal recall excludes superseded/retracted memories; their original records remain readable for history.
+Open proposal/task vectors help rank journals in the brief; they are not direct
 recall results. With the
 CLI it is `desk recall "<question>"`. The brief's `relevant_journal` already ranks entries against what is open now.
 

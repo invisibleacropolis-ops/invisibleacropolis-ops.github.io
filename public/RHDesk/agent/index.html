@@ -164,13 +164,39 @@ a real summary and next steps. Signing closes the operational interval and block
 Rebuild an unsigned report if operations change. Leave uncertain outcomes, working orders and protection gaps in
 the handoff; a signed report does not mean every order has filled or every holding is protected.</li>
 </ol>
-<p>An <code>archivist</code> later reads ended sessions&#39; reports and diaries into <code>memories_archive</code>; a <code>novelist</code> writes each
-waiting chapter using <code>chapter_submit</code>. Each overseer performs only its own step and ends its session.</p>
+<p>An <code>archivist</code> later claims immutable input revisions, reads their reports and diaries, and commits attributed
+memories or an explicit no-memory review. A <code>novelist</code> writes each waiting chapter using <code>chapter_submit_revision</code>.
+Each overseer performs only its own step and ends its session.</p>
 <p><strong>Pipeline workers:</strong> start your own session before writing. Refresh <code>pipeline_capabilities()</code> during the run;
 the owner&#39;s <code>archive</code> or <code>chapters</code> switch is enforced by the server on direct calls as well as by the runner.
-Read source IDs from suggested actions&#39; <code>context</code>; only <code>args</code> belong in the RPC call. Archive items must be a real,
-non-empty JSON array grounded in the source report/diary, with uncertainty preserved. If evidence or authorization
-is missing, leave the source pending and report its ID/reason in your close-out; do not invent memories to finish.
+Read source IDs from suggested actions&#39; <code>context</code>; only <code>args</code> belong in the RPC call. The Archivist protocol is:</p>
+<ol>
+<li><code>archive_claim(p_session_id)</code> leases the source&#39;s current revision (default 900 seconds, maximum 1800).
+The source Operator session ID differs from your worker session ID. Keep the returned source ID and claim ID.
+An existing live claim is replayed without extending its lease; <code>already_completed</code> means inspect the result.</li>
+<li><code>archive_source(p_source_id)</code> gives the manifest. Read <code>report</code> and <code>diary</code> with <code>p_section</code>, following
+<code>next_offset</code> until each section&#39;s <code>complete</code> is true. Offsets count Unicode characters, not UTF-16 code units.</li>
+<li><code>archive_commit(p_source_id, p_claim_id, p_items, p_idempotency_key)</code> commits the whole result atomically.
+Each item needs a unique <code>key</code>, <code>kind</code>, <code>text</code>, <code>assertion</code> and typed <code>sources</code>; optional symbols/importance,
+actual <code>observed_at</code> and <code>review_condition</code>. Risk items need a concrete review condition. Example source:
+<code>{type:&quot;diary&quot;, source_id:&quot;&lt;revision&gt;&quot;, id:&quot;&lt;diary&gt;&quot;, start:0, end:120}</code>. Report references use
+<code>{type:&quot;report&quot;, source_id:&quot;&lt;revision&gt;&quot;, id:&quot;&lt;report&gt;&quot;, field:&quot;equity&quot;}</code> or a supported report section.
+<code>assertion</code> is <code>reported</code>, <code>verified</code>, <code>inference</code>, <code>unresolved</code> or <code>preference</code>. Only a matching bound broker
+check supports a verified canonical report field; signing or a diary does not establish verification.</li>
+<li>If no durable lesson/event warrants a memory, commit <code>p_items:[]</code>, <code>p_outcome:&quot;reviewed_no_memory&quot;</code> and a
+substantive <code>p_reason</code> (40–2000 characters). This stores a review receipt and permits the narrative step.</li>
+<li>Retry a lost response with the exact same key/content to recover the original receipt. Changed content under
+that key is refused. Expired leases require a fresh claim; changed sources require reading the new revision.
+Use <code>archive_release(p_source_id,p_claim_id,p_reason,p_blocked)</code> to defer or block unfinished work, even after
+archive-off. Blocked jobs need the owner&#39;s <code>archive_job_retry</code> after the blocker is resolved.</li>
+</ol>
+<p>CLI commands are <code>desk archive claim</code>, <code>source</code>, <code>commit</code>, <code>release</code>; <code>desk help archive commit</code> shows the flags.
+Owners use <code>desk archive correct --source &lt;current-revision&gt; --body @diary.md --reason &quot;...&quot;</code> to create a correction
+revision. Ended reports/diaries cannot be silently rewritten. Corrections retain old inputs/receipts, supersede old
+memories and reopen the affected pipeline steps. New broker observations belong in a new Operator session/report.
+Legacy <code>memories_archive</code> and <code>chapter_submit</code> accept only first-revision work; new clients must use the explicit
+revision contracts. Legacy memories are identified as whole-input source-bound records, not validated precise citations.</p>
+<p>If evidence or authorization is missing, release unfinished claims and report their IDs/reasons; do not invent memories.
 Operator reports, diaries and general Task mutations are outside your role. End with <code>session_end</code>, describing actual
 progress and remaining work; global background indexing need not finish first. An ended pipeline worker needs a new
 grant for new work and cannot reopen its old session.</p>
@@ -184,7 +210,10 @@ Content-Type: application/json
 {&quot;query&quot;: &quot;what have we learned about sizing speculative positions?&quot;, &quot;k&quot;: 5}
 </code></pre>
 <p>Results are Archivist memories, journal entries, scouts, Research library passages and Archive entries, nearest
-first, each with a <code>similarity</code>. Open proposal/task vectors help rank journals in the brief; they are not direct
+first, each with a <code>similarity</code>. Memory results include typed sources, assertion/verification/provenance status,
+source revision/hash and receipt identity where available. Historical unvalidated memories are labelled as such.
+Normal recall excludes superseded/retracted memories; their original records remain readable for history.
+Open proposal/task vectors help rank journals in the brief; they are not direct
 recall results. With the
 CLI it is <code>desk recall &quot;&lt;question&gt;&quot;</code>. The brief&#39;s <code>relevant_journal</code> already ranks entries against what is open now.</p>
 <p><strong>Build the Research library as you work.</strong> It holds the real-world material behind every position, and the owner
