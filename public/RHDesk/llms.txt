@@ -6,13 +6,14 @@
 
 Machine-readable: [agent.json](https://invisibleacropolis-ops.github.io/RHDesk/agent.json) · API spec: [openapi.json](https://invisibleacropolis-ops.github.io/RHDesk/openapi.json) · Markdown: [agent.md](https://invisibleacropolis-ops.github.io/RHDesk/agent.md)
 
-**Protocol updated October 16, 2026.** The owner supplies the goal and authorization boundaries; the operator owns
+**Protocol updated October 17, 2026.** The owner supplies the goal and authorization boundaries; the operator owns
 research, strategy development, execution decisions and learning from actual outcomes. A broad mandate does not
 require the owner to supply a trading method. An evidence-supported hold or research decision is valid.
 
-This page describes the available protocol, not your account's current permissions or connection status. After
-starting, read `data.brief.capabilities` and call `execution_capabilities()` as work proceeds. Use the current
-mandates, account observations and effective permissions to decide what you can do.
+This page describes the available protocol, not your account's current permissions or connection status. Operators
+read `data.brief.capabilities` after starting and call `execution_capabilities()` as work proceeds. Archivist/Novelist
+workers use `data.brief.pipeline_capabilities` and `pipeline_capabilities()` instead. Use the current mandates,
+account observations and effective permissions to decide what you can do.
 
 ## 1. Get a session
 
@@ -137,6 +138,15 @@ Finish operational work before taking the report boundary:
 An `archivist` later reads ended sessions' reports and diaries into `memories_archive`; a `novelist` writes each
 waiting chapter using `chapter_submit`. Each overseer performs only its own step and ends its session.
 
+**Pipeline workers:** start your own session before writing. Refresh `pipeline_capabilities()` during the run;
+the owner's `archive` or `chapters` switch is enforced by the server on direct calls as well as by the runner.
+Read source IDs from suggested actions' `context`; only `args` belong in the RPC call. Archive items must be a real,
+non-empty JSON array grounded in the source report/diary, with uncertainty preserved. If evidence or authorization
+is missing, leave the source pending and report its ID/reason in your close-out; do not invent memories to finish.
+Operator reports, diaries and general Task mutations are outside your role. End with `session_end`, describing actual
+progress and remaining work; global background indexing need not finish first. An ended pipeline worker needs a new
+grant for new work and cannot reopen its old session.
+
 ## 5. Remember what earlier sessions learned
 
 The Desk's memory is searchable by meaning. Before you propose a trade, decide something, or research a symbol, ask
@@ -150,8 +160,9 @@ Content-Type: application/json
 {"query": "what have we learned about sizing speculative positions?", "k": 5}
 ```
 
-Results are Archivist memories, journal entries, scouts, open proposals and tasks, Research library passages and
-Archive entries, nearest first, each with a `similarity`. With the
+Results are Archivist memories, journal entries, scouts, Research library passages and Archive entries, nearest
+first, each with a `similarity`. Open proposal/task vectors help rank journals in the brief; they are not direct
+recall results. With the
 CLI it is `desk recall "<question>"`. The brief's `relevant_journal` already ranks entries against what is open now.
 
 **Build the Research library as you work.** It holds the real-world material behind every position, and the owner

@@ -16,12 +16,13 @@ human) owns it. You operate it on their behalf through a recorded, permissioned 
 to &quot;visit the Robinhood Desk to continue working&quot;, this page tells you everything you need.</p>
 </blockquote>
 <p>Machine-readable: <a href="https://invisibleacropolis-ops.github.io/RHDesk/agent.json">agent.json</a> · API spec: <a href="https://invisibleacropolis-ops.github.io/RHDesk/openapi.json">openapi.json</a> · Markdown: <a href="https://invisibleacropolis-ops.github.io/RHDesk/agent.md">agent.md</a></p>
-<p><strong>Protocol updated October 16, 2026.</strong> The owner supplies the goal and authorization boundaries; the operator owns
+<p><strong>Protocol updated October 17, 2026.</strong> The owner supplies the goal and authorization boundaries; the operator owns
 research, strategy development, execution decisions and learning from actual outcomes. A broad mandate does not
 require the owner to supply a trading method. An evidence-supported hold or research decision is valid.</p>
-<p>This page describes the available protocol, not your account&#39;s current permissions or connection status. After
-starting, read <code>data.brief.capabilities</code> and call <code>execution_capabilities()</code> as work proceeds. Use the current
-mandates, account observations and effective permissions to decide what you can do.</p>
+<p>This page describes the available protocol, not your account&#39;s current permissions or connection status. Operators
+read <code>data.brief.capabilities</code> after starting and call <code>execution_capabilities()</code> as work proceeds. Archivist/Novelist
+workers use <code>data.brief.pipeline_capabilities</code> and <code>pipeline_capabilities()</code> instead. Use the current mandates,
+account observations and effective permissions to decide what you can do.</p>
 <h2>1. Get a session</h2>
 <p>You need no credentials to begin. Ask the human to approve you with a pairing code:</p>
 <pre><code class="language-bash">curl -s -X POST https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/agent-auth/pair/start \
@@ -165,6 +166,14 @@ the handoff; a signed report does not mean every order has filled or every holdi
 </ol>
 <p>An <code>archivist</code> later reads ended sessions&#39; reports and diaries into <code>memories_archive</code>; a <code>novelist</code> writes each
 waiting chapter using <code>chapter_submit</code>. Each overseer performs only its own step and ends its session.</p>
+<p><strong>Pipeline workers:</strong> start your own session before writing. Refresh <code>pipeline_capabilities()</code> during the run;
+the owner&#39;s <code>archive</code> or <code>chapters</code> switch is enforced by the server on direct calls as well as by the runner.
+Read source IDs from suggested actions&#39; <code>context</code>; only <code>args</code> belong in the RPC call. Archive items must be a real,
+non-empty JSON array grounded in the source report/diary, with uncertainty preserved. If evidence or authorization
+is missing, leave the source pending and report its ID/reason in your close-out; do not invent memories to finish.
+Operator reports, diaries and general Task mutations are outside your role. End with <code>session_end</code>, describing actual
+progress and remaining work; global background indexing need not finish first. An ended pipeline worker needs a new
+grant for new work and cannot reopen its old session.</p>
 <h2>5. Remember what earlier sessions learned</h2>
 <p>The Desk&#39;s memory is searchable by meaning. Before you propose a trade, decide something, or research a symbol, ask
 it what earlier sessions recorded:</p>
@@ -174,8 +183,9 @@ Content-Type: application/json
 
 {&quot;query&quot;: &quot;what have we learned about sizing speculative positions?&quot;, &quot;k&quot;: 5}
 </code></pre>
-<p>Results are Archivist memories, journal entries, scouts, open proposals and tasks, Research library passages and
-Archive entries, nearest first, each with a <code>similarity</code>. With the
+<p>Results are Archivist memories, journal entries, scouts, Research library passages and Archive entries, nearest
+first, each with a <code>similarity</code>. Open proposal/task vectors help rank journals in the brief; they are not direct
+recall results. With the
 CLI it is <code>desk recall &quot;&lt;question&gt;&quot;</code>. The brief&#39;s <code>relevant_journal</code> already ranks entries against what is open now.</p>
 <p><strong>Build the Research library as you work.</strong> It holds the real-world material behind every position, and the owner
 reads it on the site:</p>

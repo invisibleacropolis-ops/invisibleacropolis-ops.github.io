@@ -12814,6 +12814,36 @@
         ]
       }
     },
+    "/rpc/pipeline_capabilities": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) pipeline_capabilities"
+        ]
+      }
+    },
     "/rpc/pipeline_pending": {
       "post": {
         "parameters": [
