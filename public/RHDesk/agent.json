@@ -2,6 +2,7 @@
   "name": "RHDesk",
   "description": "Single source of truth desk for agentic trading on Robinhood. Pair, start a session, follow next_actions.",
   "protocol_version": 1,
+  "protocol_updated": "2026-10-16",
   "roles": [
     "archivist",
     "novelist",
@@ -108,10 +109,56 @@
       }
     }
   },
+  "operator": {
+    "mission": "Research, develop and adapt strategies, and execute toward the owner mandate using current market observations and Desk history. An evidence-supported hold or research decision is valid.",
+    "capabilities": {
+      "rpc": "execution_capabilities",
+      "also_in": "session_start.data.brief.capabilities",
+      "rule": "Read current scope, mode and effective permissions. A capability declaration does not grant authorization."
+    },
+    "execution": {
+      "required_scope": "operator+execute",
+      "asset_classes": [
+        "equity",
+        "etf"
+      ],
+      "order_types": [
+        "market",
+        "limit",
+        "stop_market",
+        "stop_limit"
+      ],
+      "routes": {
+        "approved_proposal": "https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/execute",
+        "trade": "https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/execute/trade",
+        "cancel": "https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/execute/cancel",
+        "manage": "https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/execute/manage",
+        "refresh": "https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/execute/refresh"
+      },
+      "rules": "Use Desk order routes only. Exits/protection do not consume entry allowances. Full freeze and held-share reservations still apply. Reconcile uncertain outcomes with the original identity; never resubmit under a new key.",
+      "protection": "Asynchronous after observed fills; inspect brief.protection_lifecycle for actual broker-confirmed coverage."
+    },
+    "close_in_order": [
+      "decision_record",
+      "session_report_build",
+      "robinhood-read: get_portfolio and get_equity_positions",
+      "session_report_verify",
+      "diary_submit",
+      "session_end"
+    ],
+    "research": {
+      "native_search": "The built-in runner exposes provider-native web_search when research is enabled; availability depends on the configured provider/model/account. External agents use their own harness tools.",
+      "capture_url": "https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/clip",
+      "additional_search_url": "https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/clip/search",
+      "additional_search_requires": "Server-side LangSearch configuration and research permission; no search credential is supplied by the agent."
+    }
+  },
   "robinhood_mcp": {
     "url": "https://agent.robinhood.com/mcp/trading",
     "transport": "http",
     "auth": "OAuth (the account holder signs in)",
+    "required": false,
+    "usage": "The owner links Robinhood in Desk Settings. Use Desk refresh and read-only broker routes; separate MCP setup is optional for external read-only work. Never place orders directly through MCP. Report evidence must be captured through the Desk.",
     "setup": {
       "claude_code": "claude mcp add --transport http robinhood-trading https://agent.robinhood.com/mcp/trading"
     }
