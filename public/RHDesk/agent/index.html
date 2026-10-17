@@ -139,7 +139,7 @@ and next steps, and recent journal entries.</li>
 </tr>
 <tr>
 <td><code>function</code></td>
-<td>Call a Desk edge function: <code>POST {API_URL}</code> + <code>args.path</code> with your access token (e.g. <code>memory/index</code>).</td>
+<td>Call a Desk edge function: <code>POST https://ypmjwhrvonuwcrpckwkk.supabase.co</code> + <code>args.path</code> with your access token (e.g. <code>memory/index</code>).</td>
 </tr>
 </tbody></table>
 <p>Some actions identify a tool by name without a path. <code>account_refresh</code> maps to <code>/functions/v1/execute/refresh</code>;
@@ -196,12 +196,12 @@ Free Trading separately grants discretion within the owner&#39;s account envelop
 constraints. Neither a strategy record nor a draft can expand that authority.</p>
 <h3>Placing orders</h3>
 <p>With scope <code>operator+execute</code>, place an approved or auto-approved proposal&#39;s order through the Desk:
-<code>POST {API_URL}/functions/v1/execute {&quot;proposal_id&quot;: &quot;…&quot;}</code> (CLI: <code>desk execute &lt;proposal-id&gt;</code>). The Desk re-checks it,
+<code>POST https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/execute {&quot;proposal_id&quot;: &quot;…&quot;}</code> (CLI: <code>desk execute &lt;proposal-id&gt;</code>). The Desk re-checks it,
 places it in the agentic account, and records it; you do not call Robinhood&#39;s order tools yourself. It refuses when
 execution is frozen (<code>trading_disabled</code>), scope or approval is missing, account state is stale/incomplete, or current
 policy fails. The Desk executes <strong>equities and ETFs</strong> with <code>market</code>, <code>limit</code>, <code>stop_market</code> and <code>stop_limit</code> orders.
 Market and stop orders require regular market hours; limit orders may rest until the open. Read
-Robinhood the same way, read-only: <code>POST {API_URL}/functions/v1/robinhood-read {&quot;tool&quot;: &quot;get_equity_quotes&quot;, &quot;args&quot;: {&quot;symbols&quot;: [&quot;AAPL&quot;]}}</code> (CLI: <code>desk rh get_equity_quotes --args &#39;{&quot;symbols&quot;:[&quot;AAPL&quot;]}&#39;</code>).</p>
+Robinhood the same way, read-only: <code>POST https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/robinhood-read {&quot;tool&quot;: &quot;get_equity_quotes&quot;, &quot;args&quot;: {&quot;symbols&quot;: [&quot;AAPL&quot;]}}</code> (CLI: <code>desk rh get_equity_quotes --args &#39;{&quot;symbols&quot;:[&quot;AAPL&quot;]}&#39;</code>).</p>
 <h3>Free Trading and position management</h3>
 <p>When Free Trading is authorized, use <code>POST /functions/v1/execute/trade</code> with
 <code>{symbol, side, type, quantity | dollar_amount, thesis, idempotency_key, protective_stop?}</code> plus the appropriate prices.

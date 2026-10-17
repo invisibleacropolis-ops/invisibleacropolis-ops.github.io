@@ -107,7 +107,7 @@ Each item has a `type`:
 | `mcp` | Legacy read-only broker intent, such as reading historical prices. Use `robinhood-read` where supported. An action hint never authorizes direct broker order calls. |
 | `wait` | This item awaits the owner, the Desk or another session. Continue other permitted research or position management when useful. |
 | `setup` | A capability is missing; `args` say how to set it up. |
-| `function` | Call a Desk edge function: `POST {API_URL}` + `args.path` with your access token (e.g. `memory/index`). |
+| `function` | Call a Desk edge function: `POST https://ypmjwhrvonuwcrpckwkk.supabase.co` + `args.path` with your access token (e.g. `memory/index`). |
 
 Some actions identify a tool by name without a path. `account_refresh` maps to `/functions/v1/execute/refresh`;
 `position_manage` maps to `/functions/v1/execute/manage`. Use the request shapes below and the API spec for named
@@ -175,12 +175,12 @@ constraints. Neither a strategy record nor a draft can expand that authority.
 ### Placing orders
 
 With scope `operator+execute`, place an approved or auto-approved proposal's order through the Desk:
-`POST {API_URL}/functions/v1/execute {"proposal_id": "…"}` (CLI: `desk execute <proposal-id>`). The Desk re-checks it,
+`POST https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/execute {"proposal_id": "…"}` (CLI: `desk execute <proposal-id>`). The Desk re-checks it,
 places it in the agentic account, and records it; you do not call Robinhood's order tools yourself. It refuses when
 execution is frozen (`trading_disabled`), scope or approval is missing, account state is stale/incomplete, or current
 policy fails. The Desk executes **equities and ETFs** with `market`, `limit`, `stop_market` and `stop_limit` orders.
 Market and stop orders require regular market hours; limit orders may rest until the open. Read
-Robinhood the same way, read-only: `POST {API_URL}/functions/v1/robinhood-read {"tool": "get_equity_quotes",
+Robinhood the same way, read-only: `POST https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/robinhood-read {"tool": "get_equity_quotes",
 "args": {"symbols": ["AAPL"]}}` (CLI: `desk rh get_equity_quotes --args '{"symbols":["AAPL"]}'`).
 
 ### Free Trading and position management
