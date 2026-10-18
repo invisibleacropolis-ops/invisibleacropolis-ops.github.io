@@ -141,13 +141,24 @@ Each overseer performs only its own step and ends its session.
 
 **Pipeline workers:** start your own session before writing. Refresh `pipeline_capabilities()` during the run;
 the owner's `archive` or `chapters` switch is enforced by the server on direct calls as well as by the runner.
-Read source IDs from suggested actions' `context`; only `args` belong in the RPC call. The Archivist protocol is:
+Only suggested actions' `args` belong in the RPC call. Start a fixed selection with `pipeline_begin()` before
+individual source work (CLI: `desk pipeline begin`). The built-in harness does this before invoking the model.
+Its default maximum is three sources, configurable by the owner; an explicit limit can only lower that maximum.
+Repeating begin returns the same work list; new sources
+and corrected revisions belong to a subsequent worker. `pipeline_progress()` returns persisted source results.
+`pipeline_discover(p_stage,p_limit,p_cursor)` is bounded discovery for archive/chapter/incomplete/all stages;
+follow `next_cursor` unchanged while `has_more` is true. It does not expand an active worker's selection.
 
-1. `archive_claim(p_session_id)` leases the source's current revision (default 900 seconds, maximum 1800).
-   The source Operator session ID differs from your worker session ID. Keep the returned source ID and claim ID.
-   An existing live claim is replayed without extending its lease; `already_completed` means inspect the result.
+The Archivist protocol is:
+
+1. Keep the manifest's source ID and claim ID. The source Operator session ID differs from your worker session ID.
+   `archive_claim(p_session_id)` recovers an expired claim for a source already in your selection. Default leases are
+   900 seconds, maximum 1800; a repeated live claim does not extend expiry. `already_completed` means inspect its result.
 2. `archive_source(p_source_id)` gives the manifest. Read `report` and `diary` with `p_section`, following
    `next_offset` until each section's `complete` is true. Offsets count Unicode characters, not UTF-16 code units.
+   The server records the returned character ranges under this worker and claim. Skipped/gapped reads fail
+   `source_not_read` at ordinary commit; a new fencing identity requires reading again. Fetch coverage is not proof
+   that the model understood the text.
 3. `archive_commit(p_source_id, p_claim_id, p_items, p_idempotency_key)` commits the whole result atomically.
    Each item needs a unique `key`, `kind`, `text`, `assertion` and typed `sources`; optional symbols/importance,
    actual `observed_at` and `review_condition`. Risk items need a concrete review condition. Example source:
@@ -169,10 +180,26 @@ memories and reopen the affected pipeline steps. New broker observations belong 
 Legacy `memories_archive` and `chapter_submit` accept only first-revision work; new clients must use the explicit
 revision contracts. Legacy memories are identified as whole-input source-bound records, not validated precise citations.
 
+Call `pipeline_finalize(p_reason)` before stopping; it accounts for the fixed selection from actual receipts and
+durably defers unfinished claims. `session_end` also enforces that accounting. The runner attempts bounded close-out
+after a model stop/failure; the original error and any close error remain separate. A worker ending does not imply
+the pipeline completed: outcomes are `completed`, `partial`, `blocked`, `failed`, with `worker_ended` separate.
+Older/direct workers without a bounded manifest receive explicitly partial accounting rather than presumed completion.
+Novelist manifests reserve completed inputs and require complete source reads before `chapter_submit_revision`.
+Chapter receipts preserve the actual narrative artifact; global indexing never gates narrative readiness.
+
 If evidence or authorization is missing, release unfinished claims and report their IDs/reasons; do not invent memories.
 Operator reports, diaries and general Task mutations are outside your role. End with `session_end`, describing actual
 progress and remaining work; global background indexing need not finish first. An ended pipeline worker needs a new
 grant for new work and cannot reopen its old session.
+
+Owners may opt into event wake-ups on Agents → Pipeline work (`pipeline_policy_set` / `desk pipeline policy set`).
+They default off and require Autopilot, role enabled and the artifact function on. Source readiness requests are
+coalesced per role; manual/scheduled/event queue paths share the same role lock. Owner-configured retry delay and
+attempt limits bound automatic retries without recorded progress. Exhaustion is visible and needs an explicit
+`pipeline_wake_retry` after review. With event wake-ups off, work remains discoverable for manual/scheduled workers.
+`pipeline_status()` reports incomplete sources separately from eligible work, actual archive/chapter states and
+indexing totals per source type. The Journal shows paginated source work and visible history-preview limits.
 
 ## 5. Remember what earlier sessions learned
 

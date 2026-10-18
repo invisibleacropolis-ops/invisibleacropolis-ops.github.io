@@ -280,6 +280,10 @@
           "format": "int64",
           "type": "integer"
         },
+        "close_error": {
+          "format": "text",
+          "type": "string"
+        },
         "cost_usd": {
           "format": "numeric",
           "type": "number"
@@ -322,6 +326,13 @@
         "output_tokens": {
           "format": "int64",
           "type": "integer"
+        },
+        "pipeline_outcome": {
+          "format": "text",
+          "type": "string"
+        },
+        "pipeline_progress": {
+          "format": "jsonb"
         },
         "price_version": {
           "format": "text",
@@ -370,6 +381,11 @@
         "turns": {
           "format": "int32",
           "type": "integer"
+        },
+        "worker_ended": {
+          "default": false,
+          "format": "boolean",
+          "type": "boolean"
         }
       },
       "required": [
@@ -378,7 +394,8 @@
         "trigger",
         "status",
         "requested_by",
-        "created_at"
+        "created_at",
+        "worker_ended"
       ],
       "type": "object"
     },
@@ -735,6 +752,54 @@
       ],
       "type": "object"
     },
+    "archive_source_reads": {
+      "properties": {
+        "claim_id": {
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "covered": {
+          "default": "{}",
+          "format": "int4multirange",
+          "type": "string"
+        },
+        "section": {
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "text",
+          "type": "string"
+        },
+        "source_id": {
+          "description": "Note:\nThis is a Primary Key.<pk/>\nThis is a Foreign Key to `archive_sources.id`.<fk table='archive_sources' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "total_characters": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "updated_at": {
+          "default": "clock_timestamp()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "worker_session_id": {
+          "description": "Note:\nThis is a Primary Key.<pk/>\nThis is a Foreign Key to `sessions.id`.<fk table='sessions' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "claim_id",
+        "worker_session_id",
+        "section",
+        "covered",
+        "total_characters",
+        "updated_at"
+      ],
+      "type": "object"
+    },
     "archive_sources": {
       "properties": {
         "content_hash": {
@@ -859,6 +924,62 @@
         "read_by",
         "read_at",
         "trusted"
+      ],
+      "type": "object"
+    },
+    "chapter_receipts": {
+      "properties": {
+        "chapter_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "content_hash": {
+          "format": "text",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "clock_timestamp()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "markdown": {
+          "format": "text",
+          "type": "string"
+        },
+        "source_id": {
+          "description": "Note:\nThis is a Foreign Key to `archive_sources.id`.<fk table='archive_sources' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "summary": {
+          "format": "text",
+          "type": "string"
+        },
+        "title": {
+          "format": "text",
+          "type": "string"
+        },
+        "worker_session_id": {
+          "description": "Note:\nThis is a Foreign Key to `sessions.id`.<fk table='sessions' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "source_id",
+        "worker_session_id",
+        "chapter_id",
+        "content_hash",
+        "title",
+        "markdown",
+        "created_at"
       ],
       "type": "object"
     },
@@ -2121,6 +2242,235 @@
         "status",
         "created_at",
         "expires_at"
+      ],
+      "type": "object"
+    },
+    "pipeline_manifests": {
+      "properties": {
+        "capacity": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "close_error": {
+          "format": "text",
+          "type": "string"
+        },
+        "close_reason": {
+          "format": "text",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "clock_timestamp()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "finalized_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "initial_error": {
+          "format": "text",
+          "type": "string"
+        },
+        "legacy_direct": {
+          "default": false,
+          "format": "boolean",
+          "type": "boolean"
+        },
+        "role": {
+          "format": "text",
+          "type": "string"
+        },
+        "run_id": {
+          "description": "Note:\nThis is a Foreign Key to `agent_runs.id`.<fk table='agent_runs' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "status": {
+          "default": "open",
+          "format": "text",
+          "type": "string"
+        },
+        "worker_ended": {
+          "default": false,
+          "format": "boolean",
+          "type": "boolean"
+        },
+        "worker_session_id": {
+          "description": "Note:\nThis is a Foreign Key to `sessions.id`.<fk table='sessions' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "worker_session_id",
+        "role",
+        "capacity",
+        "status",
+        "created_at",
+        "worker_ended",
+        "legacy_direct"
+      ],
+      "type": "object"
+    },
+    "pipeline_policies": {
+      "properties": {
+        "event_wake": {
+          "default": false,
+          "format": "boolean",
+          "type": "boolean"
+        },
+        "lease_seconds": {
+          "default": 900,
+          "format": "int32",
+          "type": "integer"
+        },
+        "max_auto_attempts": {
+          "default": 3,
+          "format": "int32",
+          "type": "integer"
+        },
+        "max_sources": {
+          "default": 3,
+          "format": "int32",
+          "type": "integer"
+        },
+        "retry_seconds": {
+          "default": 120,
+          "format": "int32",
+          "type": "integer"
+        },
+        "role": {
+          "description": "Note:\nThis is a Primary Key.<pk/>\nThis is a Foreign Key to `agent_roles.role`.<fk table='agent_roles' column='role'/>",
+          "format": "text",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "required": [
+        "role",
+        "max_sources",
+        "lease_seconds",
+        "event_wake",
+        "retry_seconds",
+        "max_auto_attempts",
+        "updated_at"
+      ],
+      "type": "object"
+    },
+    "pipeline_wakes": {
+      "properties": {
+        "attempts": {
+          "default": 0,
+          "format": "int32",
+          "type": "integer"
+        },
+        "blocked": {
+          "default": false,
+          "format": "boolean",
+          "type": "boolean"
+        },
+        "last_error": {
+          "format": "text",
+          "type": "string"
+        },
+        "next_attempt_at": {
+          "default": "clock_timestamp()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "queued_run_id": {
+          "description": "Note:\nThis is a Foreign Key to `agent_runs.id`.<fk table='agent_runs' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "reason": {
+          "format": "text",
+          "type": "string"
+        },
+        "requested_at": {
+          "default": "clock_timestamp()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "role": {
+          "description": "Note:\nThis is a Primary Key.<pk/>\nThis is a Foreign Key to `pipeline_policies.role`.<fk table='pipeline_policies' column='role'/>",
+          "format": "text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "role",
+        "requested_at",
+        "next_attempt_at",
+        "reason",
+        "attempts",
+        "blocked"
+      ],
+      "type": "object"
+    },
+    "pipeline_work_items": {
+      "properties": {
+        "claim_id": {
+          "default": "gen_random_uuid()",
+          "format": "uuid",
+          "type": "string"
+        },
+        "disposition": {
+          "default": "claimed",
+          "format": "text",
+          "type": "string"
+        },
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "lease_until": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "manifest_id": {
+          "description": "Note:\nThis is a Foreign Key to `pipeline_manifests.id`.<fk table='pipeline_manifests' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "reason": {
+          "format": "text",
+          "type": "string"
+        },
+        "receipt_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "settled_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "source_id": {
+          "description": "Note:\nThis is a Foreign Key to `archive_sources.id`.<fk table='archive_sources' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "manifest_id",
+        "source_id",
+        "claim_id",
+        "disposition"
       ],
       "type": "object"
     },
@@ -3480,6 +3830,15 @@
         "$ref": "#/definitions/archive_receipts"
       }
     },
+    "body.archive_source_reads": {
+      "description": "archive_source_reads",
+      "in": "body",
+      "name": "archive_source_reads",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/archive_source_reads"
+      }
+    },
     "body.archive_sources": {
       "description": "archive_sources",
       "in": "body",
@@ -3496,6 +3855,15 @@
       "required": false,
       "schema": {
         "$ref": "#/definitions/broker_reads"
+      }
+    },
+    "body.chapter_receipts": {
+      "description": "chapter_receipts",
+      "in": "body",
+      "name": "chapter_receipts",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/chapter_receipts"
       }
     },
     "body.desk_preferences": {
@@ -3658,6 +4026,42 @@
       "required": false,
       "schema": {
         "$ref": "#/definitions/pairing_requests"
+      }
+    },
+    "body.pipeline_manifests": {
+      "description": "pipeline_manifests",
+      "in": "body",
+      "name": "pipeline_manifests",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/pipeline_manifests"
+      }
+    },
+    "body.pipeline_policies": {
+      "description": "pipeline_policies",
+      "in": "body",
+      "name": "pipeline_policies",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/pipeline_policies"
+      }
+    },
+    "body.pipeline_wakes": {
+      "description": "pipeline_wakes",
+      "in": "body",
+      "name": "pipeline_wakes",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/pipeline_wakes"
+      }
+    },
+    "body.pipeline_work_items": {
+      "description": "pipeline_work_items",
+      "in": "body",
+      "name": "pipeline_work_items",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/pipeline_work_items"
       }
     },
     "body.playbook": {
@@ -4205,6 +4609,12 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.agent_runs.close_error": {
+      "in": "query",
+      "name": "close_error",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.agent_runs.cost_usd": {
       "in": "query",
       "name": "cost_usd",
@@ -4262,6 +4672,18 @@
     "rowFilter.agent_runs.output_tokens": {
       "in": "query",
       "name": "output_tokens",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_runs.pipeline_outcome": {
+      "in": "query",
+      "name": "pipeline_outcome",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_runs.pipeline_progress": {
+      "in": "query",
+      "name": "pipeline_progress",
       "required": false,
       "type": "string"
     },
@@ -4328,6 +4750,12 @@
     "rowFilter.agent_runs.turns": {
       "in": "query",
       "name": "turns",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.agent_runs.worker_ended": {
+      "in": "query",
+      "name": "worker_ended",
       "required": false,
       "type": "string"
     },
@@ -4697,6 +5125,48 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.archive_source_reads.claim_id": {
+      "in": "query",
+      "name": "claim_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_source_reads.covered": {
+      "in": "query",
+      "name": "covered",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_source_reads.section": {
+      "in": "query",
+      "name": "section",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_source_reads.source_id": {
+      "in": "query",
+      "name": "source_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_source_reads.total_characters": {
+      "in": "query",
+      "name": "total_characters",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_source_reads.updated_at": {
+      "in": "query",
+      "name": "updated_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.archive_source_reads.worker_session_id": {
+      "in": "query",
+      "name": "worker_session_id",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.archive_sources.content_hash": {
       "in": "query",
       "name": "content_hash",
@@ -4826,6 +5296,60 @@
     "rowFilter.broker_reads.trusted": {
       "in": "query",
       "name": "trusted",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.chapter_receipts.chapter_id": {
+      "in": "query",
+      "name": "chapter_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.chapter_receipts.content_hash": {
+      "in": "query",
+      "name": "content_hash",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.chapter_receipts.created_at": {
+      "in": "query",
+      "name": "created_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.chapter_receipts.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.chapter_receipts.markdown": {
+      "in": "query",
+      "name": "markdown",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.chapter_receipts.source_id": {
+      "in": "query",
+      "name": "source_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.chapter_receipts.summary": {
+      "in": "query",
+      "name": "summary",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.chapter_receipts.title": {
+      "in": "query",
+      "name": "title",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.chapter_receipts.worker_session_id": {
+      "in": "query",
+      "name": "worker_session_id",
       "required": false,
       "type": "string"
     },
@@ -6176,6 +6700,228 @@
     "rowFilter.pairing_requests.status": {
       "in": "query",
       "name": "status",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pipeline_manifests.capacity": {
+      "in": "query",
+      "name": "capacity",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pipeline_manifests.close_error": {
+      "in": "query",
+      "name": "close_error",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pipeline_manifests.close_reason": {
+      "in": "query",
+      "name": "close_reason",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pipeline_manifests.created_at": {
+      "in": "query",
+      "name": "created_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pipeline_manifests.finalized_at": {
+      "in": "query",
+      "name": "finalized_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pipeline_manifests.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pipeline_manifests.initial_error": {
+      "in": "query",
+      "name": "initial_error",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pipeline_manifests.legacy_direct": {
+      "in": "query",
+      "name": "legacy_direct",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pipeline_manifests.role": {
+      "in": "query",
+      "name": "role",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pipeline_manifests.run_id": {
+      "in": "query",
+      "name": "run_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pipeline_manifests.status": {
+      "in": "query",
+      "name": "status",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pipeline_manifests.worker_ended": {
+      "in": "query",
+      "name": "worker_ended",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pipeline_manifests.worker_session_id": {
+      "in": "query",
+      "name": "worker_session_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pipeline_policies.event_wake": {
+      "in": "query",
+      "name": "event_wake",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pipeline_policies.lease_seconds": {
+      "in": "query",
+      "name": "lease_seconds",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pipeline_policies.max_auto_attempts": {
+      "in": "query",
+      "name": "max_auto_attempts",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pipeline_policies.max_sources": {
+      "in": "query",
+      "name": "max_sources",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pipeline_policies.retry_seconds": {
+      "in": "query",
+      "name": "retry_seconds",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pipeline_policies.role": {
+      "in": "query",
+      "name": "role",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pipeline_policies.updated_at": {
+      "in": "query",
+      "name": "updated_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pipeline_wakes.attempts": {
+      "in": "query",
+      "name": "attempts",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pipeline_wakes.blocked": {
+      "in": "query",
+      "name": "blocked",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pipeline_wakes.last_error": {
+      "in": "query",
+      "name": "last_error",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pipeline_wakes.next_attempt_at": {
+      "in": "query",
+      "name": "next_attempt_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pipeline_wakes.queued_run_id": {
+      "in": "query",
+      "name": "queued_run_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pipeline_wakes.reason": {
+      "in": "query",
+      "name": "reason",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pipeline_wakes.requested_at": {
+      "in": "query",
+      "name": "requested_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pipeline_wakes.role": {
+      "in": "query",
+      "name": "role",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pipeline_work_items.claim_id": {
+      "in": "query",
+      "name": "claim_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pipeline_work_items.disposition": {
+      "in": "query",
+      "name": "disposition",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pipeline_work_items.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pipeline_work_items.lease_until": {
+      "in": "query",
+      "name": "lease_until",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pipeline_work_items.manifest_id": {
+      "in": "query",
+      "name": "manifest_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pipeline_work_items.reason": {
+      "in": "query",
+      "name": "reason",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pipeline_work_items.receipt_id": {
+      "in": "query",
+      "name": "receipt_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pipeline_work_items.settled_at": {
+      "in": "query",
+      "name": "settled_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.pipeline_work_items.source_id": {
+      "in": "query",
+      "name": "source_id",
       "required": false,
       "type": "string"
     },
@@ -7979,6 +8725,18 @@
             "$ref": "#/parameters/rowFilter.agent_runs.price_version"
           },
           {
+            "$ref": "#/parameters/rowFilter.agent_runs.pipeline_outcome"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_runs.pipeline_progress"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_runs.worker_ended"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.agent_runs.close_error"
+          },
+          {
             "$ref": "#/parameters/select"
           },
           {
@@ -8422,6 +9180,71 @@
         ]
       }
     },
+    "/archive_source_reads": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.archive_source_reads.source_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_source_reads.claim_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_source_reads.worker_session_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_source_reads.section"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_source_reads.covered"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_source_reads.total_characters"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.archive_source_reads.updated_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/archive_source_reads"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "archive_source_reads"
+        ]
+      }
+    },
     "/archive_sources": {
       "get": {
         "parameters": [
@@ -8573,6 +9396,77 @@
         },
         "tags": [
           "broker_reads"
+        ]
+      }
+    },
+    "/chapter_receipts": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.chapter_receipts.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.chapter_receipts.source_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.chapter_receipts.worker_session_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.chapter_receipts.chapter_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.chapter_receipts.content_hash"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.chapter_receipts.title"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.chapter_receipts.markdown"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.chapter_receipts.summary"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.chapter_receipts.created_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/chapter_receipts"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "chapter_receipts"
         ]
       }
     },
@@ -10040,6 +10934,293 @@
         },
         "tags": [
           "pairing_requests"
+        ]
+      }
+    },
+    "/pipeline_manifests": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.pipeline_manifests.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pipeline_manifests.worker_session_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pipeline_manifests.role"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pipeline_manifests.run_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pipeline_manifests.capacity"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pipeline_manifests.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pipeline_manifests.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pipeline_manifests.finalized_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pipeline_manifests.worker_ended"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pipeline_manifests.initial_error"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pipeline_manifests.close_error"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pipeline_manifests.close_reason"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pipeline_manifests.legacy_direct"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/pipeline_manifests"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "pipeline_manifests"
+        ]
+      }
+    },
+    "/pipeline_policies": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.pipeline_policies.role"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pipeline_policies.max_sources"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pipeline_policies.lease_seconds"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pipeline_policies.event_wake"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pipeline_policies.retry_seconds"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pipeline_policies.max_auto_attempts"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pipeline_policies.updated_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/pipeline_policies"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "pipeline_policies"
+        ]
+      }
+    },
+    "/pipeline_wakes": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.pipeline_wakes.role"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pipeline_wakes.requested_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pipeline_wakes.next_attempt_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pipeline_wakes.reason"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pipeline_wakes.attempts"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pipeline_wakes.blocked"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pipeline_wakes.last_error"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pipeline_wakes.queued_run_id"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/pipeline_wakes"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "pipeline_wakes"
+        ]
+      }
+    },
+    "/pipeline_work_items": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.pipeline_work_items.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pipeline_work_items.manifest_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pipeline_work_items.source_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pipeline_work_items.claim_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pipeline_work_items.lease_until"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pipeline_work_items.disposition"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pipeline_work_items.receipt_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pipeline_work_items.reason"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.pipeline_work_items.settled_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/pipeline_work_items"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "pipeline_work_items"
         ]
       }
     },
@@ -14070,6 +15251,42 @@
         ]
       }
     },
+    "/rpc/pipeline_begin": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_limit": {
+                  "format": "int32",
+                  "type": "integer"
+                }
+              },
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) pipeline_begin"
+        ]
+      }
+    },
     "/rpc/pipeline_capabilities": {
       "post": {
         "parameters": [
@@ -14100,6 +15317,86 @@
         ]
       }
     },
+    "/rpc/pipeline_discover": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_cursor": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_limit": {
+                  "format": "int32",
+                  "type": "integer"
+                },
+                "p_stage": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) pipeline_discover"
+        ]
+      }
+    },
+    "/rpc/pipeline_finalize": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_reason": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) pipeline_finalize"
+        ]
+      }
+    },
     "/rpc/pipeline_pending": {
       "post": {
         "parameters": [
@@ -14127,6 +15424,192 @@
         },
         "tags": [
           "(rpc) pipeline_pending"
+        ]
+      }
+    },
+    "/rpc/pipeline_policy": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_role": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_role"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) pipeline_policy"
+        ]
+      }
+    },
+    "/rpc/pipeline_policy_set": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_patch": {
+                  "format": "jsonb"
+                },
+                "p_role": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_role",
+                "p_patch"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) pipeline_policy_set"
+        ]
+      }
+    },
+    "/rpc/pipeline_progress": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) pipeline_progress"
+        ]
+      }
+    },
+    "/rpc/pipeline_status": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) pipeline_status"
+        ]
+      }
+    },
+    "/rpc/pipeline_wake_retry": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_reason": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_role": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_role",
+                "p_reason"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) pipeline_wake_retry"
         ]
       }
     },

@@ -169,13 +169,23 @@ memories or an explicit no-memory review. A <code>novelist</code> writes each wa
 Each overseer performs only its own step and ends its session.</p>
 <p><strong>Pipeline workers:</strong> start your own session before writing. Refresh <code>pipeline_capabilities()</code> during the run;
 the owner&#39;s <code>archive</code> or <code>chapters</code> switch is enforced by the server on direct calls as well as by the runner.
-Read source IDs from suggested actions&#39; <code>context</code>; only <code>args</code> belong in the RPC call. The Archivist protocol is:</p>
+Only suggested actions&#39; <code>args</code> belong in the RPC call. Start a fixed selection with <code>pipeline_begin()</code> before
+individual source work (CLI: <code>desk pipeline begin</code>). The built-in harness does this before invoking the model.
+Its default maximum is three sources, configurable by the owner; an explicit limit can only lower that maximum.
+Repeating begin returns the same work list; new sources
+and corrected revisions belong to a subsequent worker. <code>pipeline_progress()</code> returns persisted source results.
+<code>pipeline_discover(p_stage,p_limit,p_cursor)</code> is bounded discovery for archive/chapter/incomplete/all stages;
+follow <code>next_cursor</code> unchanged while <code>has_more</code> is true. It does not expand an active worker&#39;s selection.</p>
+<p>The Archivist protocol is:</p>
 <ol>
-<li><code>archive_claim(p_session_id)</code> leases the source&#39;s current revision (default 900 seconds, maximum 1800).
-The source Operator session ID differs from your worker session ID. Keep the returned source ID and claim ID.
-An existing live claim is replayed without extending its lease; <code>already_completed</code> means inspect the result.</li>
+<li>Keep the manifest&#39;s source ID and claim ID. The source Operator session ID differs from your worker session ID.
+<code>archive_claim(p_session_id)</code> recovers an expired claim for a source already in your selection. Default leases are
+900 seconds, maximum 1800; a repeated live claim does not extend expiry. <code>already_completed</code> means inspect its result.</li>
 <li><code>archive_source(p_source_id)</code> gives the manifest. Read <code>report</code> and <code>diary</code> with <code>p_section</code>, following
-<code>next_offset</code> until each section&#39;s <code>complete</code> is true. Offsets count Unicode characters, not UTF-16 code units.</li>
+<code>next_offset</code> until each section&#39;s <code>complete</code> is true. Offsets count Unicode characters, not UTF-16 code units.
+The server records the returned character ranges under this worker and claim. Skipped/gapped reads fail
+<code>source_not_read</code> at ordinary commit; a new fencing identity requires reading again. Fetch coverage is not proof
+that the model understood the text.</li>
 <li><code>archive_commit(p_source_id, p_claim_id, p_items, p_idempotency_key)</code> commits the whole result atomically.
 Each item needs a unique <code>key</code>, <code>kind</code>, <code>text</code>, <code>assertion</code> and typed <code>sources</code>; optional symbols/importance,
 actual <code>observed_at</code> and <code>review_condition</code>. Risk items need a concrete review condition. Example source:
@@ -196,10 +206,24 @@ revision. Ended reports/diaries cannot be silently rewritten. Corrections retain
 memories and reopen the affected pipeline steps. New broker observations belong in a new Operator session/report.
 Legacy <code>memories_archive</code> and <code>chapter_submit</code> accept only first-revision work; new clients must use the explicit
 revision contracts. Legacy memories are identified as whole-input source-bound records, not validated precise citations.</p>
+<p>Call <code>pipeline_finalize(p_reason)</code> before stopping; it accounts for the fixed selection from actual receipts and
+durably defers unfinished claims. <code>session_end</code> also enforces that accounting. The runner attempts bounded close-out
+after a model stop/failure; the original error and any close error remain separate. A worker ending does not imply
+the pipeline completed: outcomes are <code>completed</code>, <code>partial</code>, <code>blocked</code>, <code>failed</code>, with <code>worker_ended</code> separate.
+Older/direct workers without a bounded manifest receive explicitly partial accounting rather than presumed completion.
+Novelist manifests reserve completed inputs and require complete source reads before <code>chapter_submit_revision</code>.
+Chapter receipts preserve the actual narrative artifact; global indexing never gates narrative readiness.</p>
 <p>If evidence or authorization is missing, release unfinished claims and report their IDs/reasons; do not invent memories.
 Operator reports, diaries and general Task mutations are outside your role. End with <code>session_end</code>, describing actual
 progress and remaining work; global background indexing need not finish first. An ended pipeline worker needs a new
 grant for new work and cannot reopen its old session.</p>
+<p>Owners may opt into event wake-ups on Agents → Pipeline work (<code>pipeline_policy_set</code> / <code>desk pipeline policy set</code>).
+They default off and require Autopilot, role enabled and the artifact function on. Source readiness requests are
+coalesced per role; manual/scheduled/event queue paths share the same role lock. Owner-configured retry delay and
+attempt limits bound automatic retries without recorded progress. Exhaustion is visible and needs an explicit
+<code>pipeline_wake_retry</code> after review. With event wake-ups off, work remains discoverable for manual/scheduled workers.
+<code>pipeline_status()</code> reports incomplete sources separately from eligible work, actual archive/chapter states and
+indexing totals per source type. The Journal shows paginated source work and visible history-preview limits.</p>
 <h2>5. Remember what earlier sessions learned</h2>
 <p>The Desk&#39;s memory is searchable by meaning. Before you propose a trade, decide something, or research a symbol, ask
 it what earlier sessions recorded:</p>
