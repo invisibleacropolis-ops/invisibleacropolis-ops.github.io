@@ -74,7 +74,7 @@
     }
   },
   "memory": {
-    "about": "Semantic memory searched by meaning (gte-small embeddings): memory, journal, scout, proposal, task, archive, document. Indexed in the background every two minutes. Send your access token.",
+    "about": "Semantic memory searched by meaning (gte-small embeddings): memory, journal, scout, proposal, task, archive, document, report, decision, strategy. Indexed in the background every two minutes. Send your access token.",
     "headers": {
       "Authorization": "Bearer <access_token>",
       "Content-Type": "application/json"
@@ -85,7 +85,7 @@
       "body": {
         "query": "string",
         "k": "number (default 8)",
-        "sources": "subset of [\"memory\",\"journal\",\"scout\",\"proposal\",\"task\",\"archive\",\"document\"] (optional)",
+        "sources": "subset of [\"memory\",\"journal\",\"scout\",\"proposal\",\"task\",\"archive\",\"document\",\"report\",\"decision\",\"strategy\"] (optional)",
         "symbols": "[\"AAPL\"] (optional)"
       }
     },

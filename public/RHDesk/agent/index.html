@@ -233,13 +233,20 @@ Content-Type: application/json
 
 {&quot;query&quot;: &quot;what have we learned about sizing speculative positions?&quot;, &quot;k&quot;: 5}
 </code></pre>
-<p>Results are Archivist memories, journal entries, scouts, Research library passages and Archive entries, nearest
+<p>Results include Archivist memories, journal entries, scouts, Research passages, current complete reports, decisions,
+strategy hypotheses, open proposals/tasks and historical Archive entries, nearest
 first, each with a <code>similarity</code>. Memory results include typed sources, assertion/verification/provenance status,
 source revision/hash and receipt identity where available. Historical unvalidated memories are labelled as such.
 Normal recall excludes superseded/retracted memories; their original records remain readable for history.
-Open proposal/task vectors help rank journals in the brief; they are not direct
-recall results. With the
-CLI it is <code>desk recall &quot;&lt;question&gt;&quot;</code>. The brief&#39;s <code>relevant_journal</code> already ranks entries against what is open now.</p>
+Every result carries a <code>source_ref</code>/hash, index profile, passage identity/span, original uncertainty/lifecycle and
+coverage. A partial current source may yield its available passages; a corrected source cannot yield its old generation.
+Pass <code>sources</code>, <code>symbols</code> and <code>verification</code> filters as needed. Keep queries focused (at most 96 encoder tokens);
+long queries are refused rather than silently clipped. With the CLI use <code>desk recall &quot;&lt;question&gt;&quot; --source report</code>.
+Recall and session start do not wait for the global indexing backlog. Explicit <code>desk memory index</code> advances bounded
+work; inspect <code>desk memory status</code>. Pending can mean a live lease, backoff or a terminal error, so do not loop on
+pending alone. Continue while ready work/progress is reported; owner-only <code>desk memory retry --source ... --id ...</code>
+requeues a reviewed error. Indexing is not a pipeline closing obligation. The brief&#39;s journal relevance uses the same
+current profile and ranks against what is open now.</p>
 <p><strong>Build the Research library as you work.</strong> It holds the real-world material behind every position, and the owner
 reads it on the site:</p>
 <ul>

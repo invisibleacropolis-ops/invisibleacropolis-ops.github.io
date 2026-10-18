@@ -1937,6 +1937,256 @@
       ],
       "type": "object"
     },
+    "memory_inputs": {
+      "properties": {
+        "active": {
+          "default": true,
+          "format": "boolean",
+          "type": "boolean"
+        },
+        "id": {
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "metadata": {
+          "format": "jsonb"
+        },
+        "profile": {
+          "default": "gte-small-v1",
+          "format": "text",
+          "type": "string"
+        },
+        "source": {
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "text",
+          "type": "string"
+        },
+        "source_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "source_hash": {
+          "format": "text",
+          "type": "string"
+        },
+        "symbols": {
+          "format": "text[]",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "text": {
+          "format": "text",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "clock_timestamp()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "id",
+        "text",
+        "symbols",
+        "metadata",
+        "source_hash",
+        "profile",
+        "active",
+        "updated_at"
+      ],
+      "type": "object"
+    },
+    "memory_jobs": {
+      "properties": {
+        "attempts": {
+          "default": 0,
+          "format": "int32",
+          "type": "integer"
+        },
+        "claim_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "clock_timestamp()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "failures": {
+          "default": 0,
+          "format": "int32",
+          "type": "integer"
+        },
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "last_error": {
+          "format": "jsonb"
+        },
+        "lease_until": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "metadata": {
+          "format": "jsonb"
+        },
+        "prepared": {
+          "default": false,
+          "format": "boolean",
+          "type": "boolean"
+        },
+        "prepared_chars": {
+          "default": 0,
+          "format": "int32",
+          "type": "integer"
+        },
+        "profile": {
+          "default": "gte-small-v1",
+          "format": "text",
+          "type": "string"
+        },
+        "ready_at": {
+          "default": "clock_timestamp()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "source": {
+          "format": "text",
+          "type": "string"
+        },
+        "source_hash": {
+          "format": "text",
+          "type": "string"
+        },
+        "source_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "status": {
+          "default": "pending",
+          "format": "text",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "clock_timestamp()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "source",
+        "source_id",
+        "source_hash",
+        "profile",
+        "metadata",
+        "status",
+        "failures",
+        "attempts",
+        "prepared_chars",
+        "prepared",
+        "ready_at",
+        "created_at",
+        "updated_at"
+      ],
+      "type": "object"
+    },
+    "memory_passages": {
+      "properties": {
+        "embedding": {
+          "format": "extensions.vector(384)",
+          "type": "string"
+        },
+        "end_char": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "indexed_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "input_hash": {
+          "format": "text",
+          "type": "string"
+        },
+        "is_current": {
+          "default": true,
+          "format": "boolean",
+          "type": "boolean"
+        },
+        "job_id": {
+          "description": "Note:\nThis is a Foreign Key to `memory_jobs.id`.<fk table='memory_jobs' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "ordinal": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "profile": {
+          "default": "gte-small-v1",
+          "format": "text",
+          "type": "string"
+        },
+        "source": {
+          "format": "text",
+          "type": "string"
+        },
+        "source_hash": {
+          "format": "text",
+          "type": "string"
+        },
+        "source_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "start_char": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "stored_claim_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "text": {
+          "format": "text",
+          "type": "string"
+        },
+        "token_count": {
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "job_id",
+        "source",
+        "source_id",
+        "source_hash",
+        "profile",
+        "ordinal",
+        "start_char",
+        "end_char",
+        "text",
+        "input_hash",
+        "token_count",
+        "is_current"
+      ],
+      "type": "object"
+    },
     "order_attempts": {
       "properties": {
         "code": {
@@ -3990,6 +4240,33 @@
       "required": false,
       "schema": {
         "$ref": "#/definitions/memories"
+      }
+    },
+    "body.memory_inputs": {
+      "description": "memory_inputs",
+      "in": "body",
+      "name": "memory_inputs",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/memory_inputs"
+      }
+    },
+    "body.memory_jobs": {
+      "description": "memory_jobs",
+      "in": "body",
+      "name": "memory_jobs",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/memory_jobs"
+      }
+    },
+    "body.memory_passages": {
+      "description": "memory_passages",
+      "in": "body",
+      "name": "memory_passages",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/memory_passages"
       }
     },
     "body.order_attempts": {
@@ -6358,6 +6635,264 @@
     "rowFilter.memories.verification_status": {
       "in": "query",
       "name": "verification_status",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_inputs.active": {
+      "in": "query",
+      "name": "active",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_inputs.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_inputs.metadata": {
+      "in": "query",
+      "name": "metadata",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_inputs.profile": {
+      "in": "query",
+      "name": "profile",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_inputs.source": {
+      "in": "query",
+      "name": "source",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_inputs.source_at": {
+      "in": "query",
+      "name": "source_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_inputs.source_hash": {
+      "in": "query",
+      "name": "source_hash",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_inputs.symbols": {
+      "in": "query",
+      "name": "symbols",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_inputs.text": {
+      "in": "query",
+      "name": "text",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_inputs.updated_at": {
+      "in": "query",
+      "name": "updated_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_jobs.attempts": {
+      "in": "query",
+      "name": "attempts",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_jobs.claim_id": {
+      "in": "query",
+      "name": "claim_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_jobs.created_at": {
+      "in": "query",
+      "name": "created_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_jobs.failures": {
+      "in": "query",
+      "name": "failures",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_jobs.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_jobs.last_error": {
+      "in": "query",
+      "name": "last_error",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_jobs.lease_until": {
+      "in": "query",
+      "name": "lease_until",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_jobs.metadata": {
+      "in": "query",
+      "name": "metadata",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_jobs.prepared": {
+      "in": "query",
+      "name": "prepared",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_jobs.prepared_chars": {
+      "in": "query",
+      "name": "prepared_chars",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_jobs.profile": {
+      "in": "query",
+      "name": "profile",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_jobs.ready_at": {
+      "in": "query",
+      "name": "ready_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_jobs.source": {
+      "in": "query",
+      "name": "source",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_jobs.source_hash": {
+      "in": "query",
+      "name": "source_hash",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_jobs.source_id": {
+      "in": "query",
+      "name": "source_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_jobs.status": {
+      "in": "query",
+      "name": "status",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_jobs.updated_at": {
+      "in": "query",
+      "name": "updated_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_passages.embedding": {
+      "in": "query",
+      "name": "embedding",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_passages.end_char": {
+      "in": "query",
+      "name": "end_char",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_passages.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_passages.indexed_at": {
+      "in": "query",
+      "name": "indexed_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_passages.input_hash": {
+      "in": "query",
+      "name": "input_hash",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_passages.is_current": {
+      "in": "query",
+      "name": "is_current",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_passages.job_id": {
+      "in": "query",
+      "name": "job_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_passages.ordinal": {
+      "in": "query",
+      "name": "ordinal",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_passages.profile": {
+      "in": "query",
+      "name": "profile",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_passages.source": {
+      "in": "query",
+      "name": "source",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_passages.source_hash": {
+      "in": "query",
+      "name": "source_hash",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_passages.source_id": {
+      "in": "query",
+      "name": "source_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_passages.start_char": {
+      "in": "query",
+      "name": "start_char",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_passages.stored_claim_id": {
+      "in": "query",
+      "name": "stored_claim_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_passages.text": {
+      "in": "query",
+      "name": "text",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.memory_passages.token_count": {
+      "in": "query",
+      "name": "token_count",
       "required": false,
       "type": "string"
     },
@@ -10587,6 +11122,267 @@
         },
         "tags": [
           "memories"
+        ]
+      }
+    },
+    "/memory_inputs": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.memory_inputs.source"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_inputs.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_inputs.text"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_inputs.symbols"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_inputs.metadata"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_inputs.source_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_inputs.source_hash"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_inputs.profile"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_inputs.active"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_inputs.updated_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/memory_inputs"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "memory_inputs"
+        ]
+      }
+    },
+    "/memory_jobs": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.memory_jobs.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_jobs.source"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_jobs.source_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_jobs.source_hash"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_jobs.profile"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_jobs.metadata"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_jobs.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_jobs.claim_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_jobs.lease_until"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_jobs.failures"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_jobs.attempts"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_jobs.prepared_chars"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_jobs.prepared"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_jobs.ready_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_jobs.last_error"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_jobs.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_jobs.updated_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/memory_jobs"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "memory_jobs"
+        ]
+      }
+    },
+    "/memory_passages": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.memory_passages.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_passages.job_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_passages.source"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_passages.source_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_passages.source_hash"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_passages.profile"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_passages.ordinal"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_passages.start_char"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_passages.end_char"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_passages.text"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_passages.input_hash"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_passages.token_count"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_passages.embedding"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_passages.indexed_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_passages.stored_claim_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.memory_passages.is_current"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/memory_passages"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "memory_passages"
         ]
       }
     },
@@ -14983,6 +15779,114 @@
         ]
       }
     },
+    "/rpc/memory_retry": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "p_source": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_source",
+                "p_id"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) memory_retry"
+        ]
+      }
+    },
+    "/rpc/memory_search": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_embedding": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_k": {
+                  "format": "int32",
+                  "type": "integer"
+                },
+                "p_sources": {
+                  "format": "text[]",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "p_symbols": {
+                  "format": "text[]",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "p_verification": {
+                  "format": "text[]",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              },
+              "required": [
+                "p_embedding"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) memory_search"
+        ]
+      }
+    },
     "/rpc/memory_status": {
       "post": {
         "parameters": [
@@ -18145,7 +19049,10 @@
       "proposal",
       "task",
       "archive",
-      "document"
+      "document",
+      "report",
+      "decision",
+      "strategy"
     ],
     "pairing_scopes": [
       "read",

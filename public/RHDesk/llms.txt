@@ -214,13 +214,20 @@ Content-Type: application/json
 {"query": "what have we learned about sizing speculative positions?", "k": 5}
 ```
 
-Results are Archivist memories, journal entries, scouts, Research library passages and Archive entries, nearest
+Results include Archivist memories, journal entries, scouts, Research passages, current complete reports, decisions,
+strategy hypotheses, open proposals/tasks and historical Archive entries, nearest
 first, each with a `similarity`. Memory results include typed sources, assertion/verification/provenance status,
 source revision/hash and receipt identity where available. Historical unvalidated memories are labelled as such.
 Normal recall excludes superseded/retracted memories; their original records remain readable for history.
-Open proposal/task vectors help rank journals in the brief; they are not direct
-recall results. With the
-CLI it is `desk recall "<question>"`. The brief's `relevant_journal` already ranks entries against what is open now.
+Every result carries a `source_ref`/hash, index profile, passage identity/span, original uncertainty/lifecycle and
+coverage. A partial current source may yield its available passages; a corrected source cannot yield its old generation.
+Pass `sources`, `symbols` and `verification` filters as needed. Keep queries focused (at most 96 encoder tokens);
+long queries are refused rather than silently clipped. With the CLI use `desk recall "<question>" --source report`.
+Recall and session start do not wait for the global indexing backlog. Explicit `desk memory index` advances bounded
+work; inspect `desk memory status`. Pending can mean a live lease, backoff or a terminal error, so do not loop on
+pending alone. Continue while ready work/progress is reported; owner-only `desk memory retry --source ... --id ...`
+requeues a reviewed error. Indexing is not a pipeline closing obligation. The brief's journal relevance uses the same
+current profile and ranks against what is open now.
 
 **Build the Research library as you work.** It holds the real-world material behind every position, and the owner
 reads it on the site:
