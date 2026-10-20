@@ -123,12 +123,20 @@ Finish operational work before taking the report boundary:
 
 1. **Decision.** `decision_record(p_action, p_reasoning, p_evidence, p_position_plan, p_next_review)` records
    trade/manage/hold/research/blocked, substantive reasoning, sources with `source` and `observed_at`, a plan for `cash`
-   and every held ticker, and the next review time/observation/condition. The compatibility `require_action` switch
+   and every held ticker, and the next review time/observation/condition. Copy the actual source timestamp; a recorded
+   Desk-history timestamp is valid historical evidence and must not be presented as a fresh market read.
+   The compatibility `require_action` switch
    requires this decision in live operator sessions; a failed order attempt does not satisfy it.
-2. **Session Report.** `session_report_build()`, then read `get_portfolio` and `get_equity_positions` through
+2. **Session Report.** `session_report_build()` returns `verification_requirements`; retrieve them again with
+   `report_verification_requirements()`. Then read `get_portfolio` and `get_equity_positions`, account `agentic`, through
    `robinhood-read`. Sign with `session_report_verify`: `p_checks: [{field, observed_value, source: "robinhood_mcp",
-   evidence_id}]`. Canonical fields are `equity`, `cash`, and the ticker for its quantity. The Desk derives its own
-   compared values and binds observations to the specific broker field, this session and a read after report build.
+   evidence_id}]`. Canonical fields are `equity`, `cash`, `positions` (the actual complete positions array, including
+   `[]` when actually empty), and each held ticker for its quantity. Numeric `0` is accepted for `positions` only when
+   the actual broker array is empty. The Desk derives its own compared values and binds observations to the specific
+   broker field, agentic account, this session and a complete read after report build. A missing/malformed array cannot
+   prove empty holdings. Other accounts are readable context; canonical verification covers the agentic account.
+   Screenshots are optional supporting material. Missing screenshots or an unavailable cash-transaction feed do not
+   prevent checking available balances and holdings; preserve any actual unresolved reconciliation gaps.
    List absent evidence in `p_unverifiable: [{field, reason}]`. Unsupported claims cannot become verified.
 3. **Diary and end.** `diary_submit(p_markdown, p_title)` records reasoning and lessons; then `session_end` supplies
    a real summary and next steps. Signing closes the operational interval and blocks further execution mutations.
@@ -257,6 +265,20 @@ policy fails. The Desk executes **equities and ETFs** with `market`, `limit`, `s
 Market and stop orders require regular market hours; limit orders may rest until the open. Read
 Robinhood the same way, read-only: `POST https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/robinhood-read {"tool": "get_equity_quotes",
 "args": {"symbols": ["AAPL"]}}` (CLI: `desk rh get_equity_quotes --args '{"symbols":["AAPL"]}'`).
+
+Discover the actual linked broker's permitted read tools and exact schemas with
+`POST /functions/v1/robinhood-read {"action":"tools","query":"news filings scanners"}`
+(CLI: `desk rh tools --query "news filings scanners"`; built-in runner: `robinhood_tools`). Follow `next_offset`
+for additional results. Discovery includes advertised P&L/history, tax lots, options/crypto research and saved resources
+under current policy; an unavailable or unsupported tool must be reported honestly.
+
+`desk rh get_accounts` returns masked accounts with opaque `account_ref` and synced Desk `account_id` selectors.
+Choose one with `desk rh get_portfolio --account <selector>` (HTTP top-level `account`), or use default `agentic`.
+The owner has authorized Operator reads of all linked accounts. `broker_read_policy_set` can narrow this to `agentic`;
+other read grants retain core agentic-only access. The response identifies the account or user-wide/market scope actually
+read. Account numbers and private verification metadata are supplied by the service. Core report reads remain available
+with research off. Bounded positions/orders return completeness and any remaining cursor; incomplete evidence cannot
+prove the full holdings set. Read access leaves trading restricted to the agentic account and existing equity/ETF tools.
 
 ### Free Trading and position management
 

@@ -1086,6 +1086,11 @@
           "format": "boolean",
           "type": "boolean"
         },
+        "broker_read_account_scope": {
+          "default": "all_linked",
+          "format": "text",
+          "type": "string"
+        },
         "entry_loss_date": {
           "format": "date",
           "type": "string"
@@ -1154,7 +1159,8 @@
         "auto_archive_days",
         "review_policy",
         "require_action",
-        "pause_entries"
+        "pause_entries",
+        "broker_read_account_scope"
       ],
       "type": "object"
     },
@@ -5738,6 +5744,12 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.desk_settings.broker_read_account_scope": {
+      "in": "query",
+      "name": "broker_read_account_scope",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.desk_settings.entry_loss_date": {
       "in": "query",
       "name": "entry_loss_date",
@@ -10140,6 +10152,9 @@
             "$ref": "#/parameters/rowFilter.desk_settings.entry_loss_date"
           },
           {
+            "$ref": "#/parameters/rowFilter.desk_settings.broker_read_account_scope"
+          },
+          {
             "$ref": "#/parameters/select"
           },
           {
@@ -14097,6 +14112,75 @@
         ]
       }
     },
+    "/rpc/broker_read_access": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) broker_read_access"
+        ]
+      }
+    },
+    "/rpc/broker_read_policy_set": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_account_scope": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_account_scope"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) broker_read_policy_set"
+        ]
+      }
+    },
     "/rpc/chapter_submit": {
       "post": {
         "parameters": [
@@ -14407,7 +14491,28 @@
                   "type": "string"
                 },
                 "p_evidence": {
-                  "format": "jsonb"
+                  "description": "Actual sourced evidence; copy the real observation or Desk-history timestamp, never invent one.",
+                  "format": "jsonb",
+                  "items": {
+                    "additionalProperties": true,
+                    "properties": {
+                      "observed_at": {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      "source": {
+                        "minLength": 1,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "source",
+                      "observed_at"
+                    ],
+                    "type": "object"
+                  },
+                  "minItems": 1,
+                  "type": "array"
                 },
                 "p_next_review": {
                   "format": "text",
@@ -17237,6 +17342,36 @@
         ]
       }
     },
+    "/rpc/report_verification_requirements": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) report_verification_requirements"
+        ]
+      }
+    },
     "/rpc/require_action_set": {
       "post": {
         "parameters": [
@@ -17593,7 +17728,36 @@
             "schema": {
               "properties": {
                 "p_checks": {
-                  "format": "jsonb"
+                  "description": "Agentic canonical equity, cash, complete positions array (including actual []), and held ticker quantities; use post-build trusted broker evidence.",
+                  "format": "jsonb",
+                  "items": {
+                    "properties": {
+                      "evidence_id": {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      "field": {
+                        "type": "string"
+                      },
+                      "observed_value": {
+                        "description": "Actual numeric broker value, or the actual positions array for field positions; numeric zero only for actually empty positions."
+                      },
+                      "source": {
+                        "enum": [
+                          "robinhood_mcp"
+                        ],
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "field",
+                      "observed_value",
+                      "source",
+                      "evidence_id"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
                 },
                 "p_screenshots": {
                   "format": "text[]",
@@ -17603,7 +17767,23 @@
                   "type": "array"
                 },
                 "p_unverifiable": {
-                  "format": "jsonb"
+                  "format": "jsonb",
+                  "items": {
+                    "properties": {
+                      "field": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "field",
+                      "reason"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
                 }
               },
               "type": "object"
@@ -17685,7 +17865,28 @@
             "schema": {
               "properties": {
                 "p_evidence": {
-                  "format": "jsonb"
+                  "description": "Actual sourced evidence; copy the real observation or Desk-history timestamp, never invent one.",
+                  "format": "jsonb",
+                  "items": {
+                    "additionalProperties": true,
+                    "properties": {
+                      "observed_at": {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      "source": {
+                        "minLength": 1,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "source",
+                      "observed_at"
+                    ],
+                    "type": "object"
+                  },
+                  "minItems": 1,
+                  "type": "array"
                 },
                 "p_hypothesis": {
                   "format": "text",

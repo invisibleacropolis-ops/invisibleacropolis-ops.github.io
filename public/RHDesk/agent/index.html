@@ -153,11 +153,19 @@ agent starts blind.</p>
 <ol>
 <li><strong>Decision.</strong> <code>decision_record(p_action, p_reasoning, p_evidence, p_position_plan, p_next_review)</code> records
 trade/manage/hold/research/blocked, substantive reasoning, sources with <code>source</code> and <code>observed_at</code>, a plan for <code>cash</code>
-and every held ticker, and the next review time/observation/condition. The compatibility <code>require_action</code> switch
+and every held ticker, and the next review time/observation/condition. Copy the actual source timestamp; a recorded
+Desk-history timestamp is valid historical evidence and must not be presented as a fresh market read.
+The compatibility <code>require_action</code> switch
 requires this decision in live operator sessions; a failed order attempt does not satisfy it.</li>
-<li><strong>Session Report.</strong> <code>session_report_build()</code>, then read <code>get_portfolio</code> and <code>get_equity_positions</code> through
-<code>robinhood-read</code>. Sign with <code>session_report_verify</code>: <code>p_checks: [{field, observed_value, source: &quot;robinhood_mcp&quot;, evidence_id}]</code>. Canonical fields are <code>equity</code>, <code>cash</code>, and the ticker for its quantity. The Desk derives its own
-compared values and binds observations to the specific broker field, this session and a read after report build.
+<li><strong>Session Report.</strong> <code>session_report_build()</code> returns <code>verification_requirements</code>; retrieve them again with
+<code>report_verification_requirements()</code>. Then read <code>get_portfolio</code> and <code>get_equity_positions</code>, account <code>agentic</code>, through
+<code>robinhood-read</code>. Sign with <code>session_report_verify</code>: <code>p_checks: [{field, observed_value, source: &quot;robinhood_mcp&quot;, evidence_id}]</code>. Canonical fields are <code>equity</code>, <code>cash</code>, <code>positions</code> (the actual complete positions array, including
+<code>[]</code> when actually empty), and each held ticker for its quantity. Numeric <code>0</code> is accepted for <code>positions</code> only when
+the actual broker array is empty. The Desk derives its own compared values and binds observations to the specific
+broker field, agentic account, this session and a complete read after report build. A missing/malformed array cannot
+prove empty holdings. Other accounts are readable context; canonical verification covers the agentic account.
+Screenshots are optional supporting material. Missing screenshots or an unavailable cash-transaction feed do not
+prevent checking available balances and holdings; preserve any actual unresolved reconciliation gaps.
 List absent evidence in <code>p_unverifiable: [{field, reason}]</code>. Unsupported claims cannot become verified.</li>
 <li><strong>Diary and end.</strong> <code>diary_submit(p_markdown, p_title)</code> records reasoning and lessons; then <code>session_end</code> supplies
 a real summary and next steps. Signing closes the operational interval and blocks further execution mutations.
@@ -272,6 +280,18 @@ execution is frozen (<code>trading_disabled</code>), scope or approval is missin
 policy fails. The Desk executes <strong>equities and ETFs</strong> with <code>market</code>, <code>limit</code>, <code>stop_market</code> and <code>stop_limit</code> orders.
 Market and stop orders require regular market hours; limit orders may rest until the open. Read
 Robinhood the same way, read-only: <code>POST https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/robinhood-read {&quot;tool&quot;: &quot;get_equity_quotes&quot;, &quot;args&quot;: {&quot;symbols&quot;: [&quot;AAPL&quot;]}}</code> (CLI: <code>desk rh get_equity_quotes --args &#39;{&quot;symbols&quot;:[&quot;AAPL&quot;]}&#39;</code>).</p>
+<p>Discover the actual linked broker&#39;s permitted read tools and exact schemas with
+<code>POST /functions/v1/robinhood-read {&quot;action&quot;:&quot;tools&quot;,&quot;query&quot;:&quot;news filings scanners&quot;}</code>
+(CLI: <code>desk rh tools --query &quot;news filings scanners&quot;</code>; built-in runner: <code>robinhood_tools</code>). Follow <code>next_offset</code>
+for additional results. Discovery includes advertised P&amp;L/history, tax lots, options/crypto research and saved resources
+under current policy; an unavailable or unsupported tool must be reported honestly.</p>
+<p><code>desk rh get_accounts</code> returns masked accounts with opaque <code>account_ref</code> and synced Desk <code>account_id</code> selectors.
+Choose one with <code>desk rh get_portfolio --account &lt;selector&gt;</code> (HTTP top-level <code>account</code>), or use default <code>agentic</code>.
+The owner has authorized Operator reads of all linked accounts. <code>broker_read_policy_set</code> can narrow this to <code>agentic</code>;
+other read grants retain core agentic-only access. The response identifies the account or user-wide/market scope actually
+read. Account numbers and private verification metadata are supplied by the service. Core report reads remain available
+with research off. Bounded positions/orders return completeness and any remaining cursor; incomplete evidence cannot
+prove the full holdings set. Read access leaves trading restricted to the agentic account and existing equity/ETF tools.</p>
 <h3>Free Trading and position management</h3>
 <p>When Free Trading is authorized, use <code>POST /functions/v1/execute/trade</code> with
 <code>{symbol, side, type, quantity | dollar_amount, thesis, idempotency_key, protective_stop?}</code> plus the appropriate prices.

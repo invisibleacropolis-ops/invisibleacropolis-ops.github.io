@@ -117,6 +117,7 @@
       "rule": "Read current scope, mode and effective permissions. A capability declaration does not grant authorization."
     },
     "execution": {
+      "account_scope": "agentic",
       "required_scope": "operator+execute",
       "asset_classes": [
         "equity",
@@ -150,6 +151,34 @@
       "diary_submit",
       "session_end"
     ],
+    "verification": {
+      "requirements_rpc": "report_verification_requirements",
+      "also_in": "session_report_build.data.verification_requirements",
+      "account": "agentic",
+      "fields": "equity, cash, positions (actual complete array, including actual []), and each held ticker quantity",
+      "evidence": "source robinhood_mcp and each actual response evidence_id; trusted complete reads in this session after report build",
+      "decision_evidence": "Each source needs actual observed_at; Desk record timestamps are historical evidence, never invented fresh market reads.",
+      "screenshots_required": false,
+      "context_accounts": "Other linked accounts are readable context outside canonical agentic verification."
+    },
+    "broker_reads": {
+      "url": "https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/robinhood-read",
+      "discover": {
+        "action": "tools",
+        "query": "purpose or tool name",
+        "offset": 0,
+        "limit": 8
+      },
+      "read": {
+        "tool": "broker-advertised permitted read tool",
+        "args": {},
+        "account": "agentic or account_id/account_ref from get_accounts"
+      },
+      "policy_rpc": "broker_read_access",
+      "owner_policy_setter": "broker_read_policy_set",
+      "policy": "Operator reads all linked accounts under current owner policy; other read grants keep core agentic-only access. Trading remains agentic-only.",
+      "completeness": "Positions/orders assemble bounded pages and expose any remaining cursor. Incomplete reads cannot prove full holdings."
+    },
     "research": {
       "native_search": "The built-in runner exposes provider-native web_search when research is enabled; availability depends on the configured provider/model/account. External agents use their own harness tools.",
       "capture_url": "https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/clip",
