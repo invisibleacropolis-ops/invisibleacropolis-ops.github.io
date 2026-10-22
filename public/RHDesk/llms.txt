@@ -6,9 +6,25 @@
 
 Machine-readable: [agent.json](https://invisibleacropolis-ops.github.io/RHDesk/agent.json) · API spec: [openapi.json](https://invisibleacropolis-ops.github.io/RHDesk/openapi.json) · Markdown: [agent.md](https://invisibleacropolis-ops.github.io/RHDesk/agent.md)
 
-**Protocol updated October 17, 2026.** The owner supplies the goal and authorization boundaries; the operator owns
+**Protocol updated October 21, 2026.** The owner supplies the goal and authorization boundaries; the operator owns
 research, strategy development, execution decisions and learning from actual outcomes. A broad mandate does not
 require the owner to supply a trading method. An evidence-supported hold or research decision is valid.
+
+**Live trader authority and continuity.** `execution_policy=account` makes the agentic account the trading boundary:
+extra Desk sizing, deployment, concentration, trade-count, daily-loss and mandatory-stop rules are inactive. The owner
+can opt into `constrained` policy with `execution_policy_set`. Actual broker eligibility, available funds/holdings,
+duplicate prevention and current owner execution switches still apply. Direct crypto uses only the eligible crypto
+account linked to this same agentic brokerage account; reading other linked accounts never grants trading access.
+
+The built-in runner loads `operator_context` and real semantic memory before model work. Resume the inbound wake's
+specific checkpoint and decision; historical paper protocols and frozen research rules are revisable agent hypotheses,
+not owner restrictions. Save `operator_checkpoint({p_state:{objective,next_action,...}})` with actual unfinished work
+and intent/evidence identities. A recorded decision also preserves a basic handoff automatically. Use
+`operator_continue_at(p_at,p_reason)` **before signing** for later attendance. Tasks and `next_review` prose do not
+schedule runs. The minute clock queues a due continuation when no Operator run is active, retaining due work during
+an overlap. The owner can disable continuation; chain/day caps are optional and unset by default. A near-term
+observation may use the built-in `operator_wait` within the actual run budget. Dispatch latency is not a promise of
+second-level attendance.
 
 This page describes the available protocol, not your account's current permissions or connection status. Operators
 read `data.brief.capabilities` after starting and call `execution_capabilities()` as work proceeds. Archivist/Novelist
@@ -128,10 +144,13 @@ Finish operational work before taking the report boundary:
    The compatibility `require_action` switch
    requires this decision in live operator sessions; a failed order attempt does not satisfy it.
 2. **Session Report.** `session_report_build()` returns `verification_requirements`; retrieve them again with
-   `report_verification_requirements()`. Then read `get_portfolio` and `get_equity_positions`, account `agentic`, through
+   `report_verification_requirements()`. Then read `get_portfolio`, `get_equity_positions` and linked `get_crypto_positions`, account `agentic`, through
    `robinhood-read`. Sign with `session_report_verify`: `p_checks: [{field, observed_value, source: "robinhood_mcp",
-   evidence_id}]`. Canonical fields are `equity`, `cash`, `positions` (the actual complete positions array, including
-   `[]` when actually empty), and each held ticker for its quantity. Numeric `0` is accepted for `positions` only when
+   evidence_id, crypto_evidence_id?}]`. New reports use canonical fields `equity`, `cash`, `equity:SYMBOL`/`crypto:SYMBOL`
+   and `positions`: the combined complete array with `asset_class`, `symbol`, `quantity`, including `[]` when empty.
+   The positions check needs the equity receipt plus same-account `crypto_evidence_id`, unless service evidence explicitly
+   confirms no crypto link. Missing crypto-link evidence is unknown. Historical reports retain their original fields.
+   Numeric `0` is accepted for `positions` only when
    the actual broker array is empty. The Desk derives its own compared values and binds observations to the specific
    broker field, agentic account, this session and a complete read after report build. A missing/malformed array cannot
    prove empty holdings. Other accounts are readable context; canonical verification covers the agentic account.
@@ -252,8 +271,8 @@ The brief lists the owner's active goals and every mandate (status, strategy, li
 mandate draft needs owner activation before it can authorize proposals; owner-created or owner-revised mandates
 under active goals take effect immediately. Research toward a draft while it awaits activation. Draft a missing
 mandate with `mandate_draft` when permitted, and record the authorization dependency in the journal.
-Free Trading separately grants discretion within the owner's account envelope and applicable active mandate
-constraints. Neither a strategy record nor a draft can expand that authority.
+Free Trading separately grants discretion under current account authority. Configured mandate limits are binding
+only in constrained policy. Neither a strategy record nor a draft can expand account access.
 
 ### Placing orders
 
@@ -261,8 +280,10 @@ With scope `operator+execute`, place an approved or auto-approved proposal's ord
 `POST https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/execute {"proposal_id": "…"}` (CLI: `desk execute <proposal-id>`). The Desk re-checks it,
 places it in the agentic account, and records it; you do not call Robinhood's order tools yourself. It refuses when
 execution is frozen (`trading_disabled`), scope or approval is missing, account state is stale/incomplete, or current
-policy fails. The Desk executes **equities and ETFs** with `market`, `limit`, `stop_market` and `stop_limit` orders.
-Market and stop orders require regular market hours; limit orders may rest until the open. Read
+policy fails. The Desk executes **equities, ETFs and eligible linked crypto** with `market`, `limit`, `stop_market` and
+`stop_limit` orders. Equity market and stop orders require regular market hours; equity limits may rest until the open.
+Crypto follows actual broker availability, including outside equity hours. `execute/preview` refreshes current state and
+obtains a real broker preview without reserving or placing an order; use it to diagnose actual current blockers. Read
 Robinhood the same way, read-only: `POST https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/robinhood-read {"tool": "get_equity_quotes",
 "args": {"symbols": ["AAPL"]}}` (CLI: `desk rh get_equity_quotes --args '{"symbols":["AAPL"]}'`).
 
@@ -278,26 +299,29 @@ The owner has authorized Operator reads of all linked accounts. `broker_read_pol
 other read grants retain core agentic-only access. The response identifies the account or user-wide/market scope actually
 read. Account numbers and private verification metadata are supplied by the service. Core report reads remain available
 with research off. Bounded positions/orders return completeness and any remaining cursor; incomplete evidence cannot
-prove the full holdings set. Read access leaves trading restricted to the agentic account and existing equity/ETF tools.
+prove the full holdings set. Read access leaves trading restricted to the agentic account.
 
 ### Free Trading and position management
 
 When Free Trading is authorized, use `POST /functions/v1/execute/trade` with
-`{symbol, side, type, quantity | dollar_amount, thesis, idempotency_key, protective_stop?}` plus the appropriate prices.
-The Desk checks owner entry caps and optional active mandate constraints for buys. Sells, cancellations and protection
+`{symbol, asset_class?, side, type, quantity | dollar_amount, thesis, idempotency_key, protective_stop?}` plus the appropriate prices.
+Use `asset_class:crypto` for crypto; dollar sizing works for every crypto order type, subject to actual broker validation.
+Extra Desk entry caps and mandate constraints apply only in constrained policy. Sells, cancellations and protection
 maintenance do not consume entry counts or buy-size/exposure allowances. They still require current complete broker
 state, real available held shares and permission to execute. The owner can pause entries independently of a full freeze.
 Approved proposals remain executable in both regimes. A full freeze blocks new broker mutations; existing orders may fill.
 
 Use `account_refresh` (`POST /functions/v1/execute/refresh`, CLI `desk account refresh`) for authoritative account,
-holdings, orders and quotes. Broker reads used as evidence do not update authorization state. Never supply account
+holdings, orders and quotes. Include `asset_class:crypto` with requested crypto symbols, even before the first purchase.
+Broker reads used as evidence do not update authorization state. Never supply account
 balances or order outcomes yourself. Every trade and management decision needs a durable idempotency key. A replay
 retrieves state; it never submits an uncertain order again. Refresh/reconcile the original identity before further action.
 
 `POST /functions/v1/execute/manage` (`desk position manage`) takes `symbol`, `operation` (`exit` or `protect`),
 `thesis`, `idempotency_key`, optional `quantity` (omit for whole position), `stop_price` for protection and optional
-`limit_price`. It refreshes, cancels reserving Desk sell orders, confirms broker terminal state, recomputes available
-shares and submits the reducing order. Resume a pending operation with the same key. Owner-origin orders are preserved.
+`limit_price` and `asset_class` (crypto must be explicit). It refreshes, cancels reserving sell orders, confirms broker
+terminal state, recomputes available asset units and submits the reducing order. Resume a pending operation with the
+same key. Account policy permits managing all orders within the agentic account; constrained policy preserves owner-origin orders.
 A cancellation acknowledgment alone does not release shares. `execute/cancel {order_id}` also works in either regime.
 
 Protection is asynchronous. A buy's `protective_stop` requests a resting stop after fills are observed, including partial
@@ -311,7 +335,7 @@ an order just to satisfy close-out. The scoreboard describes goal arithmetic, no
 ### Autonomous research and strategy
 
 The owner may give only a broad goal. `mandate_draft` accepts optional strategy text and `{}` limits, inheriting the
-owner's account entry envelope. Additional mandate limits narrow it. The agent develops hypotheses, candidates, sizing,
+owner's account authority. Additional mandate limits narrow it only in constrained execution policy. The agent develops hypotheses, candidates, sizing,
 entries and exits using market observations and Desk history. Keep evolving ideas in `strategy_record` with evidence,
 observation times and review conditions; this does not change owner authorization.
 
@@ -335,11 +359,14 @@ return and R, realized P&L), `by_setup`, `by_model`, and the last five closed tr
 ended (`stop` or `sell`). Use those outcomes to revise hypotheses, while considering sample size, costs and changing
 market conditions; a short winning streak is not proof that a strategy works.
 `trade_outcomes(p_days)` lists every trade with its entry, exit, return, R multiple and holding time.
+If cumulative fills cannot establish chronology, affected outcomes are marked `uncertain` with null exit/return
+metrics and an uncertainty count in the summary. Do not infer flat performance or a fully exited lot from missing
+attribution. Use current broker holdings and actual history; protection is allocated against actual holdings.
 
 ### The mandate comes first
 
 The owner's active mandate takes priority over conflicting playbook guidance, standing notes and earlier agent plans.
-It does not bypass scope, the owner's execution controls or account entry caps. The brief's `authority` block lists
+It does not bypass scope, the owner's execution controls or the broker's account requirements. Extra Desk entry caps apply only in constrained policy. The brief's `authority` block lists
 the active mandates. Each open proposal in the brief
 says who wrote it (`written_by`: the owner or which agent); what agents wrote is a plan you may change under the mandate.
 
@@ -389,7 +416,7 @@ observations and explain unverifiable report fields.
 ## 7. Rules that always apply
 
 1. Place orders only through the Desk, and only with scope `operator+execute`: `execute` for an `approved` or
-   `auto_approved` proposal, or, while the owner has Free Trading on, `execute/trade` within the caps. The Desk records
+   `auto_approved` proposal, or, while the owner has Free Trading on, `execute/trade` under current account authority. The Desk records
    the order; never call Robinhood's order tools yourself.
 2. Never fabricate numbers. The Desk syncs Robinhood itself on a schedule once the owner has linked it (check
    `robinhood_status` or `desk sync status`). If the brief says data is stale, call `account_refresh`

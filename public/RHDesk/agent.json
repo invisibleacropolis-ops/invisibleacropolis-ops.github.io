@@ -2,7 +2,7 @@
   "name": "RHDesk",
   "description": "Single source of truth desk for agentic trading on Robinhood. Pair, start a session, follow next_actions.",
   "protocol_version": 1,
-  "protocol_updated": "2026-10-16",
+  "protocol_updated": "2026-10-21",
   "roles": [
     "archivist",
     "novelist",
@@ -121,7 +121,8 @@
       "required_scope": "operator+execute",
       "asset_classes": [
         "equity",
-        "etf"
+        "etf",
+        "crypto"
       ],
       "order_types": [
         "market",
@@ -138,15 +139,23 @@
         "trade": "https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/execute/trade",
         "cancel": "https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/execute/cancel",
         "manage": "https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/execute/manage",
-        "refresh": "https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/execute/refresh"
+        "refresh": "https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/execute/refresh",
+        "preview": "https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/execute/preview"
       },
-      "rules": "Use Desk order routes only. Exits/protection do not consume entry allowances. Full freeze and held-share reservations still apply. Reconcile uncertain outcomes with the original identity; never resubmit under a new key.",
+      "rules": "Use Desk order routes only. Account policy deactivates extra Desk caps and mandate sizing/stop restrictions; constrained policy opts into them. Current owner switches, broker requirements and held-asset reservations still apply. Eligible direct crypto resolves the same agentic account link and operates independently of equity hours. Reconcile uncertain outcomes with the original identity; never resubmit under a new key.",
       "protection": "Asynchronous after observed fills; inspect brief.protection_lifecycle for actual broker-confirmed coverage."
     },
+    "continuity": {
+      "context_rpc": "operator_context",
+      "checkpoint_rpc": "operator_checkpoint",
+      "continue_rpc": "operator_continue_at",
+      "rule": "Load the specific source checkpoint and actual semantic memories before model work. Save unfinished state and arrange real attendance before signing; prose next_review and tasks are not schedulers. Agent paper protocols are revisable evidence."
+    },
     "close_in_order": [
+      "operator_checkpoint and operator_continue_at when further attendance is needed",
       "decision_record",
       "session_report_build",
-      "robinhood-read: get_portfolio and get_equity_positions",
+      "robinhood-read: get_portfolio, get_equity_positions and linked get_crypto_positions",
       "session_report_verify",
       "diary_submit",
       "session_end"
@@ -155,8 +164,8 @@
       "requirements_rpc": "report_verification_requirements",
       "also_in": "session_report_build.data.verification_requirements",
       "account": "agentic",
-      "fields": "equity, cash, positions (actual complete array, including actual []), and each held ticker quantity",
-      "evidence": "source robinhood_mcp and each actual response evidence_id; trusted complete reads in this session after report build",
+      "fields": "Follow report version requirements: equity, cash, combined positions (including actual []), and equity:SYMBOL or crypto:SYMBOL quantities for asset-v2 reports",
+      "evidence": "source robinhood_mcp and actual response evidence_id; asset-v2 positions also need crypto_evidence_id unless trusted service establishes no crypto link. Same-account complete reads in this session after report build.",
       "decision_evidence": "Each source needs actual observed_at; Desk record timestamps are historical evidence, never invented fresh market reads.",
       "screenshots_required": false,
       "context_accounts": "Other linked accounts are readable context outside canonical agentic verification."

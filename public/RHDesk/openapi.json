@@ -1095,6 +1095,11 @@
           "format": "date",
           "type": "string"
         },
+        "execution_policy": {
+          "default": "account",
+          "format": "text",
+          "type": "string"
+        },
         "free_caps": {
           "format": "jsonb"
         },
@@ -1160,7 +1165,8 @@
         "review_policy",
         "require_action",
         "pause_entries",
-        "broker_read_account_scope"
+        "broker_read_account_scope",
+        "execution_policy"
       ],
       "type": "object"
     },
@@ -2193,6 +2199,129 @@
       ],
       "type": "object"
     },
+    "operator_checkpoints": {
+      "properties": {
+        "session_id": {
+          "description": "Note:\nThis is a Primary Key.<pk/>\nThis is a Foreign Key to `sessions.id`.<fk table='sessions' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "state": {
+          "format": "jsonb"
+        },
+        "updated_at": {
+          "default": "clock_timestamp()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "required": [
+        "session_id",
+        "state",
+        "updated_at"
+      ],
+      "type": "object"
+    },
+    "operator_continuation_policy": {
+      "properties": {
+        "enabled": {
+          "default": true,
+          "format": "boolean",
+          "type": "boolean"
+        },
+        "horizon_hours": {
+          "default": 168,
+          "format": "int32",
+          "type": "integer"
+        },
+        "id": {
+          "default": true,
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "boolean",
+          "type": "boolean"
+        },
+        "max_chain": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "max_per_day": {
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "enabled",
+        "horizon_hours"
+      ],
+      "type": "object"
+    },
+    "operator_wakes": {
+      "properties": {
+        "created_at": {
+          "default": "clock_timestamp()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "depth": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "due_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "last_error": {
+          "format": "text",
+          "type": "string"
+        },
+        "queued_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "reason": {
+          "format": "text",
+          "type": "string"
+        },
+        "root_session_id": {
+          "description": "Note:\nThis is a Foreign Key to `sessions.id`.<fk table='sessions' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "run_id": {
+          "description": "Note:\nThis is a Foreign Key to `agent_runs.id`.<fk table='agent_runs' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "source_session_id": {
+          "description": "Note:\nThis is a Foreign Key to `sessions.id`.<fk table='sessions' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "status": {
+          "default": "pending",
+          "format": "text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "source_session_id",
+        "root_session_id",
+        "depth",
+        "due_at",
+        "reason",
+        "status",
+        "created_at"
+      ],
+      "type": "object"
+    },
     "order_attempts": {
       "properties": {
         "code": {
@@ -2771,6 +2900,11 @@
     },
     "position_operations": {
       "properties": {
+        "asset_class": {
+          "default": "equity",
+          "format": "text",
+          "type": "string"
+        },
         "created_at": {
           "default": "now()",
           "format": "timestamp with time zone",
@@ -2850,7 +2984,8 @@
         "thesis",
         "status",
         "created_at",
-        "updated_at"
+        "updated_at",
+        "asset_class"
       ],
       "type": "object"
     },
@@ -4273,6 +4408,33 @@
       "required": false,
       "schema": {
         "$ref": "#/definitions/memory_passages"
+      }
+    },
+    "body.operator_checkpoints": {
+      "description": "operator_checkpoints",
+      "in": "body",
+      "name": "operator_checkpoints",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/operator_checkpoints"
+      }
+    },
+    "body.operator_continuation_policy": {
+      "description": "operator_continuation_policy",
+      "in": "body",
+      "name": "operator_continuation_policy",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/operator_continuation_policy"
+      }
+    },
+    "body.operator_wakes": {
+      "description": "operator_wakes",
+      "in": "body",
+      "name": "operator_wakes",
+      "required": false,
+      "schema": {
+        "$ref": "#/definitions/operator_wakes"
       }
     },
     "body.order_attempts": {
@@ -5756,6 +5918,12 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.desk_settings.execution_policy": {
+      "in": "query",
+      "name": "execution_policy",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.desk_settings.free_caps": {
       "in": "query",
       "name": "free_caps",
@@ -6908,6 +7076,120 @@
       "required": false,
       "type": "string"
     },
+    "rowFilter.operator_checkpoints.session_id": {
+      "in": "query",
+      "name": "session_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.operator_checkpoints.state": {
+      "in": "query",
+      "name": "state",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.operator_checkpoints.updated_at": {
+      "in": "query",
+      "name": "updated_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.operator_continuation_policy.enabled": {
+      "in": "query",
+      "name": "enabled",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.operator_continuation_policy.horizon_hours": {
+      "in": "query",
+      "name": "horizon_hours",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.operator_continuation_policy.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.operator_continuation_policy.max_chain": {
+      "in": "query",
+      "name": "max_chain",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.operator_continuation_policy.max_per_day": {
+      "in": "query",
+      "name": "max_per_day",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.operator_wakes.created_at": {
+      "in": "query",
+      "name": "created_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.operator_wakes.depth": {
+      "in": "query",
+      "name": "depth",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.operator_wakes.due_at": {
+      "in": "query",
+      "name": "due_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.operator_wakes.id": {
+      "in": "query",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.operator_wakes.last_error": {
+      "in": "query",
+      "name": "last_error",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.operator_wakes.queued_at": {
+      "in": "query",
+      "name": "queued_at",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.operator_wakes.reason": {
+      "in": "query",
+      "name": "reason",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.operator_wakes.root_session_id": {
+      "in": "query",
+      "name": "root_session_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.operator_wakes.run_id": {
+      "in": "query",
+      "name": "run_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.operator_wakes.source_session_id": {
+      "in": "query",
+      "name": "source_session_id",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.operator_wakes.status": {
+      "in": "query",
+      "name": "status",
+      "required": false,
+      "type": "string"
+    },
     "rowFilter.order_attempts.code": {
       "in": "query",
       "name": "code",
@@ -7505,6 +7787,12 @@
     "rowFilter.playbook.version": {
       "in": "query",
       "name": "version",
+      "required": false,
+      "type": "string"
+    },
+    "rowFilter.position_operations.asset_class": {
+      "in": "query",
+      "name": "asset_class",
       "required": false,
       "type": "string"
     },
@@ -10155,6 +10443,9 @@
             "$ref": "#/parameters/rowFilter.desk_settings.broker_read_account_scope"
           },
           {
+            "$ref": "#/parameters/rowFilter.desk_settings.execution_policy"
+          },
+          {
             "$ref": "#/parameters/select"
           },
           {
@@ -11401,6 +11692,195 @@
         ]
       }
     },
+    "/operator_checkpoints": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.operator_checkpoints.session_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.operator_checkpoints.state"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.operator_checkpoints.updated_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/operator_checkpoints"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "operator_checkpoints"
+        ]
+      }
+    },
+    "/operator_continuation_policy": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.operator_continuation_policy.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.operator_continuation_policy.enabled"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.operator_continuation_policy.max_per_day"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.operator_continuation_policy.max_chain"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.operator_continuation_policy.horizon_hours"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/operator_continuation_policy"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "operator_continuation_policy"
+        ]
+      }
+    },
+    "/operator_wakes": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.operator_wakes.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.operator_wakes.source_session_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.operator_wakes.root_session_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.operator_wakes.depth"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.operator_wakes.due_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.operator_wakes.reason"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.operator_wakes.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.operator_wakes.run_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.operator_wakes.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.operator_wakes.queued_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.operator_wakes.last_error"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/operator_wakes"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "operator_wakes"
+        ]
+      }
+    },
     "/order_attempts": {
       "get": {
         "parameters": [
@@ -12147,6 +12627,9 @@
           },
           {
             "$ref": "#/parameters/rowFilter.position_operations.updated_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.position_operations.asset_class"
           },
           {
             "$ref": "#/parameters/select"
@@ -14807,6 +15290,118 @@
         ]
       }
     },
+    "/rpc/execution_policy_set": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_mode": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_mode"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) execution_policy_set"
+        ]
+      }
+    },
+    "/rpc/execution_preflight": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_asset_class": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_dollar_amount": {
+                  "format": "numeric",
+                  "type": "number"
+                },
+                "p_limit_price": {
+                  "format": "numeric",
+                  "type": "number"
+                },
+                "p_protective_stop": {
+                  "format": "numeric",
+                  "type": "number"
+                },
+                "p_quantity": {
+                  "format": "numeric",
+                  "type": "number"
+                },
+                "p_side": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_stop_price": {
+                  "format": "numeric",
+                  "type": "number"
+                },
+                "p_symbol": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_type": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_symbol",
+                "p_side",
+                "p_type"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) execution_preflight"
+        ]
+      }
+    },
     "/rpc/file_deleted": {
       "post": {
         "parameters": [
@@ -16082,6 +16677,175 @@
         ]
       }
     },
+    "/rpc/operator_checkpoint": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_state": {
+                  "additionalProperties": true,
+                  "description": "Working evidence, never authority. Maximum 16000 UTF-8 bytes. Preserve real intent keys, receipts, open hypotheses and next attendance.",
+                  "format": "jsonb",
+                  "properties": {
+                    "next_action": {
+                      "maxLength": 4000,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "objective": {
+                      "maxLength": 2000,
+                      "minLength": 1,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "objective",
+                    "next_action"
+                  ],
+                  "type": "object"
+                }
+              },
+              "required": [
+                "p_state"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) operator_checkpoint"
+        ]
+      }
+    },
+    "/rpc/operator_context": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) operator_context"
+        ]
+      }
+    },
+    "/rpc/operator_continuation_policy_set": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_patch": {
+                  "format": "jsonb"
+                }
+              },
+              "required": [
+                "p_patch"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) operator_continuation_policy_set"
+        ]
+      }
+    },
+    "/rpc/operator_continue_at": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_at": {
+                  "format": "timestamp with time zone",
+                  "type": "string"
+                },
+                "p_reason": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_at",
+                "p_reason"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) operator_continue_at"
+        ]
+      }
+    },
     "/rpc/order_attempt_log": {
       "post": {
         "parameters": [
@@ -16673,6 +17437,10 @@
             "required": true,
             "schema": {
               "properties": {
+                "p_asset_class": {
+                  "format": "text",
+                  "type": "string"
+                },
                 "p_idempotency_key": {
                   "format": "text",
                   "type": "string"
@@ -17732,6 +18500,11 @@
                   "format": "jsonb",
                   "items": {
                     "properties": {
+                      "crypto_evidence_id": {
+                        "description": "New asset-v2 positions checks combine complete equity and same-account crypto receipts unless service evidence confirms no crypto link.",
+                        "format": "uuid",
+                        "type": "string"
+                      },
                       "evidence_id": {
                         "format": "uuid",
                         "type": "string"
