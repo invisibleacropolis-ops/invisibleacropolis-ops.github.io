@@ -18666,8 +18666,10 @@
                   "type": "string"
                 },
                 "p_mandate_id": {
+                  "description": "Explicit null binds the strategy to the active owner goal without a mandate approval dependency.",
                   "format": "uuid",
-                  "type": "string"
+                  "type": "string",
+                  "x-nullable": true
                 },
                 "p_review_condition": {
                   "format": "text",

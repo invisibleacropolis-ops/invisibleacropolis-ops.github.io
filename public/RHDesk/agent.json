@@ -1,8 +1,8 @@
 {
   "name": "RHDesk",
-  "description": "Single source of truth desk for agentic trading on Robinhood. Pair, start a session, follow next_actions.",
+  "description": "Objective-driven autonomous Operator–Executor inside the agentic account, with source-bound memory and durable future attendance. External agents first obtain a scoped identity.",
   "protocol_version": 1,
-  "protocol_updated": "2026-10-21",
+  "protocol_updated": "2026-10-31",
   "roles": [
     "archivist",
     "novelist",
@@ -110,7 +110,14 @@
     }
   },
   "operator": {
-    "mission": "Research, develop and adapt strategies, and execute toward the owner mandate using current market observations and Desk history. An evidence-supported hold or research decision is valid.",
+    "mission": "Pursue the owner objective as quickly, efficiently and effectively as possible with real funds inside the agentic account. No proposal, per-trade approval or activation dependency. Preserve past evidence and actual future attendance.",
+    "run_budget": {
+      "hard_limit_minutes": 30,
+      "includes_startup": true,
+      "operator_turn_quota": null,
+      "countdown_each_turn": true,
+      "finish_reserve_seconds": 15
+    },
     "capabilities": {
       "rpc": "execution_capabilities",
       "also_in": "session_start.data.brief.capabilities",
@@ -135,21 +142,20 @@
         "operator+execute"
       ],
       "routes": {
-        "approved_proposal": "https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/execute",
         "trade": "https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/execute/trade",
         "cancel": "https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/execute/cancel",
         "manage": "https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/execute/manage",
         "refresh": "https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/execute/refresh",
         "preview": "https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/execute/preview"
       },
-      "rules": "Use Desk order routes only. Account policy deactivates extra Desk caps and mandate sizing/stop restrictions; constrained policy opts into them. Current owner switches, broker requirements and held-asset reservations still apply. Eligible direct crypto resolves the same agentic account link and operates independently of equity hours. Reconcile uncertain outcomes with the original identity; never resubmit under a new key.",
+      "rules": "Use direct Desk trade/manage/cancel routes with authentic account authority. No extra Desk sizing/count/loss/symbol/mandatory-stop gates. A nonblank durable idempotency key is mandatory; replay retrieves, never resubmits. Broker eligibility, real holdings/reservations, correct-account routing and emergency revocation remain authoritative. Eligible crypto resolves the same agentic account link. Historical ledger identities remain available for recovery, not approvals.",
       "protection": "Asynchronous after observed fills; inspect brief.protection_lifecycle for actual broker-confirmed coverage."
     },
     "continuity": {
       "context_rpc": "operator_context",
       "checkpoint_rpc": "operator_checkpoint",
       "continue_rpc": "operator_continue_at",
-      "rule": "Load the specific source checkpoint and actual semantic memories before model work. Save unfinished state and arrange real attendance before signing; prose next_review and tasks are not schedulers. Agent paper protocols are revisable evidence."
+      "rule": "Load the inbound checkpoint, prior work, actual semantic memories and separate outgoing wake before model work. Save unfinished state and arrange attendance before signing. Complete sessions have fallback attendance if none was specified; failed attendance recovers with backoff, never by retrying an uncertain order. Preserve report/diary/archive/memory provenance. Agent paper protocols are revisable evidence."
     },
     "close_in_order": [
       "operator_checkpoint and operator_continue_at when further attendance is needed",
@@ -189,7 +195,7 @@
       "completeness": "Positions/orders assemble bounded pages and expose any remaining cursor. Incomplete reads cannot prove full holdings."
     },
     "research": {
-      "native_search": "The built-in runner exposes provider-native web_search when research is enabled; availability depends on the configured provider/model/account. External agents use their own harness tools.",
+      "native_search": "Research is intrinsic to the autonomous Operator; provider-native search availability still depends on the configured provider/model/account. External agents use their own harness tools.",
       "capture_url": "https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/clip",
       "additional_search_url": "https://ypmjwhrvonuwcrpckwkk.supabase.co/functions/v1/clip/search",
       "additional_search_requires": "Server-side LangSearch configuration and research permission; no search credential is supplied by the agent."
