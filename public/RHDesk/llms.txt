@@ -64,6 +64,31 @@ Before model work the runner loads `operator_context()` plus actual semantic rec
 - `prior_checkpoint` when a failed worker left no new checkpoint; it retains its actual source session identity.
 - Strategies, unfinished tasks, held positions, uncertain intents and existing protection.
 - The separate outgoing `next_wake` and any attendance lateness.
+- `working_book`: stable built-in trader identity, actual prior receipt and `changed_sections`, original intent keys,
+  carried checkpoint and account-wide positions/hypotheses. A missing baseline means unknown changes, not no changes.
+- `attention_agenda`: real requests and queue/dispatch/claim/decision/failure stages. A future candidate date is not
+  proof a worker was dispatched; check impairments and overdue requests.
+
+`desk rpc trader_working_book '{"p_since_version":null}'` reloads the versioned book;
+`trader_dossier()` adds the honest, incomplete economic statement. Built-in startup optionally calls
+`trader_book_ack(p_version)` to record the exact first supplied context, not model comprehension or successful work.
+Stale versions require reload, never financial resubmission. External sessions remain unattributed unless deliberately
+supported by a future server-side enrollment flow; matching labels/models do not confer the built-in identity.
+No receipt, narrative or historical book extends a grant or changes execution authority. Economics retains uncertain
+chronology, unpriced costs and unassigned history; known selected-lot realized results are not period/net P&L or skill.
+
+`cash_report_evidence(p_account_id,p_from,p_to)` reads sanitized committed owner-document components for fully
+contained report dates. These are unverified/date-only sources, not live broker truth: no raw CSV/PDF access, exact
+transaction times, coverage certification, account permission or timed-return claims. Flagged records and missing
+report intervals remain gaps. Owner staging/saving/downloading and full catalog diagnostics are not operator tools.
+
+Use `economic_statement()` for source-grounded period reconciliation and qualified returns, and
+`economic_evidence(p_kind,p_id)` for immutable observations, source revisions or original intent lineage. Capital
+inflows are not profit; fees already included in account equity must not be deducted twice. Missing cash-flow coverage
+makes returns unknown—the current reader has no transaction feed. Cumulative-fill changes are not genuine execution
+receipts. `intent_evidence_link(p_intent_id,p_revision_id)` can append an explicitly declared source link for your
+original session or same trader, but cannot make later knowledge contemporaneous or change an order. Receipt writes
+are service-only; outside-account expense records are owner-only. None of these records expand trading authority.
 
 Preserve source timestamps and uncertainty. An old paper study, historical failure or frozen universe is a revisable
 hypothesis, not a prohibition on authorized real trading. Documents and reports support the financial objective;
