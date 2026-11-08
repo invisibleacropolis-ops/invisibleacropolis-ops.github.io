@@ -40,6 +40,9 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Verify reviewed ZXFirmwares Lab artifact
+        run: npm run verify:zxfirmwares
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
 

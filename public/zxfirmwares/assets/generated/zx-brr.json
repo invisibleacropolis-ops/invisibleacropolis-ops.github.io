@@ -1,0 +1,33 @@
+{
+  "format": "ZBR1-experimental",
+  "sourceSha256": "e3de70245a47c4e6509c564b68b53251050d1f3254cba25b1aa6f260ef9b6e2e",
+  "compiler": "Ubuntu clang version 18.1.3 (1ubuntu1)",
+  "flags": [
+    "-std=c11",
+    "-O2",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-fno-builtin",
+    "-Oz",
+    "--target=wasm32",
+    "-nostdlib",
+    "-Wl,--no-entry",
+    "-Wl,--export-memory",
+    "-Wl,--initial-memory=131072",
+    "-Wl,--max-memory=131072",
+    "-Wl,-z,stack-size=16384",
+    "-Wl,--strip-all"
+  ],
+  "artifacts": {
+    "zx-brr.wasm": {
+      "bytes": 2826,
+      "sha256": "076208a92300842b98c2677748edc5a3eeee87ef612e9628e3e58d4ddc274848"
+    },
+    "zx-brr-decoder.wasm": {
+      "bytes": 842,
+      "sha256": "b5587c2b07fda0562a56194cb27c6249d67b93625144fd5166a071a417d15d3f"
+    }
+  },
+  "qualification": "WASM module sizes including wrapper/data, not pi32v2 flash or CPU measurements"
+}

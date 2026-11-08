@@ -25,6 +25,10 @@ This runs three steps in order:
 
 Preview the production build with `npm run preview`.
 
+## ZXFirmwares Lab
+
+The reviewed nested Lab is served at `/zxfirmwares/`, with [OS projects](https://invisibleacropolis-ops.github.io/zxfirmwares/projects/) and the [actual CPU/SoC emulator](https://invisibleacropolis-ops.github.io/zxfirmwares/emulator/). The home-page directory links to **ZXFirmwares Lab**. Vite copies its allowlisted artifact from `public/zxfirmwares/` without rewriting it; `npm run verify:zxfirmwares` checks the privacy/integrity boundary and exact pass-through before deployment. See [publication/update notes](docs/zxfirmwares-lab.md). Personal audio, imported OS builds, private source and APKs are not published.
+
 ## Automatic Playwright screen exports
 
 Use [the screen-export helper](docs/playwright-screen-export.md) alongside an existing Playwright tab to capture one viewport screenshot per second automatically. Run `node scripts/playwright-screen-export.cjs tool-start <label>`, then pass the returned file to Playwright's code tool. Each run gets a separate, git-ignored `.captures/playwright/` folder; filenames contain elapsed timecodes and UTC timestamps. Stop with `page.__screenExport.stop()`, review the sequence, then use the helper's guarded `clean` command. A native Node Playwright API is also provided, including a JSON timing index.

@@ -7,6 +7,7 @@
     "build": "npm run generate:pages && vite build && npm run copy:pages",
     "copy:pages": "node scripts/copy-static-pages.cjs",
     "preview": "vite preview",
+    "verify:zxfirmwares": "node scripts/verify-zxfirmwares.mjs",
     "verify:kami": "node scripts/verify-kami.mjs",
     "verify:castle": "node scripts/verify-castle.mjs",
     "generate:pages": "node scripts/generate-pages-json.cjs"

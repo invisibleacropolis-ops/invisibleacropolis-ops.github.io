@@ -22,6 +22,17 @@
     "audience": "Creative technologists"
   },
   {
+    "title": "ZXFirmwares Lab",
+    "url": "/zxfirmwares/projects/",
+    "description": "SMK-37 OS projects, development notebooks and an actual browser CPU/SoC emulator.",
+    "category": "Firmware Development",
+    "navGroup": "Workflows",
+    "priority": 25,
+    "statusBadge": "Experimental",
+    "iconToken": "🛠️",
+    "audience": "OS and audio developers"
+  },
+  {
     "title": "GPU Flow Field Particles",
     "url": "/flow-field.html",
     "description": "GPU particle advection through procedural vector fields.",

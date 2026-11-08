@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "algorithm": "ZX-TONAL-1",
+  "sources": {
+    "prototypes/tonal/zx_tonal.c": "70f517babfa161a84557ff69691cf2233b36d084109816d6598911af8f15c6e9",
+    "prototypes/tonal/sine_table.h": "4da88ee0521fba090d2a466c2c6ec5d373ad264ba4e17c2ff3b8ef8792a840aa"
+  },
+  "wasmBytes": 1678,
+  "wasmSha256": "fc9cb87722e02718886d2550406055bb1f65c62fea38cfddf604684f35f338fe",
+  "compiler": "Ubuntu clang version 18.1.3 (1ubuntu1)",
+  "flags": [
+    "-std=c11",
+    "-Oz",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-fno-builtin",
+    "--target=wasm32",
+    "-nostdlib",
+    "prototypes/tonal/zx_tonal.c",
+    "-Wl,--no-entry",
+    "-Wl,--export-memory",
+    "-Wl,--initial-memory=131072",
+    "-Wl,--max-memory=131072",
+    "-Wl,-z,stack-size=16384",
+    "-Wl,--strip-all",
+    "-Wl,--export=zx_tonal_params",
+    "-Wl,--export=zx_tonal_output",
+    "-Wl,--export=zx_tonal_render"
+  ],
+  "declaredStaticDataBytes": 2096,
+  "qualification": "Model renderer only: 1024-byte sine table + 48-byte parameters + 1024-byte output. Excludes hybrid parser, mixer, BRR core, player and stack/alignment. 128 KiB WASM memory is a host configuration, not target RAM need."
+}
