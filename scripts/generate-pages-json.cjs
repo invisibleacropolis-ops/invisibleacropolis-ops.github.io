@@ -168,6 +168,21 @@ const buildPagesJson = async () => {
     });
   }
 
+  // Reviewed nested apps in public/ are copied unchanged by Vite. Register
+  // their canonical entry explicitly rather than scanning every app subpage.
+  await fs.access(path.join(ROOT_DIR, 'public/zxfirmwares/projects/index.html'));
+  pages.push({
+    title: 'ZXFirmwares Lab',
+    url: '/zxfirmwares/projects/',
+    description: 'SMK-37 OS projects, development notebooks and an actual browser CPU/SoC emulator.',
+    category: 'Firmware Development',
+    navGroup: 'Workflows',
+    priority: 25,
+    statusBadge: 'Experimental',
+    iconToken: '🛠️',
+    audience: 'OS and audio developers',
+  });
+
   pages.sort((a, b) => a.priority - b.priority || a.url.localeCompare(b.url));
 
   await fs.mkdir(path.dirname(OUTPUT_PATH), { recursive: true });

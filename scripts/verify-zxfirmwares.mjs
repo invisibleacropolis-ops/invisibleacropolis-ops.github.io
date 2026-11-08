@@ -1,0 +1,27 @@
+// Exact reviewed nested-app boundary. No source repo, private media or APK copy.
+import assert from 'node:assert/strict';
+import {readFile,readdir} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+import {posix,resolve} from 'node:path';
+const allowed=['.nojekyll','SHA256SUMS','THIRD_PARTY_NOTICES.md','index.html','projects/index.html','emulator/index.html','assets/app.js','assets/engine.js','assets/research-data.js','assets/codec.js','assets/codec-worker.js','assets/codec-lab.js','assets/brr.js','assets/spectrum.js','assets/encoder.js','assets/markers.js','assets/tonal.js','assets/tonal-fit.js','assets/hybrid.js','assets/hybrid-encode.js','assets/favicon.svg','assets/styles.css','assets/vendor/chart.umd.js','assets/vendor/Chart-LICENSE.md','assets/projects.js','assets/projects-data.js','assets/emulator-core.js','assets/emulator-worker.js','assets/emulator-ui.js','assets/os-workbench.css','assets/generated/zx-codec.wasm','assets/generated/zx-codec.json','assets/generated/zx-brr.wasm','assets/generated/zx-brr-decoder.wasm','assets/generated/zx-brr.json','assets/generated/zx-tonal.wasm','assets/generated/zx-tonal.json','assets/generated/fm1-web.wasm','assets/generated/fm1-web.json','assets/generated/fm1-emu-LICENSE.txt','assets/generated/os-bringup.bin'].sort();
+const hash=b=>createHash('sha256').update(b).digest('hex');
+async function verify(root){
+ const found=[];
+ async function walk(dir,prefix=''){for(const e of await readdir(dir,{withFileTypes:true})){assert.ok(!e.isSymbolicLink(),'No symlinks');if(e.isDirectory())await walk(dir+'/'+e.name,prefix+e.name+'/');else {assert.ok(e.isFile());found.push(prefix+e.name);}}}
+ await walk(root);assert.deepEqual(found.sort(),allowed,root+' must contain only the reviewed 41-file artifact');
+ const records=(await readFile(root+'/SHA256SUMS','utf8')).trim().split('\n'),seen=[];
+ for(const line of records){const m=/^([a-f0-9]{64})  (.+)$/.exec(line);assert.ok(m);const[,h,n]=m;assert.ok(allowed.includes(n)&&n!=='SHA256SUMS');assert.equal(hash(await readFile(root+'/'+n)),h,n);seen.push(n);}
+ assert.deepEqual(seen.sort(),allowed.filter(n=>n!=='SHA256SUMS'));
+ for(const name of ['index.html','projects/index.html','emulator/index.html']){const html=await readFile(root+'/'+name,'utf8');for(const m of html.matchAll(/<(?:script|link)[^>]+(?:src|href)="([^"]+)"/g)){assert.ok(/^\.\.?\//.test(m[1]));assert.ok(allowed.includes(posix.normalize(posix.join(posix.dirname(name),m[1]))));}}
+ const wasm=await readFile(root+'/assets/generated/fm1-web.wasm'),info=JSON.parse(await readFile(root+'/assets/generated/fm1-web.json','utf8'));
+ assert.equal(info.commit,'92a21df72e9eae4c78b44c3199c974bc5937c620');assert.equal(hash(wasm),info.sha256);assert.equal(wasm.length,info.bytes);
+ assert.deepEqual(WebAssembly.Module.imports(new WebAssembly.Module(wasm)),[{module:'env',name:'fm1_jit_compile',kind:'function'}]);
+ assert.equal(hash(await readFile(root+'/assets/generated/os-bringup.bin')),'14f1fad9337d36a88b89c7b077d6e76ba87bc821056ae76f949565535318e181','Only original reviewed diagnostic is bundled');
+ const notices=await readFile(root+'/assets/generated/fm1-emu-LICENSE.txt','utf8');for(const text of ['Joakim Eriksson','Rust standard-library runtime / LICENSE-MIT','Rust standard-library runtime / LICENSE-APACHE','Rust standard-library runtime / LICENSE-THIRD-PARTY'])assert.ok(notices.includes(text));
+ return records;
+}
+const source=resolve('public/zxfirmwares'),built=resolve('dist/zxfirmwares');
+assert.deepEqual(await verify(source),await verify(built),'Vite must preserve all published bytes');
+for(const n of allowed)assert.deepEqual(await readFile(source+'/'+n),await readFile(built+'/'+n),n);
+const entries=JSON.parse(await readFile('dist/pages.json','utf8')),lab=entries.filter(p=>p.title==='ZXFirmwares Lab');assert.equal(lab.length,1);assert.equal(lab[0].url,'/zxfirmwares/projects/');
+console.log('ZXFirmwares: 41-file privacy boundary, 40 digests, runtime notices/imports, original diagnostic, navigation and exact Vite pass-through verified.');
