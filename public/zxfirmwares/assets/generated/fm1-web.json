@@ -2,8 +2,8 @@
   "upstream": "joakimeriksson/fm1-emu",
   "commit": "92a21df72e9eae4c78b44c3199c974bc5937c620",
   "license": "MIT",
-  "bytes": 3033901,
-  "sha256": "e3a88fb56a83e06d499c5e153658ead32c5be256fc22805f657268495463a6cb",
+  "bytes": 3034173,
+  "sha256": "bf5f867396d6e7fff53196e75d5cd546289dc655140223466a33903fd944c98b",
   "compiler": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
   "imports": [
     {
