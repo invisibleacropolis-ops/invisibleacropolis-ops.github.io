@@ -1,4 +1,4 @@
-export const pages=['overview','profile','architecture','controls','research','conversations','documents','images','links','roadmap','plans','manuals','versions','builds','sessions','notes'];
+export const pages=['overview','profile','architecture','controls','research','conversations','documents','images','media','links','roadmap','plans','manuals','versions','builds','sessions','notes'];
 export const projects=[
  {id:'smk-tape-os',title:'SMK Tape OS',kind:'Custom OS / firmware',status:'Active host development · working title',summary:'SMK-37 Pro-first four-track sample/tape mangler. Develop the OS here; use codec research as supporting work, not the project structure.',
   overview:['Owner direction: S-4-inspired four-track performance instrument, approximately 30-second recordings, initially exclusive capture without concurrent playback.','No complete custom OS binary is bundled or certified by this website. Register actual builds in this project’s Version Library. The emulator runs the actual forked CPU/SoC; bundled bring-up images are original diagnostics, not the finished instrument.'],
