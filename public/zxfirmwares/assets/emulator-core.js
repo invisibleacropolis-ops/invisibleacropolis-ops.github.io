@@ -45,7 +45,7 @@ export async function smokeTest(wasm,fixture,profile='smk37-pro'){
  check('PI32 writes the RAM counter',s.ram.slice(0,4).some(v=>v!==0));
  const before=BigInt(s.instructions);m.run();s=m.snapshot();check('Upstream dual-core scheduler advances CPU0',BigInt(s.instructions)>before&&!s.halted);
  check('Reset creates a fresh CPU state',m.boot(fixture,XIP_BASE,120,profile).instructions==='0');
- return {profile,scope:'Isolated original bring-up fixture, not custom-OS or hardware acceptance.',results};
+ return {profile,scope:'PI32 bring-up',results};
 }
 export async function compatibilityTest(wasm,fixture){
  const results=[];
@@ -53,5 +53,5 @@ export async function compatibilityTest(wasm,fixture){
   const report=await smokeTest(wasm,fixture,profile);results.push(...report.results.map(r=>({...r,name:profileFor(profile).label+' / '+r.name})));
   const m=await createEmulator(wasm),passed=m.profileTest(profile);if(!passed)throw Error('Board-specific input model failed: '+profile);results.push({name:profileFor(profile).label+' / board-specific key and analog routing',passed});
  }
- return {scope:'Shared PI32 execution and separate board models verified with original diagnostics. Not universal firmware, full OS or hardware acceptance.',results};
+ return {scope:'SMK-37 Pro / FM-1',results};
 }

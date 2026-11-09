@@ -28,18 +28,18 @@ function sourceLink(id) {
 function saveWorkspace() {
   try {
     localStorage.setItem(storageKey, JSON.stringify(workspace));
-    $('workspace-status').textContent = 'Saved locally in this browser. Export JSON for a durable copy.';
+    $('workspace-status').textContent = 'Saved locally.';
   } catch {
-    $('workspace-status').textContent = 'Browser storage is unavailable or full. Changes are only in memory — export JSON now.';
+    $('workspace-status').textContent = 'Storage unavailable/full. Export JSON.';
   }
 }
 function loadWorkspace() {
   try {
     const raw = localStorage.getItem(storageKey);
     if (raw) workspace = validate(JSON.parse(raw));
-    storageNotice = raw ? 'Loaded this browser’s saved workspace.' : 'No saved workspace yet. Your changes stay in this browser.';
+    storageNotice = raw ? 'Workspace loaded.' : '';
   } catch {
-    storageNotice = 'Saved workspace could not be read. Using an empty in-memory workspace; original storage is not overwritten until you edit or import.';
+    storageNotice = 'Workspace read failed.';
   }
 }
 function renderClaims() {
@@ -48,7 +48,7 @@ function renderClaims() {
   const filtered = claims.filter(claim => (status === 'all' || claim.status === status) && [claim.id, claim.title, claim.text, claim.scope, ...claim.sources].join(' ').toLowerCase().includes(query));
   $('claims-list').replaceChildren(...filtered.map(claim => {
     const card = node('article', undefined, 'research-card');
-    card.append(node('span', `${claim.id} / ${claim.status}`, 'eyebrow'), node('h3', claim.title, 'font-semibold mt-2'), node('p', claim.scope, 'muted mt-1'), node('p', claim.text, 'text-sm text-slate-300 mt-2'));
+    card.append(node('span', `${claim.id} / ${claim.status}`, 'eyebrow'), node('h3', claim.title, 'font-semibold mt-2'));
     const links = node('div', undefined, 'flex flex-wrap gap-2 mt-3'); links.append(...claim.sources.map(sourceLink)); card.append(links);
     return card;
   }));
@@ -57,14 +57,14 @@ function renderClaims() {
 function renderSources() {
   $('source-list').replaceChildren(...sources.map(source => {
     const card = node('article', undefined, 'research-card'); card.id = `source-${source.id}`;
-    card.append(node('p', `${source.id} / ${source.kind}`, 'eyebrow'), node('h3', source.title, 'font-semibold mt-2'), node('p', source.detail, 'muted mt-2'));
+    card.append(node('p', `${source.id} / ${source.kind}`, 'eyebrow'), node('h3', source.title, 'font-semibold mt-2'));
     if (source.url) { const link = sourceLink(source.id); link.textContent = 'Open source reference ↗'; card.append(link); }
     else card.append(node('p', source.path, 'muted mt-3'));
     return card;
   }));
 }
 function updateProgress() {
-  $('plan-progress').textContent = `${workspace.completed.length} / ${milestones.length} personal steps checked. This does not authorize a hardware release.`;
+  $('plan-progress').textContent = `${workspace.completed.length} / ${milestones.length}`;
 }
 function renderMilestones() {
   $('milestone-list').replaceChildren(...milestones.map(item => {
@@ -74,7 +74,7 @@ function renderMilestones() {
       workspace.completed = input.checked ? [...new Set([...workspace.completed, item.id])] : workspace.completed.filter(id => id !== item.id);
       updateProgress(); saveWorkspace();
     });
-    const text = node('span'); text.append(node('strong', item.title, 'block'), node('span', item.detail, 'muted block mt-1'));
+    const text = node('span'); text.append(node('strong', item.title, 'block'));
     label.append(input, text); return label;
   })); updateProgress();
 }
@@ -84,21 +84,21 @@ function renderControls() {
     const label = node('label', 'Proposed role (editable)', 'block text-xs mt-3');
     const input = node('input', undefined, 'field mt-1'); input.type = 'text'; input.maxLength = 240; input.id = `mapping-${control.id}`; input.value = workspace.mappings[control.id] ?? control.proposal; label.htmlFor = input.id;
     input.addEventListener('input', () => { workspace.mappings[control.id] = input.value; saveWorkspace(); });
-    card.append(node('h3', control.title, 'font-semibold'), label, input, node('p', `Verify: ${control.verify}`, 'muted mt-3')); return card;
+    card.append(node('h3', control.title, 'font-semibold'), label, input); return card;
   }));
 }
 function renderFirmware() {
   const filtered = firmwares.filter(item => matchesFirmware(item, $('fw-search').value, $('fw-filter').value));
   $('firmware-grid').replaceChildren(...filtered.map(item => {
     const card = node('article', undefined, 'research-card');
-    card.append(node('p', item.status, 'eyebrow'), node('h3', item.name, 'font-bold mt-2'), node('p', item.author, 'muted mt-1'), node('p', item.desc, 'text-sm text-slate-300 mt-3'), node('p', `Polyphony: ${item.poly} · RAM: ${item.ram}`, 'muted mt-3'));
+    card.append(node('p', item.status, 'eyebrow'), node('h3', item.name, 'font-bold mt-2'), node('p', item.author, 'muted mt-1'), node('p', `Polyphony: ${item.poly} · RAM: ${item.ram}`, 'muted mt-3'));
     const tags = node('div', undefined, 'flex flex-wrap gap-2 mt-3'); tags.append(...item.tags.map(tag => node('span', tag, 'badge')), sourceLink(item.source)); card.append(tags); return card;
   }));
-  if (!filtered.length) $('firmware-grid').append(node('p', 'No firmware matches. Try another name, author, capability or category.', 'notice'));
+  if (!filtered.length) $('firmware-grid').append(node('p', '0 results' , 'notice'));
 }
 function makeChart(id, configuration) {
   if (!window.Chart) {
-    $(id).parentElement.append(node('p', 'Chart library unavailable. Consult the numeric results and source text.', 'muted')); return null;
+    $(id).parentElement.append(node('p', 'Chart unavailable.', 'muted')); return null;
   }
   return new window.Chart($(id), configuration);
 }
@@ -129,23 +129,23 @@ function activateTab(id, updateHash = true, focus = false) {
   if(id !== 'tab-prototype') stopAudition();
 }
 const flashDetails = {
-  app:'S06: Pro 016 application file spans [0x4120, 0x9B5D8) in the decoded flash payload. These are source-reported package coordinates, not an approved erase/write range.',
-  collision:'S06: FM-1 save base 0x97000 falls inside the reported stock SMK Pro application span. Never copy the FM-1 storage layout to the SMK target.',
-  trim:'S06/S07: calibration and identity must be preserved. A package descriptor, default curve or browser export is not a backup of your unit’s calibration. No physical trim write address is approved here.',
-  clock:'S05: SYS_CLK=360000000 is a boot configuration request. Family documentation’s nominal 320 MHz maximum and the actual runtime clock are separate facts. No rail or PLL changes are recommended.'
+  app:'S06 / Pro 016 / decoded payload: [0x4120, 0x9B5D8)',
+  collision:'S06 / FM-1 save base: 0x97000 / SMK Pro application: [0x4120, 0x9B5D8)',
+  trim:'S06 / S07 / USRTRIM calibration and identity',
+  clock:'S05 / SYS_CLK: 360000000 Hz / family specification: 320 MHz / runtime measurement: —'
 };
 function updateVelocity() {
   const values = velocityCurve(+$('trim-p1').value, +$('trim-p5').value);
-  $('velocity-summary').textContent = `Sketch points: ${values.join(', ')}. Not a device calibration curve.`;
+  $('velocity-summary').textContent = `Curve: ${values.join(', ')}`;
   if (charts.velocity) { charts.velocity.data.datasets[0].data = values; charts.velocity.update(); }
 }
 function calculateDSP() {
   const sampleRate = +$('param-sr').value, voices = +$('param-voices').value, operators = +$('param-ops').value, delaySeconds = +$('param-reverb').value, bufferFrames = +$('param-buffer').value;
   const model = estimateMemory({ sampleRate, voices, operators, delaySeconds, bufferFrames });
   for (const [id, value] of Object.entries({'val-sr':`${sampleRate} Hz`,'val-voices':`${voices} voices`,'val-ops':`${operators} operators`,'val-reverb':`${delaySeconds.toFixed(1)} s`,'val-buffer':`${bufferFrames} frames`,'calc-ram-total':`${model.totalKiB.toFixed(1)} KiB`,'calc-ram-free':`${model.remainingKiB.toFixed(1)} KiB`})) $(id).textContent = value;
-  $('calc-status').textContent = { 'over-budget':'EXCEEDS MODEL POOL', 'low-headroom':'LOW MODEL HEADROOM', 'within-model':'WITHIN MODEL ONLY' }[model.status];
+  $('calc-status').textContent = { 'over-budget':'EXCEEDS MODEL POOL', 'low-headroom':'LOW MODEL HEADROOM', 'within-model':'WITHIN POOL' }[model.status];
   $('calc-status').className = `badge ${model.status === 'over-budget' ? 'text-rose-300' : 'text-amber-300'}`;
-  $('buffer-duration').textContent = `One ${bufferFrames}-frame buffer = ${model.bufferMs.toFixed(2)} ms at ${sampleRate} Hz (not end-to-end latency). State ${model.oscillatorKiB.toFixed(1)}, delay ${model.delayKiB.toFixed(1)}, I/O ${model.ioKiB.toFixed(1)}, overhead ${model.overheadKiB.toFixed(1)} KiB. No CPU or polyphony guarantee.`;
+  $('buffer-duration').textContent = `${bufferFrames} frames / ${model.bufferMs.toFixed(2)} ms / ${sampleRate} Hz\nState ${model.oscillatorKiB.toFixed(1)} · delay ${model.delayKiB.toFixed(1)} · I/O ${model.ioKiB.toFixed(1)} · overhead ${model.overheadKiB.toFixed(1)} KiB`;
   if (charts.dsp) { charts.dsp.data.datasets[0].data = [model.oscillatorKiB,model.delayKiB,model.ioKiB,model.overheadKiB,Math.max(0,model.remainingKiB)]; charts.dsp.update(); }
 }
 let pickupPrevious = .2, pickupLatched = false;
@@ -163,7 +163,7 @@ function setupNotebook() {
   $('export-workspace').addEventListener('click', () => {
     const blob = new Blob([JSON.stringify(workspace, null, 2) + '\n'], {type:'application/json'});
     const url = URL.createObjectURL(blob); const link = node('a'); link.href = url; link.download = `zxfirmwares-workspace-${new Date().toISOString().slice(0,10)}.json`; document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-    $('workspace-status').textContent = 'Export requested. Check your downloads; it contains notes, checklist and mappings, not a device backup.';
+    $('workspace-status').textContent = 'JSON export requested.';
   });
   $('import-workspace').addEventListener('change', async event => {
     const file = event.target.files?.[0]; if (!file) return;

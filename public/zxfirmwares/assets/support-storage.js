@@ -34,7 +34,7 @@ export function createSupportStorage({ fetchImpl = (...args) => fetch(...args), 
     const token = credential(ownerId);
     const response = await fetchImpl(SUPPORT.url + path, { method, headers: { apikey: SUPPORT.key, Authorization: 'Bearer ' + token, ...headers }, body, signal: AbortSignal.timeout(120000), cache: 'no-store', credentials: 'omit', redirect: 'error' });
     if (optional && response.status === 404) return null;
-    if (!response.ok) throw Error('Invisible Support request failed (HTTP ' + response.status + '); no project save is implied');
+    if (!response.ok) throw Error('Invisible Support request failed (HTTP ' + response.status + ')');
     return boundedBytes(response, max);
   }
   async function json(path, options) { const bytes = await request(path, options); return bytes === null ? null : bytes.length ? JSON.parse(new TextDecoder().decode(bytes)) : null; }
