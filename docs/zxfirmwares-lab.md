@@ -10,7 +10,7 @@ The home-page directory registers **ZXFirmwares Lab** at `/zxfirmwares/projects/
 
 ## Artifact identity / scope
 
-Reviewed implementation: ZXFirmwares source revision `bd5a2be8f94399a614cda9fff8e1cc1aa69ae756` (source repository stays private; shipped client JavaScript/WASM and documentation are public). The public directory contains exactly **50 client files**, including `SHA256SUMS` for the other49, original project-created bring-up code, the actual pinned MIT fm1-emu browser CPU/SMK-37 SoC and full emulator/Rust-runtime notices. No blanket open-source licence is assigned to the Lab's project code.
+Reviewed implementation: ZXFirmwares source revision `0b9a9c6957bc6c13793728a85e0eb18ac75ef112` (source repository stays private; shipped client JavaScript/WASM and documentation are public). The public directory contains exactly **50 client files**, including `SHA256SUMS` for the other49, original project-created bring-up code, the actual pinned MIT fm1-emu browser CPU/SMK-37 SoC and full emulator/Rust-runtime notices. No blanket open-source licence is assigned to the Lab's project code.
 
 No vendor firmware/ROM, original private dashboard/transcript, Android APK, signing secret, supplied music, encoded personal pack, personal report, imported OS build or science/runtime installation is included. User-imported builds stay in a browser worker; project files/metadata remain in that browser unless explicitly connected to Invisible Support or exported. Create Project defaults to the existing private DB after owner sign-in; no legacy content uploads automatically. Storage is same-origin and unencrypted, not a secret vault or a Git commit. Exported reports can contain guest console/filenames and should be reviewed before sharing.
 
@@ -22,7 +22,7 @@ SMK-37 Pro is explicitly the primary/default product; FM-1 uses the same PI32 CP
 
 The Lab now includes a generated85-control SMK SVG surface matching the owner's front-panel drawing (37keys/16pads/18buttons/8encoders/4faders/2wheels), large selected-control inspector, gestures/pressure/velocity/zoom, actual guest LCD mirror and separate FM-1 controls. Original photograph/EXIF is not included. Geometry comes from the drawing; electrical IDs/ranges come from the pinned model. An original218-byte PI32 MMIO probe demonstrates representative surface→model→guest GPIO/ADC→RAM readback, not just UI highlights. No full OS or exhaustive hardware/calibration/timing claim.
 
-Surface validation was70 host groups/11 browser scenarios. The project-container release was74 host groups/14 browser scenarios plus86 SoC/8 runtime tests. Create Project/shared-storage adds two client modules beyond that48-file boundary:86 host groups and16 real browser scenarios validate ingestion and existing behavior. Cloud API-contract tests are synthetic, not authenticated production storage acceptance; no user database/content is published.
+Surface validation was70 host groups/11 browser scenarios. The project-container release was74 host groups/14 browser scenarios plus86 SoC/8 runtime tests. Create Project/shared-storage adds two client modules beyond that48-file boundary:89 host groups and18 real browser scenarios validate ingestion and existing behavior. Cloud API-contract tests are synthetic, not authenticated production storage acceptance; no user database/content is published.
 
 ## OS project containers / Version Library / durable debug
 
@@ -34,11 +34,15 @@ The public host only serves the50 reviewed client assets. It receives no private
 
 ## Create Project / Invisible Support private storage
 
-Projects Library → **Create Project** opens identity/knowledge/file/folder ingestion, editable categories, optional source/firmware archive and explicit hash/byte review. It also imports complete prepared project JSON and lists/opens private cloud snapshots. Default binary/media destination is the existing Invisible Support Supabase project `guoyqsfvqllyhlsrknml`, private bucket `invisible-support-assets`, owner-protected `public.assets` and existing magic-link session. No new DB/schema/policies, service key, portal rewrite or external JS CDN. Only the existing publishable key is shipped. CSP adds that specific API origin and local blob media.
+Projects Library → **Create Project** opens identity/knowledge/file/folder ingestion, editable categories, optional source/firmware archive and explicit hash/byte review. **Import Project** is now prominent in the library. Both file-import entry points recognize complete project containers before the legacy notes-only1MB cap, route them into complete-project review (96MiB bound), preserve existing notes and do not upload/write merely on file selection. Legacy notes-only size/schema limits remain enforced. It also imports complete prepared project JSON and lists/opens private cloud snapshots. Default binary/media destination is the existing Invisible Support Supabase project `guoyqsfvqllyhlsrknml`, private bucket `invisible-support-assets`, owner-protected `public.assets` and existing magic-link session. No new DB/schema/policies, service key, portal rewrite or external JS CDN. Only the existing publishable key is shipped. CSP adds that specific API origin and local blob media.
 
 Original binary objects are uploaded without overwrite, authenticated-read back and SHA256/size/owner checked; private metadata-only project snapshot commits last. IndexedDB is a complete working cache, with existing16MiB/file and64MiB payload bounds. Explicit snapshot capture, not automatic multi-device merging; local-only choice remains available. Session/account/storage failure never becomes fake success. Staged objects may remain for verified retry; no remote deletion is automatic. The same underlying portal can delete shared assets, so independent complete backups remain essential. Signing out does not erase local caches/exports.
 
 Media subpages support native audio/video controls without autoplay and raster-only image previews; scripts/source documents remain inert. Original source/media/prepared containers stay outside this public checkout. The agent has no owner storage session: backend configuration/anonymous reachability and synthetic contracts are verified, but actual owner ingestion requires sign-in and cannot be claimed merely from a local prepared container.
+
+## Functional UI cleanup
+
+Owner requested functional-only presentation. Removed page mottos, hero copy, narrative banners and repeated explanatory/disclaimer paragraphs across Projects, ingestion, Emulator and research tools. Controls, field names, metadata, numeric results/limits and actionable status/errors remain. Expanded metadata is now folded by default. Existing project records/documents, validation, storage and emulator behavior are preserved. Full root control-ID set retained; a static/UI regression checks the copy boundary and actual controls.
 
 ## Build / update boundary
 
