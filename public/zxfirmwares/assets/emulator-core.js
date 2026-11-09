@@ -16,7 +16,7 @@ export function bootConfig(bytes,entry=XIP_BASE,mhz=120,profile='smk37-pro'){
 export async function createEmulator(wasm){
  const {instance}=await WebAssembly.instantiate(wasm,{env:{fm1_jit_compile:()=>0}}),e=instance.exports;
  let loaded=false,config=null;
- const hex=n=>n.toString(16).padStart(8,'0');
+ const hex=n=>(n>>>0).toString(16).padStart(8,'0');
  return {
   boot(bytes,entry=XIP_BASE,mhz=120,profile='smk37-pro'){const next=bootConfig(bytes,entry,mhz,profile),target=profileFor(profile);const p=e.fm1_alloc(bytes.length);new Uint8Array(e.memory.buffer,p,bytes.length).set(bytes);e.fm1_jit(0,0);e.fm1_ahead(0);e.fm1_boot(p,bytes.length,entry,mhz);if(e.zxf_select_board(target.boardId)!==0||e.fm1_board()!==target.boardId)throw Error('Runtime board selection failed.');config=next;loaded=true;return this.snapshot();},
   profileTest(profile){return e.zxf_profile_selftest(profileFor(profile).boardId)===0;},
