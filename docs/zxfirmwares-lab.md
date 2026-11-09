@@ -10,7 +10,7 @@ The home-page directory registers **ZXFirmwares Lab** at `/zxfirmwares/projects/
 
 ## Artifact identity / scope
 
-Reviewed implementation: ZXFirmwares source revision `a62659dac953348cf94e74db10a45ab4a9cf077c` (source repository stays private; shipped client JavaScript/WASM and documentation are public). The public directory contains exactly **50 client files**, including `SHA256SUMS` for the other49, original project-created bring-up code, the actual pinned MIT fm1-emu browser CPU/SMK-37 SoC and full emulator/Rust-runtime notices. No blanket open-source licence is assigned to the Lab's project code.
+Reviewed implementation: ZXFirmwares source revision `2d23cec6d00881bde0fcfaa16e7fe1d8f212add6` (source repository stays private; shipped client JavaScript/WASM and documentation are public). The public directory contains exactly **50 client files**, including `SHA256SUMS` for the other49, original project-created bring-up code, the actual pinned MIT fm1-emu browser CPU/SMK-37 SoC and full emulator/Rust-runtime notices. No blanket open-source licence is assigned to the Lab's project code.
 
 No vendor firmware/ROM, original private dashboard/transcript, Android APK, signing secret, supplied music, encoded personal pack, personal report, imported OS build or science/runtime installation is included. User-imported builds stay in a browser worker; project files/metadata remain in that browser unless explicitly connected to Invisible Support or exported. Create Project defaults to the existing private DB after owner sign-in; no legacy content uploads automatically. Storage is same-origin and unencrypted, not a secret vault or a Git commit. Exported reports can contain guest console/filenames and should be reviewed before sharing.
 
@@ -47,6 +47,14 @@ Media subpages support native audio/video controls without autoplay and raster-o
 ## Functional UI cleanup
 
 Owner requested functional-only presentation. Removed page mottos, hero copy, narrative banners and repeated explanatory/disclaimer paragraphs across Projects, ingestion, Emulator and research tools. Controls, field names, metadata, numeric results/limits and actionable status/errors remain. Expanded metadata is now folded by default. Existing project records/documents, validation, storage and emulator behavior are preserved. Full root control-ID set retained; a static/UI regression checks the copy boundary and actual controls.
+
+## Explicit shared snapshot updates
+
+A newer private project link can add compiled versions/resources to an existing shared working copy. Project fields must match except the source-snapshot pointer, with the same source owner; immutable rows still conflict-check and commit atomically. Local extra resources/runs remain; local notebook/profile edits reject rather than being overwritten. Ordinary backup restore remains strict. This does not grant remote writes or add background merging. Final source/PR42721365708/42721371089 and companion42721371131 passed (93host/20browser checks). Only the same50-file client artifact is published; privately built firmware/source/media/receipts stay in the existing project storage.
+
+## Full firmware worker checks
+
+Worker scheduling now yields after at most16 existing upstream quanta or6ms (plus the final quantum), avoiding a nested-timer delay per20k instructions. CPU/SoC/WASM and virtual clock semantics are unchanged. Actual high-bit registers display as unsigned eight-digit hex, covered by real PI32 instruction tests. Real privately stored firmware passed Version Library→acknowledged Load OS→Run→LCD→Pause→Unload with original-byte/ID/run attribution preserved. On the local phone browser, the same2.2virtual-second boot improved from89.4s to18.2s wall time; not a general performance or hardware claim. Original private firmware/source/media remain outside this host.
 
 ## Build / update boundary
 
