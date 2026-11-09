@@ -18,6 +18,7 @@ export function initProjectLibrary({host,status,onChange,beforeBackup=async()=>{
  try{const p=await db.getProject(project.id);if(!p)throw Error('Project has not been registered');const [records,versions,files,sessions]=await Promise.all([db.resources(p.id),db.versions(p.id),db.artifacts(p.id),db.runs(p.id)]);if(token!==generation)return;
  const meta=node('p',`Project ID: ${p.id} / metadata ${p.metadataId} / updated ${p.updatedAt}`,'accent');host.append(meta);
  if(p.cloud?.provider==='invisible-support')host.append(node('p','Storage: Invisible Support private DB / cache: IndexedDB / snapshot: '+p.cloud.syncedAt));
+ if(p.sourceCloud?.provider==='invisible-support')host.append(node('p','Storage: Invisible Support / snapshot: '+p.sourceCloud.syncedAt+' / access: shared'));
  if(page==='profile'){
   const f=node('form',undefined,'work-card');f.append(node('h3','Project identification / profile'));
   const fields={};for(const[k,label,max]of [['title','Project title',80],['summary','Summary',2000],['status','Project status',120],['manufacturer','Manufacturer',120],['product','Product / variant',120],['hardwareRevision','Hardware / installed revision (unknown unless verified)',240],['firmwareLineage','Firmware lineage / boot assumptions',2000]])fields[k]=field(f,'profile-'+k,label,{value:p[k]||'',max,required:k==='title'});

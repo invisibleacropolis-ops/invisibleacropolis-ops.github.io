@@ -44,7 +44,7 @@ export function createSupportStorage({ fetchImpl = (...args) => fetch(...args), 
     credential(value.id); return { id: value.id, email: value.email || '' };
   }
   function objectPath(ownerId, assetId) {
-    if (!uuid.test(ownerId) || !/^zxf-(?:blob|project)-[a-f0-9_-]+$/.test(assetId)) throw Error('Invalid project asset identity');
+    if (!uuid.test(ownerId) || !/^zxf-(?:blob|project|share)-[a-f0-9_-]+$/.test(assetId)) throw Error('Invalid project asset identity');
     return `${ownerId}/documents/${assetId}/content`;
   }
   async function row(assetId, ownerId) {
@@ -139,6 +139,36 @@ export function createSupportStorage({ fetchImpl = (...args) => fetch(...args), 
     const { validateBackup } = await import('./os-library.js'); await validateBackup(graph);
     onProgress({ done: i, total: i, name: 'Cloud snapshot and every original file verified' }); return graph;
   }
-  return { user, uploadFiles, publishProject, listProjects, restoreProject };
+  function signedUrl(value,ownerId,assetId){
+    const url=new URL(value.startsWith('/')?(value.startsWith('/storage/v1/')?SUPPORT.url:SUPPORT.url+'/storage/v1')+value:value);
+    if(url.origin!==SUPPORT.url||url.username||url.password||url.pathname!=='/storage/v1/object/sign/'+SUPPORT.bucket+'/'+encodePath(objectPath(ownerId,assetId))||!url.searchParams.get('token')||url.href.length>8192)throw Error('Invalid project access link');return url.href;
+  }
+  async function createReadLink(input,{expiresIn=31536000}={}){
+    const {validateBackup}=await import('./os-library.js');await validateBackup(input);if(!Number.isInteger(expiresIn)||expiresIn<60||expiresIn>31536000)throw Error('Invalid access-link lifetime');
+    const owner=await user(),graph=structuredClone(input);if(graph.project.cloud?.ownerId!==owner.id)throw Error('Project account mismatch');
+    const refs=graph.blobs.map(b=>{const id=`zxf-blob-${owner.id}_${graph.project.metadataId.slice(8)}_${b.id}`;return{id,ownerId:owner.id,path:objectPath(owner.id,id),size:b.size,sha256:b.id};});
+    const signed=await json('/storage/v1/object/sign/'+SUPPORT.bucket,{ownerId:owner.id,method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({expiresIn,paths:refs.map(r=>r.path)})});
+    if(!Array.isArray(signed)||signed.length!==refs.length)throw Error('File access-link count mismatch');
+    for(const ref of refs){const matches=signed.filter(s=>s.path===ref.path);if(matches.length!==1||matches[0].error)throw Error('File access-link creation failed');ref.signedUrl=signedUrl(matches[0].signedURL||matches[0].signedUrl,owner.id,ref.id);}
+    graph.blobs=graph.blobs.map(b=>({id:b.id,size:b.size}));const expiresAt=new Date(Date.now()+expiresIn*1000).toISOString(),document={schema:'ZX-OS-SHARED-PROJECT-1',graph,refs,expiresAt};
+    const bytes=new TextEncoder().encode(JSON.stringify(document));if(bytes.length>8*1024*1024)throw Error('Shared project metadata exceeds8MiB');
+    const id='zxf-share-'+owner.id+'_'+crypto.randomUUID(),sha256=await digest(bytes);await putVerified(bytes,metadata(graph.project,id,'ZXFirmwares-project-share.json',bytes.length,'application/json',sha256,'share',owner.id),owner.id);
+    const link=await json('/storage/v1/object/sign/'+SUPPORT.bucket+'/'+encodePath(objectPath(owner.id,id)),{ownerId:owner.id,method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({expiresIn})});
+    return{url:signedUrl(link.signedURL||link.signedUrl,owner.id,id),expiresAt,assetId:id,projectId:graph.project.id,ownerId:owner.id};
+  }
+  async function restoreReadLink(value,onProgress=()=>{}){
+    const parsed=new URL(value),parts=parsed.pathname.split('/').filter(Boolean),ownerId=parts[5],assetId=parts[7];if(parts.length!==9||!assetId?.startsWith('zxf-share-'+ownerId+'_'))throw Error('Invalid shared project path');
+    const url=signedUrl(value,ownerId,assetId);
+    async function fetchSigned(url,max){const r=await fetchImpl(url,{credentials:'omit',redirect:'error',cache:'no-store',signal:AbortSignal.timeout(120000)});if(!r.ok)throw Error('Project access HTTP '+r.status);return boundedBytes(r,max);}
+    const document=JSON.parse(new TextDecoder().decode(await fetchSigned(url,8*1024*1024))),{graph,refs}=document;
+    if(document.schema!=='ZX-OS-SHARED-PROJECT-1'||!Array.isArray(graph?.blobs)||!Array.isArray(refs)||refs.length!==graph.blobs.length||refs.length>4800||graph.project?.cloud?.ownerId!==ownerId||!Number.isFinite(Date.parse(document.expiresAt)))throw Error('Shared project metadata mismatch');
+    const {metadataId,validateBackup,toBase64}=await import('./os-library.js');metadataId(graph.project.metadataId,'project');const seen=new Set();let total=0,i=0;
+    for(const blob of graph.blobs){const matches=refs.filter(r=>r.sha256===blob.id);if(matches.length!==1||seen.has(blob.id)||!hashPattern.test(blob.id)||!Number.isSafeInteger(blob.size)||blob.size<0||blob.size>16*1024*1024||(total+=blob.size)>64*1024*1024)throw Error('Shared file identity/limit mismatch');seen.add(blob.id);const ref=matches[0],id=`zxf-blob-${ownerId}_${graph.project.metadataId.slice(8)}_${blob.id}`;
+      if(ref.ownerId!==ownerId||ref.id!==id||ref.path!==objectPath(ownerId,id)||ref.size!==blob.size)throw Error('Shared file ownership mismatch');onProgress({done:i,total:refs.length,name:graph.artifacts?.find(a=>a.sha256===blob.id)?.name||blob.id});
+      const bytes=await fetchSigned(signedUrl(ref.signedUrl,ownerId,id),blob.size);if(bytes.length!==blob.size||await digest(bytes)!==blob.id)throw Error('Shared original checksum failed');blob.data=toBase64(bytes);i++;
+    }
+    graph.project.sourceCloud={...graph.project.cloud,access:'shared-snapshot',expiresAt:document.expiresAt};delete graph.project.cloud;await validateBackup(graph);onProgress({done:i,total:i,name:'Project verified'});return graph;
+  }
+  return { user, uploadFiles, publishProject, listProjects, restoreProject, createReadLink, restoreReadLink };
 }
 export const supportStorage = createSupportStorage();
