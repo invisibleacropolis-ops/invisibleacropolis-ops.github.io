@@ -1,4 +1,4 @@
-import {projects,pages,route,validateProjects} from './projects-data.js';
+import {projects,pages,route,validateProjects,projectSlug} from './projects-data.js';
 import * as vault from './os-library.js';
 import {initProjectLibrary} from './project-library.js';
 import {initProjectIngestion,readProjectImport} from './project-ingest.js';
@@ -12,11 +12,11 @@ function save(){try{localStorage.setItem(key,JSON.stringify(state));notice('Save
 function link(text,href){const a=make('a',text,'action');a.href=href;return a;}
 function draw(skipLibrary=false){
  const r=route(location.hash),all=[...[...projects,...state.custom,...storedProjects].reduce((map,p)=>map.set(p.id,{...map.get(p.id),...p}),new Map()).values()],p=all.find(p=>p.id===r.id);const creating=r.id==='create';$('project-index').hidden=creating||!!p;$('project-detail').hidden=creating||!p;$('project-ingest').hidden=!creating;if(r.id==='share'){$('project-index').hidden=true;$('project-detail').hidden=true;$('project-ingest').hidden=true;return;}
- $('project-cards').replaceChildren(...all.map(p=>{const c=make('article',undefined,'work-card');c.append(make('p',p.kind,'eyebrow'),make('h2',p.title),make('p',p.status,'accent'),make('p',p.target||'smk37-pro'),link('Open project →',`#/${p.id}/overview`));return c;}));
+ $('project-cards').replaceChildren(...all.map(p=>{const c=make('article',undefined,'work-card');c.append(make('p',p.kind,'eyebrow'),make('h2',p.title),make('p',p.status,'accent'),make('p',p.target||'smk37-pro'),link('Open project →',`#/${projectSlug(p.id)}/overview`));return c;}));
  if(creating)return;
  if(!p){$('project-library').replaceChildren();if(r.id)notice('Project not found.');return;}
  $('project-title').textContent=p.title;$('project-kind').textContent=`${p.kind} / ${p.status}`;
- $('project-pages').replaceChildren(...pages.map(name=>{const a=link(name[0].toUpperCase()+name.slice(1),`#/${p.id}/${name}`);if(name===r.page)a.setAttribute('aria-current','page');return a;}),link('Emulator & tests ↗',`../emulator/?project=${encodeURIComponent(p.id)}`));
+ $('project-pages').replaceChildren(...pages.map(name=>{const a=link(name[0].toUpperCase()+name.slice(1),`#/${projectSlug(p.id)}/${name}`);if(name===r.page)a.setAttribute('aria-current','page');return a;}),link('Emulator & tests ↗',`../emulator/?project=${encodeURIComponent(p.id)}`));
  $('project-page-title').textContent=r.page[0].toUpperCase()+r.page.slice(1);const content=$('project-copy');content.replaceChildren();
  const notes=$('project-notes');notes.hidden=r.page!=='notes';
  if(r.page==='notes'){notes.value=state.notes[p.id]??p.notes??'';notes.oninput=()=>{const value=notes.value;notebookDrafts.set(p.id,value);if(projects.some(x=>x.id===p.id)||state.custom.some(x=>x.id===p.id)){state.notes[p.id]=value;save();}vault.saveNotes(p.id,value).then(()=>{if(notebookDrafts.get(p.id)===value)notebookDrafts.delete(p.id);}).catch(error=>notice('Notebook cached in localStorage, but durable library save failed: '+error.message));};}

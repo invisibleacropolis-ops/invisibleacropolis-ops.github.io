@@ -1,0 +1,70 @@
+{
+  "schema": "ZX-OS-PUBLISHED-RELEASE-1",
+  "projectId": "local-144e9c8c-874f-4fa0-ae82-f7d69fcc2ec0",
+  "release": "v0.9-build1",
+  "createdAt": "2026-11-10T00:26:48.479Z",
+  "files": [
+    {
+      "name": "BRRbox-v0.9-build1-corresponding-source.zip",
+      "size": 722189,
+      "sha256": "857908868d1a89cac234d8dbd35eff8bb74a21ed0587e3ff08b9b26018008c77",
+      "mime": "application/zip"
+    },
+    {
+      "name": "BRRbox-v0.9-build1-smk37-pro-xip.bin",
+      "size": 447112,
+      "sha256": "4423fd090e6f7a2f32c59ce5a5b13fc2eaa9f7feb9c6cf22df1b309a91bc4ab3",
+      "mime": "application/octet-stream"
+    },
+    {
+      "name": "BRRbox-v0.9-build1-smk37-pro.fwsc",
+      "size": 651202,
+      "sha256": "b363364aef102e6fa490f293daef2caaa53bfb220fce180213e5f0fcf4bbdbdd",
+      "mime": "application/octet-stream"
+    }
+  ],
+  "versions": [
+    {
+      "id": "version_58cbda9a-f36a-4220-894f-17935aa1b6af",
+      "label": "v0.9-build1",
+      "title": "BRRbox / emulator",
+      "target": "smk37-pro",
+      "format": "raw-xip",
+      "entry": 33554720,
+      "mhz": 120,
+      "channel": "development",
+      "sourceRevision": "v0.9-build1 / AC791N r3 FP-rev1",
+      "source": "Official JieLi20260730.1 clang4.0.1 / AC79NN SDK1.2.1 / GPL-3.0-only + Apache-2.0 SDK; full corresponding source attached.",
+      "notes": "Run; wait for UI; raise faders and press SEQ PLAY for synced TAPE. Live WebAudio pending.",
+      "files": [
+        "BRRbox-v0.9-build1-smk37-pro-xip.bin",
+        "BRRbox-v0.9-build1-corresponding-source.zip"
+      ],
+      "artifactIds": [
+        "file_6874f2d8-50ef-4479-a922-a66615ce3673",
+        "file_8d1187fd-2c60-4b48-bfe2-d90ae1bec2db"
+      ]
+    },
+    {
+      "id": "version_57220223-cce5-4e26-9ee1-dce4ed46264d",
+      "label": "v0.9-build1-fwsc",
+      "title": "BRRbox / SMK-37 Pro package",
+      "target": "smk37-pro",
+      "format": "fwsc",
+      "entry": null,
+      "mhz": null,
+      "channel": "development",
+      "sourceRevision": "v0.9-build1 / AC791N r3 FP-rev1",
+      "source": "Official JieLi20260730.1 clang4.0.1 / AC79NN SDK1.2.1 / GPL-3.0-only + Apache-2.0 SDK; full corresponding source attached.",
+      "notes": "SMK-37 Pro_909 / development / hardware untested. Preserve verified unit/calibration backups and recovery before installation.",
+      "files": [
+        "BRRbox-v0.9-build1-smk37-pro.fwsc",
+        "BRRbox-v0.9-build1-corresponding-source.zip"
+      ],
+      "artifactIds": [
+        "file_abc2a47e-8e02-43fc-92ad-50ec63ca6b4f",
+        "file_3d9e6d9c-3442-4145-8177-07314d77f693"
+      ]
+    }
+  ]
+}

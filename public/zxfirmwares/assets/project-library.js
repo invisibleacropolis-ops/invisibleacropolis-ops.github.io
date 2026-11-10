@@ -2,6 +2,7 @@ import * as db from './os-library.js';
 import {formatEvent} from './run-log.js';
 import {route} from './projects-data.js';
 import {supportStorage} from './support-storage.js';
+import {ensurePublishedBuilds,BRRBOX_ID} from './published-builds.js';
 const node=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
 export function downloadBytes(name,bytes,type='application/octet-stream'){const url=URL.createObjectURL(new Blob([bytes],{type})),a=node('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 export const downloadJson=(name,value)=>downloadBytes(name,JSON.stringify(value,null,2)+'\n','application/json');
@@ -15,7 +16,8 @@ export function initProjectLibrary({host,status,onChange,beforeBackup=async()=>{
  const notice=t=>{status.textContent=t;};
  const guard=async(fn,b)=>{const inputs=[...(b?.form?.elements||[])],previous=inputs.map(e=>e.disabled);for(const e of inputs)e.disabled=true;if(b)b.disabled=true;try{await fn();}catch(e){notice('Library operation failed: '+e.message);}finally{inputs.forEach((e,i)=>e.disabled=previous[i]);if(b)b.disabled=false;}};
  async function render(project,page){const token=++generation;releaseMedia();for(const u of urls)URL.revokeObjectURL(u);urls=[];host.replaceChildren();if(!project)return;
- try{const p=await db.getProject(project.id);if(!p)throw Error('Project has not been registered');const [records,versions,files,sessions]=await Promise.all([db.resources(p.id),db.versions(p.id),db.artifacts(p.id),db.runs(p.id)]);if(token!==generation)return;
+ try{const p=await db.getProject(project.id);if(!p)throw Error('Project has not been registered');let publishedError=null;if(p.id===BRRBOX_ID&&['versions','builds'].includes(page)){try{await ensurePublishedBuilds(p.id,message=>{if(token===generation)notice(message);});}catch(e){publishedError='Build files unavailable: '+e.message;}}const [records,versions,files,sessions]=await Promise.all([db.resources(p.id),db.versions(p.id),db.artifacts(p.id),db.runs(p.id)]);if(token!==generation)return;
+ if(publishedError)host.append(node('p',publishedError,'notice'));
  const meta=node('p',`Project ID: ${p.id} / metadata ${p.metadataId} / updated ${p.updatedAt}`,'accent');host.append(meta);
  if(p.cloud?.provider==='invisible-support')host.append(node('p','Storage: Invisible Support private DB / cache: IndexedDB / snapshot: '+p.cloud.syncedAt));
  if(p.sourceCloud?.provider==='invisible-support')host.append(node('p','Storage: Invisible Support / snapshot: '+p.sourceCloud.syncedAt+' / access: shared'));
