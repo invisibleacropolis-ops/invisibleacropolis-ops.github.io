@@ -1,0 +1,158 @@
+/* Invisible Support visual foundation; presentation only. Self-hosted SIL OFL fonts. */
+@font-face{font-family:Silkscreen;font-style:normal;font-weight:400;font-display:swap;src:url('./fonts/silkscreen-400-latin.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:Silkscreen;font-style:normal;font-weight:400;font-display:swap;src:url('./fonts/silkscreen-400-latin-ext.woff2') format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:Silkscreen;font-style:normal;font-weight:700;font-display:swap;src:url('./fonts/silkscreen-700-latin.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:Silkscreen;font-style:normal;font-weight:700;font-display:swap;src:url('./fonts/silkscreen-700-latin-ext.woff2') format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+:root{
+ color-scheme:dark;
+ --color-surface:#05080a;--color-surface-muted:#05080a;--color-elevated:#05080a;
+ --color-border:#425f72;--color-text:#cfdae1;--color-text-muted:#71838f;
+ --color-accent:#38b6c4;--color-accent-strong:#5fd6e4;
+ --color-success:#4caf7d;--color-danger:#e2575f;
+ --font-sans:'Silkscreen','Courier New',monospace;--font-mono:'Silkscreen','Courier New',monospace;
+ --radius-sm:0;--radius-md:0;--radius-lg:0;--shadow-sm:none;--shadow-lg:none;
+ /* Readable ROYGBIV text on the shared near-black surface (all >8:1). */
+ --tone-red:#ff7b86;--tone-orange:#ffb078;--tone-yellow:#f4d773;--tone-green:#79d3a6;
+ --tone-blue:#79b9f0;--tone-indigo:#a7a4ff;--tone-violet:#dca5f7;
+ --section-tone:var(--tone-blue);--control-tone:var(--color-accent-strong);
+ background:var(--color-surface);color:var(--color-text);font-family:var(--font-sans);
+}
+body,body.bg-slate-950{background:var(--color-surface);color:var(--color-text);font-family:var(--font-sans);font-size:16px;line-height:1.65}
+.font-sans,.font-mono,code,pre,kbd,samp,button,input,select,textarea{font-family:var(--font-mono)}
+button,input,select,textarea{font-size:inherit}
+::selection{color:var(--color-surface);background:var(--color-accent-strong)}
+body{scrollbar-color:var(--color-border) var(--color-surface)}
+header,header.bg-slate-900,footer{background:var(--color-surface);border-color:var(--color-border);box-shadow:none}
+h1,h2,h3,h4,summary{font-family:var(--font-sans);font-weight:700;line-height:1.45}
+h1{color:var(--color-text);letter-spacing:-.01em}
+h2,.section-title{color:var(--section-tone)}
+h3,h4{color:var(--color-accent-strong)}
+a{color:var(--tone-blue);text-underline-offset:.25em}
+a:hover{color:var(--color-accent-strong)}
+header>a,header h1{color:var(--color-text)}
+nav a{color:var(--color-accent-strong)}
+.work-card,.panel,.research-card,.check-card,.metric,.badge,.field{
+ background:var(--color-surface);border-color:var(--color-border);border-radius:0;box-shadow:none;
+}
+[class*='rounded-']{border-radius:0}
+.eyebrow{color:var(--color-text-muted);letter-spacing:.08em}
+.muted,footer,.metric span{color:var(--color-text-muted)}
+.accent,.text-amber-300,.metric b{color:var(--tone-yellow)}
+.text-rose-300{color:var(--tone-red)}
+.notice{background:var(--color-surface);border-color:var(--tone-yellow);border-radius:0;color:var(--tone-yellow);box-shadow:none}
+button,.action{
+ --control-tone:var(--color-accent-strong);
+ color:var(--control-tone);background:transparent;border:1px solid var(--color-border);
+ border-radius:0;box-shadow:none;letter-spacing:.01em;line-height:1.5;min-height:44px;
+}
+button:hover,.action:hover{
+ color:var(--control-tone);border-color:var(--control-tone);
+ background:color-mix(in srgb,var(--control-tone) 9%,var(--color-surface));box-shadow:none;
+}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{
+ outline:2px solid var(--color-accent-strong);outline-offset:3px;
+}
+button:focus-visible,.action:focus-visible{background:color-mix(in srgb,var(--control-tone) 9%,var(--color-surface))}
+button:disabled{opacity:.45}
+input,select,textarea,.field{color:var(--color-text);background:var(--color-surface);border:1px solid var(--color-border);border-radius:0;box-shadow:none;min-width:0}
+input:focus,select:focus,textarea:focus{border-color:var(--color-accent)}
+input::placeholder,textarea::placeholder{color:var(--color-text-muted);opacity:1}
+label{color:var(--color-text);line-height:1.6}
+input[type=range],input[type=checkbox]{accent-color:var(--control-tone,var(--color-accent))}
+input[type=file]::file-selector-button{font:inherit;color:var(--tone-orange);background:var(--color-surface);border:1px solid var(--color-border);border-radius:0;padding:.35rem .5rem;margin-right:.5rem}
+pre,code{color:var(--tone-indigo);font-variant-ligatures:none;font-size:.8rem}
+pre{line-height:1.7;tab-size:2}
+details>summary{color:var(--tone-violet);cursor:pointer;overflow-wrap:anywhere}
+details>pre{color:var(--tone-violet)}
+.ingest-file-row{border-color:var(--color-border)}
+.ingest-file-row>span{color:var(--tone-blue)}
+#project-kind{color:var(--tone-green)}
+#project-cards .work-card:nth-child(4n+1){--section-tone:var(--tone-green)}
+#project-cards .work-card:nth-child(4n+2){--section-tone:var(--tone-orange)}
+#project-cards .work-card:nth-child(4n+3){--section-tone:var(--tone-blue)}
+#project-cards .work-card:nth-child(4n){--section-tone:var(--tone-indigo)}
+#project-cards .accent{color:var(--color-text-muted)}
+#project-cards .work-card>.action{--control-tone:var(--section-tone)}
+#project-pages a{color:var(--control-tone)}
+#project-pages a[href$='/overview'],#project-pages a[href$='/documents'],#project-pages a[href$='/links']{--control-tone:var(--tone-blue)}
+#project-pages a[href$='/profile'],#project-pages a[href$='/images'],#project-pages a[href$='/media']{--control-tone:var(--tone-violet)}
+#project-pages a[href$='/architecture'],#project-pages a[href$='/manuals']{--control-tone:var(--tone-indigo)}
+#project-pages a[href$='/controls'],#project-pages a[href$='/conversations'],#project-pages a[href$='/plans']{--control-tone:var(--tone-orange)}
+#project-pages a[href$='/research'],#project-pages a[href$='/versions'],#project-pages a[href$='/builds']{--control-tone:var(--tone-green)}
+#project-pages a[href$='/roadmap'],#project-pages a[href$='/notes']{--control-tone:var(--tone-yellow)}
+#project-pages a[href$='/sessions']{--control-tone:var(--tone-red)}
+[aria-current=page]{color:var(--control-tone,var(--color-accent-strong));border-bottom-color:var(--control-tone,var(--color-accent-strong))}
+#create-project,#ingest-commit,#ingest-package-commit,#emu-run,#emu-record-start{--control-tone:var(--tone-green)}
+#export-projects,#ingest-connect,#ingest-cloud-list,#emu-load,#emu-report,#emu-record-export{--control-tone:var(--tone-blue)}
+#emu-reset,#emu-step,#emu-record-recover{--control-tone:var(--tone-yellow)}
+#codec-cancel,#audition-stop,#emu-pause,#emu-unload,#emu-record-stop{--control-tone:var(--tone-red)}
+#codec-run,#emu-probe{--control-tone:var(--tone-orange)}
+#emu-tests,#emu-demo{--control-tone:var(--tone-indigo)}
+#project-status,#workspace-status,#emu-status,#emu-library-status{color:var(--color-accent-strong)}
+#emu-identity,#emu-record-status{color:var(--tone-violet);overflow-wrap:anywhere}
+#emu-state,#emu-provenance,#emu-debug-output{color:var(--tone-indigo)}
+#emu-ram,#emu-probe-readout,#emu-input{color:var(--tone-blue)}
+#emu-console{color:var(--tone-green)}
+#emu-key-title,#emu-keys button{--control-tone:var(--tone-green);color:var(--tone-green)}
+#emu-button-title,#emu-buttons button{--control-tone:var(--tone-orange);color:var(--tone-orange)}
+#emu-pad-title,#emu-pads button{--control-tone:var(--tone-violet);color:var(--tone-violet)}
+#emu-encoder-title,#emu-encoders button{--control-tone:var(--tone-indigo);color:var(--tone-indigo)}
+#emu-analog-title{color:var(--tone-yellow)}
+#emu-analogs label:nth-child(1){--control-tone:var(--tone-red);color:var(--tone-red)}
+#emu-analogs label:nth-child(2){--control-tone:var(--tone-orange);color:var(--tone-orange)}
+#emu-analogs label:nth-child(3){--control-tone:var(--tone-yellow);color:var(--tone-yellow)}
+#emu-analogs label:nth-child(4){--control-tone:var(--tone-green);color:var(--tone-green)}
+#emu-analogs label:nth-child(5){--control-tone:var(--tone-blue);color:var(--tone-blue)}
+#emu-analogs label:nth-child(6){--control-tone:var(--tone-indigo);color:var(--tone-indigo)}
+#emu-analogs label:nth-child(7){--control-tone:var(--tone-violet);color:var(--tone-violet)}
+:is(#emu-keys,#emu-buttons,#emu-pads) button.key-held{background:var(--tone-green);color:var(--color-surface)}
+canvas{border-color:var(--color-border)}
+#emu-lcd{border-color:var(--tone-blue)}
+.smk-surface-stage{background:var(--color-surface);border-color:var(--color-border)}
+.smk-surface-stage text{font-family:var(--font-mono)}
+.smk-surface-stage svg>rect:first-of-type{fill:var(--color-surface);stroke:var(--color-border)}
+.smk-surface-stage svg>path{stroke:var(--color-border)}
+.smk-surface-stage svg>text{fill:var(--color-text-muted)}
+.smk-surface-stage [role=spinbutton] .control-face{fill:var(--color-surface);stroke:var(--tone-indigo)}
+.smk-surface-stage [data-indicator]{stroke:var(--tone-indigo)}
+.smk-surface-stage [data-control^=pad] .control-face{fill:color-mix(in srgb,var(--tone-violet) 12%,var(--color-surface));stroke:var(--tone-violet)}
+.smk-surface-stage [data-control^=pad]>text{fill:var(--tone-violet)}
+.smk-surface-stage [data-control^=button] .control-face{fill:var(--color-surface);stroke:var(--tone-orange)}
+.smk-surface-stage [data-control^=button]>text{fill:var(--tone-orange)}
+.smk-surface-stage [role=slider] .control-face{fill:var(--color-surface);stroke:var(--color-border)}
+.smk-surface-stage [data-handle]{fill:var(--tone-yellow);stroke:var(--color-surface)}
+.smk-surface-stage [data-control].held .control-face{fill:var(--tone-green);stroke:var(--color-accent-strong)}
+.smk-surface-stage [data-control].selected .control-face{stroke:var(--tone-violet);stroke-width:3}
+.smk-surface-stage [data-control]:focus .control-face{stroke:var(--tone-yellow);stroke-width:4}
+.smk-surface-stage [data-control].guest-down .control-face{stroke:var(--color-accent-strong);stroke-width:4}
+/* Research workbench keeps its existing grid, controls, calculators and data. */
+#tab-research{--section-tone:var(--tone-green)}
+#tab-prototype{--section-tone:var(--tone-orange)}
+#tab-architecture{--section-tone:var(--tone-blue)}
+#tab-hal{--section-tone:var(--tone-indigo)}
+#tab-catalog{--section-tone:var(--tone-violet)}
+#tab-sysex{--section-tone:var(--tone-red)}
+#tab-calculator{--section-tone:var(--tone-yellow)}
+#btn-tab-research{--control-tone:var(--tone-green)}
+#btn-tab-prototype{--control-tone:var(--tone-orange)}
+#btn-tab-architecture{--control-tone:var(--tone-blue)}
+#btn-tab-hal{--control-tone:var(--tone-indigo)}
+#btn-tab-catalog{--control-tone:var(--tone-violet)}
+#btn-tab-sysex{--control-tone:var(--tone-red)}
+#btn-tab-calculator{--control-tone:var(--tone-yellow)}
+.tab-btn,.tab-btn:hover,.tab-btn[aria-selected=true]{color:var(--control-tone);border-radius:0;background:var(--color-surface)}
+.tab-btn[aria-selected=true]{border-bottom-color:var(--control-tone)}
+#claims-list .eyebrow{color:var(--tone-yellow)}
+#source-list .eyebrow,#source-list .badge{color:var(--tone-violet)}
+#plan-progress{color:var(--tone-green)}
+#velocity-summary,#pickup-status{color:var(--tone-indigo)}
+#decoder-ledger,#spectrum-caption,#buffer-duration{color:var(--tone-blue)}
+#tonal-summary{color:var(--tone-violet)}
+thead th{color:var(--color-text-muted);border-bottom:1px solid var(--color-border)}
+tbody td{border-color:var(--color-border)}
+tbody td:first-child{color:var(--tone-blue)}
+tbody td:nth-child(3){color:var(--tone-yellow)}
+tbody td:last-child{color:var(--tone-violet)}
+.skip-link{background:var(--tone-yellow);color:var(--color-surface);border-radius:0}
+@media(max-width:680px){body,body.bg-slate-950{font-size:14px}pre,code{font-size:.75rem}.tab-btn{font-size:.75rem}#project-pages .action{font-size:.75rem}}
+@media(prefers-reduced-motion:reduce){button,.action,input,select,textarea{transition:none}}

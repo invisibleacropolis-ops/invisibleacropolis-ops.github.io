@@ -103,19 +103,21 @@ function makeChart(id, configuration) {
   return new window.Chart($(id), configuration);
 }
 function initVisibleChart(tab) {
-  const common = { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { labels: { color: '#cbd5e1' } } } };
+  if (window.Chart) window.Chart.defaults.font.family = '"Silkscreen", "Courier New", monospace';
+  const common = { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { labels: { color: '#cfdae1' } } } };
   if (tab === 'tab-architecture' && !charts.sram) charts.sram = makeChart('sramChart', {
-    type:'doughnut', data:{labels:['Pool budget','Application RAM budget','Other / reserved window'],datasets:[{data:[360,72,80],backgroundColor:['#f59e0b','#06b6d4','#475569'],borderColor:'#0f172a',borderWidth:2}]}, options:common
+    type:'doughnut', data:{labels:['Pool budget','Application RAM budget','Other / reserved window'],datasets:[{data:[360,72,80],backgroundColor:['#ffb078','#79b9f0','#425f72'],borderColor:'#05080a',borderWidth:2}]}, options:common
   });
   if (tab === 'tab-hal' && !charts.velocity) {
-    charts.velocity = makeChart('velocityChart', { type:'line',data:{labels:['0','0.25','0.5','0.75','1'],datasets:[{label:'Illustrative MIDI velocity',data:velocityCurve(+$('trim-p1').value,+$('trim-p5').value),borderColor:'#f59e0b',tension:0}]},options:{...common,scales:{y:{min:0,max:127,ticks:{color:'#cbd5e1'}},x:{ticks:{color:'#cbd5e1'}}}} });
+    charts.velocity = makeChart('velocityChart', { type:'line',data:{labels:['0','0.25','0.5','0.75','1'],datasets:[{label:'Illustrative MIDI velocity',data:velocityCurve(+$('trim-p1').value,+$('trim-p5').value),borderColor:'#ffb078',tension:0}]},options:{...common,scales:{y:{min:0,max:127,ticks:{color:'#cfdae1'}},x:{ticks:{color:'#cfdae1'}}}} });
     updateVelocity();
   }
   if (tab === 'tab-calculator' && !charts.dsp) {
-    charts.dsp = makeChart('dspChart', {type:'bar',data:{labels:['Operator state','Delay line','I/O buffers','Overhead','Remaining'],datasets:[{label:'KiB',data:[],backgroundColor:['#f59e0b','#06b6d4','#10b981','#818cf8','#475569']}]},options:{...common,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{color:'#cbd5e1'}},y:{ticks:{color:'#cbd5e1'}}}}});
+    charts.dsp = makeChart('dspChart', {type:'bar',data:{labels:['Operator state','Delay line','I/O buffers','Overhead','Remaining'],datasets:[{label:'KiB',data:[],backgroundColor:['#ffb078','#79b9f0','#79d3a6','#a7a4ff','#425f72']}]},options:{...common,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{color:'#cfdae1'}},y:{ticks:{color:'#cfdae1'}}}}});
     calculateDSP();
   }
   for (const chart of Object.values(charts)) chart?.resize();
+  void document.fonts?.ready.then(() => { for (const chart of Object.values(charts)) chart?.update('none'); });
 }
 function activateTab(id, updateHash = true, focus = false) {
   const target = $(id); if (!target?.classList.contains('tab-content')) id = 'tab-research';
