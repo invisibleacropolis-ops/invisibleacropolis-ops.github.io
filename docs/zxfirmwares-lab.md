@@ -8,6 +8,12 @@ Owner-approved public destination: `/zxfirmwares/`.
 
 The home-page directory registers **ZXFirmwares Lab** at `/zxfirmwares/projects/`. Existing page entries and experiences are preserved. Vite copies this self-contained app unchanged from `public/zxfirmwares/`; the root-only static-page copier must not try to rebuild it.
 
+## Current visual alignment — Invisible Support
+
+Owner requested purely visual styling across all ZXFirmwares pages. Reference is canonical **https://invisibleacropolis-ops.github.io/InvisibleSupport/** (capitalized): exact near-black #05080a, blue-grey #425f72 hairlines, cyan accents, Silkscreen400/700 Latin/Latin-ext, square corners/no shadows. Shared late `support-theme.css` applies the foundation to all3page shells, dynamic project/ingestion pages and all research tabs, with high-contrast ROYGBIV category/action/data tones. Fonts are byte-identical/self-hosted, full SIL OFL1.1 notice bundled; no external font service or Support app edits.
+
+Visual-only contract pins all29controller modules (app.js changes only reversible chart font/paint), original page DOMs excluding the one added style link, original layout styles/Tailwind config, fonts and existing release bytes. Guest LCD pixels are not recoloured/filtered. Existing labels/keyboard/controls/storage/firmware/runtime workflows unchanged. Local100host and24browser scenarios pass; hosted PR42800440996 and companion42800441103 pass for sourced942ac5. Scope expands55→61files/60digests solely for shared CSS and5font/licence assets. Desktop/mobile previews compare actual computed body/font/border/accent exactly with the live reference; no overflow/errors. Live functional/theme checks repeat after deployment.
+
 ## Normal BRRbox project / build access
 
 Owner rejected long private snapshot links and explicitly requested the firmware in the normal project build area. **[/zxfirmwares/projects/#/brrbox/builds](/zxfirmwares/projects/#/brrbox/builds)** is now a normal registry entry. Builds/Versions automatically fetches the reviewed firmware into the existing Version Library, checks every size/hash and commits atomically. No special URL, sign-in, file picker, browser storage injection or import action. Existing matching private versions are reused; notebook/profile/resources/runs are preserved. Corruption/conflicting build labels fail visibly without partial installation or overwrite; no cloud writes or automatic Run.
@@ -16,7 +22,7 @@ Narrow owner-requested public release exception: mapped XIP447112B, Pro FWSC6512
 
 ## Artifact identity / scope
 
-Reviewed implementation: ZXFirmwares source revision `aec4c25b6d56613cf967854af2a6002065d6d420` (source repository stays private; shipped client JavaScript/WASM and documentation are public). The public directory contains exactly **55 reviewed client/release files**, including `SHA256SUMS` for the other54, original project-created bring-up code, the actual pinned MIT fm1-emu browser CPU/SMK-37 SoC and full emulator/Rust-runtime notices. No blanket open-source licence is assigned to the Lab's project code.
+Reviewed implementation: ZXFirmwares source revision `d942ac5854889ebb524a7e63c83857572be49aa6` (source repository stays private; shipped client JavaScript/WASM and documentation are public). The public directory contains exactly **61 reviewed client/release/font files**, including `SHA256SUMS` for the other60, original project-created bring-up code, the actual pinned MIT fm1-emu browser CPU/SMK-37 SoC and full emulator/Rust-runtime notices. No blanket open-source licence is assigned to the Lab's project code.
 
 Only the named BRRbox development release and corresponding source are included as the explicit new exception. No unrelated vendor ROM, original private dashboard/transcript, Android APK, signing secret, original recordings, private personal pack/report/project backup or science/runtime installation is included. User-imported builds stay in a browser worker; project files/metadata remain in that browser unless explicitly connected to Invisible Support or exported. Create Project defaults to the existing private DB after owner sign-in; no legacy content uploads automatically. Storage is same-origin and unencrypted, not a secret vault or a Git commit. Exported reports can contain guest console/filenames and should be reviewed before sharing.
 
@@ -36,7 +42,7 @@ Each project now hosts identification/profile revisions, categorized research/co
 
 Load OS uses a committed expiring one-use ticket; the emulator checks project/version/file ownership, firmware SHA256/settings and the actual worker WASM identity, then focuses the heading only after runtime/storage acknowledgement. Reset preserves version attribution. Unload ejects the runtime/cached input but leaves versions and logs intact. Explicit guest-console/model/lifecycle/snapshot recording is sequenced, checksummed and auto-checkpointed; unflushed tails, console gaps, caps and save failures are reported honestly with recovery export. This is not Android logcat or a full instruction trace. User-imported content remains local/private-cloud and outside this public repository/artifact.
 
-The public host serves55 reviewed client/release files. It receives no private repository token, arbitrary user imports, original recordings/images, debug data, browser database or backup export.
+The public host serves61 reviewed client/release/font files. It receives no private repository token, arbitrary user imports, original recordings/images, debug data, browser database or backup export.
 
 ## Create Project / Invisible Support private storage
 
@@ -64,6 +70,6 @@ Worker scheduling now yields after at most16 existing upstream quanta or6ms (plu
 
 ## Build / update boundary
 
-`npm run build` followed by `npm run verify:zxfirmwares` checks exact55-file membership/54 hashes and the pinned BRRbox release/source bundle, runtime notices/imports, original diagnostic and MMIO probe identity,85-control SVG, explicit target profiles, navigation and byte-for-byte Vite pass-through. The deployment workflow runs this guard **before uploading Pages output**. This host does not fetch the private source, run audio experiments, receive private repository tokens or synchronize arbitrary build folders.
+`npm run build` followed by `npm run verify:zxfirmwares` checks exact61-file membership/60 hashes, self-hosted font/licence/theme identity and the pinned BRRbox release/source bundle, runtime notices/imports, original diagnostic and MMIO probe identity,85-control SVG, explicit target profiles, navigation and byte-for-byte Vite pass-through. The deployment workflow runs this guard **before uploading Pages output**. This host does not fetch the private source, run audio experiments, receive private repository tokens or synchronize arbitrary build folders.
 
 For updates: first review a new explicitly allowlisted source artifact, then replace only `public/zxfirmwares/`, update this receipt, run host build/verification and browser checks. Review any boundary/fixture changes deliberately rather than broadening the copier. Main pushes deploy the whole existing host through its normal Pages workflow.

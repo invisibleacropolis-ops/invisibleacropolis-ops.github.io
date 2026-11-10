@@ -1,5 +1,7 @@
 # Rights and third-party notices
 
+- Silkscreen regular/bold Latin/Latin-ext WOFF2 fonts are self-hosted, byte-identical to Invisible Support's font assets. Copyright 2001 The Silkscreen Project Authors (https://github.com/googlefonts/silkscreen); SIL Open Font License 1.1, full text in `assets/fonts/Silkscreen-OFL.txt`. No external font service or third-party runtime font request. These font terms do not change the licence of other Lab code or BRRbox release files.
+
 - The initial `mvave_fm1_engineering_dashboard.html` was supplied by the repository owner. Its authorship and licensing were not established. It remains unchanged for provenance, is excluded from `dist/`, and should be reviewed before public redistribution.
 - The working site is derived from that supplied dashboard. No blanket open-source licence is assigned to this project; keep the repository private pending the owner’s licensing decision.
 - Chart.js 4.4.8 is MIT-licensed, Copyright (c) 2014–2024 Chart.js Contributors. The build bundles its browser runtime and full `LICENSE.md` under `assets/vendor/Chart-LICENSE.md` in the static artifact.
