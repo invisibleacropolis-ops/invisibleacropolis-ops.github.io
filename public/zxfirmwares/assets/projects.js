@@ -3,17 +3,20 @@ import * as vault from './os-library.js';
 import {initProjectLibrary} from './project-library.js';
 import {initProjectIngestion,readProjectImport,commitAgentProject} from './project-ingest.js';
 import {supportStorage} from './support-storage.js';
+import {initManualReader} from './manual-reader.js';
 let storedProjects=[];let library;let libraryReady=false;const notebookDrafts=new Map();
 const $=id=>document.getElementById(id),make=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
+const manual=initManualReader({host:$('project-manual')});
 const key='zxfirmwares.projects.v1';let state={version:1,custom:[],notes:{}},storageFailed=false;
 try{const raw=localStorage.getItem(key);if(raw)state=validateProjects(JSON.parse(raw));}catch{storageFailed=true;}
 function notice(text){$('project-status').textContent=text;}
 function save(){try{localStorage.setItem(key,JSON.stringify(state));notice('Saved locally.');}catch{notice('Storage unavailable. Export JSON.');}}
 function link(text,href){const a=make('a',text,'action');a.href=href;return a;}
 function draw(skipLibrary=false){
- const r=route(location.hash),all=[...[...projects,...state.custom,...storedProjects].reduce((map,p)=>map.set(p.id,{...map.get(p.id),...p}),new Map()).values()],p=all.find(p=>p.id===r.id);const creating=r.id==='create';$('project-index').hidden=creating||!!p;$('project-detail').hidden=creating||!p;$('project-ingest').hidden=!creating;if(r.id==='share'){$('project-index').hidden=true;$('project-detail').hidden=true;$('project-ingest').hidden=true;return;}
+ const r=route(location.hash),all=[...[...projects,...state.custom,...storedProjects].reduce((map,p)=>map.set(p.id,{...map.get(p.id),...p}),new Map()).values()],p=all.find(p=>p.id===r.id);const creating=r.id==='create';$('project-index').hidden=creating||!!p;$('project-detail').hidden=creating||!p;$('project-ingest').hidden=!creating;if(r.id==='share'){manual.show(null);$('project-index').hidden=true;$('project-detail').hidden=true;$('project-ingest').hidden=true;return;}
  $('project-cards').replaceChildren(...all.map(p=>{const c=make('article',undefined,'work-card');c.append(make('p',p.kind,'eyebrow'),make('h2',p.title),make('p',p.status,'accent'),make('p',p.target||'smk37-pro'),link('Open project →',`#/${projectSlug(p.id)}/overview`));return c;}));
- if(creating)return;
+ if(creating){manual.show(null);return;}
+ manual.show(p||null);
  if(!p){$('project-library').replaceChildren();if(r.id)notice('Project not found.');return;}
  $('project-title').textContent=p.title;$('project-kind').textContent=`${p.kind} / ${p.status}`;
  $('project-pages').replaceChildren(...pages.map(name=>{const a=link(name[0].toUpperCase()+name.slice(1),`#/${projectSlug(p.id)}/${name}`);if(name===r.page)a.setAttribute('aria-current','page');return a;}),link('Emulator & tests ↗',`../emulator/?project=${encodeURIComponent(p.id)}`));
