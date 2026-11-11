@@ -1,7 +1,7 @@
 import {projects,pages,route,validateProjects,projectSlug} from './projects-data.js';
 import * as vault from './os-library.js';
 import {initProjectLibrary} from './project-library.js';
-import {initProjectIngestion,readProjectImport} from './project-ingest.js';
+import {initProjectIngestion,readProjectImport,commitAgentProject} from './project-ingest.js';
 import {supportStorage} from './support-storage.js';
 let storedProjects=[];let library;let libraryReady=false;const notebookDrafts=new Map();
 const $=id=>document.getElementById(id),make=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
@@ -24,9 +24,15 @@ function draw(skipLibrary=false){
  const actions=$('project-actions');actions.replaceChildren(link('Run / inspect a build',`../emulator/?project=${encodeURIComponent(p.id)}`),link('Research workbench','../#tab-research'),link('Control proposals','../#tab-hal'));if(libraryReady){if(!skipLibrary)library?.render(p,r.page);}else $('project-library').textContent='Loading…';
 }
 const ingestion=initProjectIngestion({host:$('project-ingest'),status:$('project-status'),isActive:()=>route(location.hash).id==='create',onCommitted:async(p,active)=>{await refreshLibrary(p);if(active)location.hash=`/${p.id}/overview`;}});
-function download(name,text){const u=URL.createObjectURL(new Blob([text],{type:'application/json'})),a=link('',u);a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000);}
-$('export-projects').onclick=()=>{download('ZXFirmwares-projects.json',JSON.stringify(state,null,2)+'\n');notice('Notes export requested.');};
-$('import-projects').onchange=$('import-project-file').onchange=async e=>{const input=e.target,f=input.files?.[0],ownHash=location.hash;if(!f)return;input.disabled=true;try{const result=await readProjectImport(f);if(result.kind==='complete'){if(ingestion.isBusy())throw Error('Wait for the current ingestion operation');const reveal=location.hash===ownHash;if(reveal){library.invalidate();location.hash='/create';draw();}ingestion.queueCompleteProjectFile(f,{reveal});return;}if(!confirm('Replace local projects and notes? Export first if needed.'))return;state=result.data;save();draw();}catch(error){notice('Import rejected: '+error.message+'');}finally{input.value='';input.disabled=false;}};
+// Agent maintenance only; no public workspace import/export controls. See docs/AGENT_PROJECT_IMPORT.md.
+export const exportAgentWorkspace=()=>structuredClone(state);
+export async function importAgentWorkspace(file,{storage,replaceNotes=false}={}) {
+ if(ingestion.isBusy()||!libraryReady)throw Error('Wait for the current project operation');
+ const result=await readProjectImport(file);
+ if(result.kind==='complete'){const p=await commitAgentProject(result.data,{storage});await refreshLibrary(p);return p;}
+ if(!replaceNotes)throw Error('Legacy notes replacement requires replaceNotes:true and an independent export');
+ state=result.data;save();draw();return exportAgentWorkspace();
+}
 async function refreshLibrary(restored,quiet=false){storedProjects=await vault.getProjects();const known=new Set(projects.map(p=>p.id));state.custom=storedProjects.filter(p=>!known.has(p.id)&&/^local-[a-z0-9-]{1,64}$/.test(p.id)).slice(0,20).map(p=>({id:p.id,title:p.title,kind:p.kind,status:p.status,summary:p.summary}));const legacyIds=new Set([...known,...state.custom.map(p=>p.id)]);for(const p of storedProjects){if(legacyIds.has(p.id)&&(restored?.id===p.id||!Object.hasOwn(state.notes,p.id)))state.notes[p.id]=p.notes||'';}for(const id of Object.keys(state.notes))if(!legacyIds.has(id))delete state.notes[id];if(restored){try{localStorage.setItem(key,JSON.stringify(state));}catch{}}draw(quiet);}
 library=initProjectLibrary({host:$('project-library'),status:$('project-status'),onChange:restored=>refreshLibrary(restored,!restored),beforeBackup:async pid=>{const value=notebookDrafts.get(pid);if(value!==undefined){const p=await vault.getProject(pid);if(p.notes!==value)await vault.saveNotes(pid,value);notebookDrafts.delete(pid);}}});
 (async()=>{try{for(const p of [...projects.map(p=>({...p,seed:true})),...state.custom.map(p=>({...p,seed:true}))]){await vault.ensureProject(p);if(Object.hasOwn(state.notes,p.id)){const current=await vault.getProject(p.id);if(current.notes!==state.notes[p.id])await vault.saveNotes(p.id,state.notes[p.id]);}}libraryReady=true;await refreshLibrary();await openSharedProject();}catch(error){notice('Library error: '+error.message);}})();

@@ -1,6 +1,8 @@
 import * as db from './os-library.js';
 import {bootConfig} from './emulator-core.js';
 import {supportStorage, SUPPORT} from './support-storage.js';
+import {categoryFor,mimeFor,organizeBackupSources} from './project-files.js';
+export {categoryFor,mimeFor} from './project-files.js';
 import {validateProjects} from './projects-data.js';
 
 // Both library entry points recognize complete containers before applying the legacy notes cap.
@@ -18,23 +20,43 @@ export function filePath(value) {
   if (!value || value.startsWith('/') || value.includes('\\') || /[\x00-\x1f\x7f]/.test(value) || value.split('/').some(p => !p || p === '.' || p === '..')) throw Error('Unsafe or empty relative file path');
   return value;
 }
-export function mimeFor(path) {
-  const ext = path.split('.').at(-1).toLowerCase();
-  return ({png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',webp:'image/webp',gif:'image/gif',wav:'audio/wav',wave:'audio/wav',mp3:'audio/mpeg',flac:'audio/flac',ogg:'audio/ogg',opus:'audio/ogg',m4a:'audio/mp4',mp4:'video/mp4',webm:'video/webm',mov:'video/quicktime',pdf:'application/pdf',json:'application/json'})[ext] || (/\.(md|txt|c|h|s|sh|py|ld|log|csv|toml|yml|yaml|html|css|js)$/i.test(path) || /(^|\/)(LICENSE|LICENSING|README|\.gitignore)$/i.test(path) ? 'text/plain' : 'application/octet-stream');
+// Preflight the entire selection before reading/hash-encoding a single file.
+export function planIngestion(entries,overrides={}) {
+ if(!Array.isArray(entries)||entries.length>400)throw Error('Select at most 400 files per ingestion');
+ if(!overrides||typeof overrides!=='object'||Array.isArray(overrides))throw Error('Invalid fileCategories map');
+ const paths=new Set();let total=0;
+ const plan=entries.map(entry=>{const path=filePath(entry.path||entry.file?.webkitRelativePath||entry.file?.name),file=entry.file;
+  if(paths.has(path))throw Error('Duplicate relative file path: '+path);paths.add(path);
+  if(!(file instanceof Blob)||file.size>db.LIMITS.file)throw Error('File exceeds 16 MiB or is invalid: '+path);
+  if((total+=file.size)>db.LIMITS.payload)throw Error('Selected file batch exceeds 64 MiB');
+  const kind=Object.hasOwn(overrides,path)?overrides[path]:entry.kind||categoryFor(path);
+  if(!db.recordKinds.includes(kind))throw Error('Unknown record category for '+path);
+  return {path,file,kind,explicit:Object.hasOwn(overrides,path)||!!entry.kind&&entry.kind!==categoryFor(path)};
+ });
+ for(const path of Object.keys(overrides))if(!paths.has(path))throw Error('Unused fileCategories path: '+path);
+ return plan.sort((a,b)=>a.path<b.path?-1:a.path>b.path?1:0);
 }
-export function categoryFor(path) {
-  const mime = mimeFor(path);
-  if (mime.startsWith('image/')) return 'image';
-  if (/^(audio|video)\//.test(mime)) return 'media';
-  if (/roadmap|todo/i.test(path)) return 'roadmap';
-  if (/conversation|transcript/i.test(path)) return 'conversation';
-  if (/design|research/i.test(path) && /\.md$/i.test(path)) return 'research';
-  if (/(controls|install|library|manual)\.md$/i.test(path)) return 'manual';
-  return 'document';
+export function ingestionReport(backup) {
+ const records=new Map(backup.resources.map(r=>[r.id,r])),files=backup.artifacts.filter(a=>a.ownerType==='resource').map(a=>({path:a.name,size:a.size,sha256:a.sha256,kind:records.get(a.ownerId)?.kind})).sort((a,b)=>a.path<b.path?-1:a.path>b.path?1:0);
+ const categories={},folders={};for(const file of files){categories[file.kind]=(categories[file.kind]||0)+1;const folder=file.path.includes('/')?file.path.slice(0,file.path.lastIndexOf('/')):'.';folders[folder]=(folders[folder]||0)+1;}
+ return {schema:'ZX-OS-INGEST-REPORT-1',project:backup.project.title,projectId:backup.project.id,records:backup.resources.length,versions:backup.versions.map(v=>({label:v.label,format:v.format})),files:files.length,originalBytes:files.reduce((n,f)=>n+f.size,0),uniqueBytes:backup.blobs.reduce((n,b)=>n+b.size,0),categories,folders,duplicateBytes:files.reduce((n,f)=>n+f.size,0)-[...new Map(files.map(f=>[f.sha256,f.size])).values()].reduce((n,size)=>n+size,0),inventory:files};
+}
+// Agent-only bulk-import API: review has no writes; commit requires an explicit destination.
+// See docs/AGENT_PROJECT_IMPORT.md. No public import controls mount this pipeline.
+export async function reviewAgentProject(file) {
+ const result=await readProjectImport(file);if(result.kind!=='complete')throw Error('Expected a complete project container');
+ await db.validateBackup(result.data);const backup=organizeBackupSources(result.data);return {backup,report:ingestionReport(backup)};
+}
+export async function commitAgentProject(backup,{storage,onProgress=()=>{}}={}) {
+ if(!['local','invisible-support'].includes(storage))throw Error('Choose an explicit storage destination');
+ await db.validateBackup(backup);let data=organizeBackupSources(structuredClone(backup));
+ if(storage==='invisible-support')data=await supportStorage.publishProject(data,onProgress);
+ else if(data.project.cloud){data.project.originCloud=data.project.cloud;delete data.project.cloud;}
+ return db.importProject(data);
 }
 // Pure preparation: inspect/hash/validate every byte before any IndexedDB or remote mutation.
 export async function prepareIngestion(fields, entries = [], onProgress = () => {}) {
-  if (!Array.isArray(entries) || entries.length > 400) throw Error('Select at most 400 files per ingestion');
+  const plan=planIngestion(entries,fields.fileCategories);
   const stamp = db.now(), id = db.projectId(fields.id || 'local-' + crypto.randomUUID()), metadataId = db.uid('project');
   const project = {id,metadataId,kind:'Custom OS / firmware',seed:false,createdAt:stamp,updatedAt:stamp,notes:text(fields.notes || '',20000,'notebook')};
   for (const [key, max, fallback] of [['title',80,''],['summary',2000,''],['status',120,'Imported / unverified'],['manufacturer',120,'M-VAVE'],['product',120,'SMK-37 Pro'],['hardwareRevision',240,'Unknown / not verified'],['firmwareLineage',2000,'']]) project[key] = text(fields[key] ?? fallback,max,key).trim();
@@ -59,18 +81,17 @@ export async function prepareIngestion(fields, entries = [], onProgress = () => 
   if (sections.length > 90) throw Error('At most 90 curated sections');
   for (const section of sections) { const r=record(section.kind,section.title,section.body,section.url || '',section.tags || []); if (section.source) r.source=text(section.source,2000,'section source'); }
   if (fields.links) for (const url of text(fields.links,20000,'links').split(/\r?\n/).map(s=>s.trim()).filter(Boolean)) record('link',url.slice(0,160),'Reference URL',url);
-  const paths = new Set(), blobs = new Map(), inventory = []; let total = 0;
-  for (let i=0;i<entries.length;i++) {
-    const entry=entries[i], path=filePath(entry.path || entry.file?.webkitRelativePath || entry.file?.name), file=entry.file;
-    if (paths.has(path)) throw Error('Duplicate relative file path: '+path); paths.add(path);
-    if (!(file instanceof Blob) || file.size > db.LIMITS.file) throw Error('File exceeds 16 MiB or is invalid: '+path);
-    if ((total += file.size) > db.LIMITS.payload) throw Error('Selected file batch exceeds 64 MiB');
-    onProgress({done:i,total:entries.length,name:path});
-    const bytes=new Uint8Array(await file.arrayBuffer()), sha256=await db.sha256(bytes), mime=mimeFor(path), kind=entry.kind || categoryFor(path);
+  const blobs = new Map(), inventory = []; let total = 0;
+  for (let i=0;i<plan.length;i++) {
+    const {path,file,kind,explicit}=plan[i];total+=file.size;
+    onProgress({done:i,total:plan.length,name:path});
+    const bytes=new Uint8Array(await file.arrayBuffer());if(bytes.length!==file.size)throw Error('File size changed while reading: '+path);
+    const sha256=await db.sha256(bytes),mime=mimeFor(path);
     if (!blobs.has(sha256)) blobs.set(sha256,{id:sha256,size:bytes.length,data:db.toBase64(bytes)});
     let body=`Original supplied file: ${path}\nBytes: ${bytes.length}\nSHA-256: ${sha256}\n`;
-    if (mime==='text/plain'||mime==='application/json') { const full=new TextDecoder().decode(bytes); body+='\n\n'+full.slice(0,190000)+(full.length>190000?'\n[Text preview truncated; attached original file is complete.]':''); }
-    const r=record(kind,('File / '+path).slice(0,160),body,'',['ingested-file',path.slice(0,100)]);
+    // Source lives in the exact-byte attachment, not duplicated into knowledge text.
+    if (kind!=='source'&&(mime==='text/plain'||mime==='application/json')) { const full=new TextDecoder().decode(bytes.subarray(0,16384)); body+='\n\n'+full+(bytes.length>16384?'\n[Text preview truncated; attached original file is complete.]':''); }
+    const r=record(kind,('File / '+path).slice(0,160),body,'',['ingested-file',path.slice(0,100),...(explicit?['category-explicit']:[])]);
     const artifact={id:db.uid('file'),projectId:id,ownerType:'resource',ownerId:r.id,role:'primary',name:path,mime,size:bytes.length,sha256,createdAt:stamp};
     r.artifactIds.push(artifact.id); backup.artifacts.push(artifact);
     inventory.push({path,size:bytes.length,sha256,kind,recordId:r.id,artifactId:artifact.id});
@@ -96,10 +117,11 @@ function field(form,id,label,{value,max=2000,rows,options,type='text',required=f
 }
 function button(label,id){const b=node('button',label);b.type='button';if(id)b.id=id;return b;}
 export function initProjectIngestion({host,status,onCommitted,isActive=()=>true}) {
-  const notice=t=>{status.textContent=t;}, values={}, selected=[];let preview=null,imported=null,busy=false,revision=0,queuedPackage=null;
+  const notice=t=>{status.textContent=t;}, values={}, selected=[];let preview=null,busy=false,revision=0;
   host.append(node('a','← Projects library'));host.firstChild.href='#/';
   host.append(node('h2','Create Project'));
-  const jump=node('div',undefined,'actions'),fromFiles=button('Start from details / files'),fromPack=button('Import prepared project'),fromCloud=button('Open cloud project');jump.append(fromFiles,fromPack,fromCloud);host.append(jump);
+  // Bulk workspace/container import is agent-only; see docs/AGENT_PROJECT_IMPORT.md.
+  // Keep prepareIngestion/reviewAgentProject/commitAgentProject available without mounting import UI.
   const connection=node('section',undefined,'work-card');connection.append(node('h3','Invisible Support / existing private storage'));
   const portal=node('a','Sign in / renew session in Invisible Support ↗','action');portal.href=SUPPORT.portal;portal.target='_blank';portal.rel='noopener noreferrer';connection.append(portal);
   const check=button('Check Invisible Support sign-in','ingest-connect'),authState=node('p','Session: —');
@@ -124,20 +146,8 @@ export function initProjectIngestion({host,status,onCommitted,isActive=()=>true}
   function addFiles(input){try{const incoming=[...input.files].map(file=>({file,path:filePath(file.webkitRelativePath||file.name),kind:categoryFor(file.webkitRelativePath||file.name)})),all=[...selected,...incoming];if(all.length>400||all.reduce((n,e)=>n+e.file.size,0)>db.LIMITS.payload||all.some(e=>e.file.size>db.LIMITS.file))throw Error('Selection exceeds file count/size/batch limits');if(new Set(all.map(e=>e.path)).size!==all.length)throw Error('Duplicate relative path; clear/reselect or use distinct folder paths');selected.push(...incoming);displayFiles();invalidate();}catch(error){notice('File selection rejected: '+error.message+'');}input.value='';}
   fileInput.onchange=()=>addFiles(fileInput);folderInput.onchange=()=>addFiles(folderInput);clear.onclick=()=>{selected.length=0;displayFiles();invalidate();};
   const progress=e=>notice(`Ingestion ${e.done}/${e.total}: ${e.name}`);
-  async function work(fn){if(busy)return;busy=true;const controls=[...host.querySelectorAll('input,textarea,select,button')],disabled=controls.map(e=>e.disabled);controls.forEach(e=>e.disabled=true);try{await fn();}catch(error){notice('Import error: '+error.message);}finally{controls.forEach((e,i)=>e.disabled=disabled[i]);busy=false;commit.disabled=!preview;importCommit.disabled=!imported;}}
-  form.onsubmit=e=>{e.preventDefault();const own=revision;work(async()=>{const data=Object.fromEntries(Object.entries(values).map(([k,e])=>[k,e.value]));if(primary.value)data.version={primaryPath:primary.value,...Object.fromEntries(Object.entries(version).map(([k,e])=>[k,k==='rawConfirmed'?e.checked:e.value]))};if(!['invisible-support','local'].includes(data.storage))throw Error('Choose an explicit storage destination');const next=await prepareIngestion(data,selected,progress);if(own!==revision)return;preview={backup:next,storage:data.storage};summary.textContent=JSON.stringify({project:next.project.title,target:next.project.target,storage:data.storage,records:next.resources.length,versions:next.versions.map(v=>({label:v.label,format:v.format})),files:selected.length,uniqueBytes:next.blobs.reduce((n,b)=>n+b.size,0),inventory:next.artifacts.filter(a=>a.ownerType==='resource').map(a=>({path:a.name,size:a.size,sha256:a.sha256}))},null,2);notice('Review ready.');});};
+  async function work(fn){if(busy)return;busy=true;const controls=[...host.querySelectorAll('input,textarea,select,button')],disabled=controls.map(e=>e.disabled);controls.forEach(e=>e.disabled=true);try{await fn();}catch(error){notice('Import error: '+error.message);}finally{controls.forEach((e,i)=>e.disabled=disabled[i]);busy=false;commit.disabled=!preview;}}
+  form.onsubmit=e=>{e.preventDefault();const own=revision;work(async()=>{const data=Object.fromEntries(Object.entries(values).map(([k,e])=>[k,e.value]));if(primary.value)data.version={primaryPath:primary.value,...Object.fromEntries(Object.entries(version).map(([k,e])=>[k,k==='rawConfirmed'?e.checked:e.value]))};if(!['invisible-support','local'].includes(data.storage))throw Error('Choose an explicit storage destination');const next=await prepareIngestion(data,selected,progress);if(own!==revision)return;preview={backup:next,storage:data.storage};summary.textContent=JSON.stringify({...ingestionReport(next),target:next.project.target,storage:data.storage},null,2);notice('Review ready.');});};
   commit.onclick=()=>work(async()=>{if(!preview)throw Error('Review the current draft first');let backup=preview.backup;if(preview.storage==='invisible-support')backup=await supportStorage.publishProject(backup,progress);const p=await db.importProject(backup);preview=null;await onCommitted(p,isActive());notice('Project committed: '+p.title+(backup.project.cloud?' / Invisible Support':' / local'));});
-  const restore=node('section',undefined,'work-card');restore.append(node('h3','Import Project'),node('p','JSON ≤96 MiB'));
-  const packageFile=field(restore,'ingest-package','Complete project container (.json)',{type:'file'});packageFile.accept='.json,application/json';const importStorage=field(restore,'ingest-package-storage','Import destination',{options:[['invisible-support','Invisible Support DB + local cache'],['local','Local cache']]});
-  const queuedName=node('p');queuedName.id='ingest-queued-package';restore.append(queuedName);
-  const importReview=button('Review complete project import','ingest-package-review'),importCommit=button('Import complete project','ingest-package-commit'),packageSummary=node('pre');importCommit.disabled=true;
-  function invalidateImport(){imported=null;importCommit.disabled=true;packageSummary.textContent='Select/review the container before importing.';}
-  packageFile.onchange=()=>{queuedPackage=null;queuedName.textContent='';invalidateImport();};importStorage.onchange=invalidateImport;
-  importReview.onclick=()=>work(async()=>{const file=queuedPackage||packageFile.files?.[0];if(!file||file.size>db.LIMITS.backup)throw Error('Choose a complete project JSON up to96 MiB');const data=JSON.parse(await file.text());await db.validateBackup(data);imported={backup:data,storage:importStorage.value};packageSummary.textContent=JSON.stringify({project:data.project.title,status:data.project.status,projectId:data.project.id,records:data.resources.length,versions:data.versions.map(v=>({label:v.label,format:v.format})),originalUniqueFiles:data.blobs.length,files:data.artifacts.length,originalBytes:data.blobs.reduce((n,b)=>n+b.size,0),destination:importStorage.value},null,2);notice('Container validated.');});
-  importCommit.onclick=()=>work(async()=>{if(!imported)throw Error('Review the project container first');let data=imported.backup;if(imported.storage==='invisible-support')data=await supportStorage.publishProject(data,progress);else if(data.project.cloud){data=structuredClone(data);data.project.originCloud=data.project.cloud;delete data.project.cloud;}const p=await db.importProject(data);imported=null;await onCommitted(p,isActive());notice('Complete project committed: '+p.title+(data.project.cloud?' / Invisible Support':' / local'));});
-  restore.append(importReview,importCommit,packageSummary);host.append(restore);
-  const remote=node('section',undefined,'work-card');remote.append(node('h3','Cloud snapshots'));
-  const list=button('List my cloud project snapshots','ingest-cloud-list'),remoteRows=node('div');list.onclick=()=>work(async()=>{const result=await supportStorage.listProjects();remoteRows.replaceChildren();for(const row of result.rows){const item=node('article',undefined,'work-card');item.append(node('p',row.title+' / '+row.created_at));const open=button('Open snapshot '+row.id);open.onclick=()=>work(async()=>{const data=await supportStorage.restoreProject(row.id,progress),p=await db.importProject(data);await onCommitted(p,isActive());notice('Project loaded: '+p.title);});item.append(open);remoteRows.append(item);}if(!result.rows.length)remoteRows.append(node('p','0 snapshots'));if(result.truncated)remoteRows.append(node('p','Limit: 1000 snapshots'));});remote.append(list,remoteRows);host.append(remote);
-  fromFiles.onclick=()=>{form.scrollIntoView({block:'start'});values.title.focus();};fromPack.onclick=()=>{restore.scrollIntoView({block:'start'});packageFile.focus();};fromCloud.onclick=()=>{remote.scrollIntoView({block:'start'});list.focus();};
-  return {isBusy:()=>busy,queueCompleteProjectFile(file,{reveal=true}={}){if(busy)throw Error('Wait for the current ingestion operation before selecting another container');if(!(file instanceof Blob)||file.size>db.LIMITS.backup)throw Error('Complete project limit is 96 MiB');queuedPackage=file;packageFile.value='';invalidateImport();queuedName.textContent=`${file.name} / ${file.size} B`;if(reveal){restore.scrollIntoView({block:'start'});importReview.focus();}notice('Complete project detected. Review required.');}};
+  return {isBusy:()=>busy};
 }
