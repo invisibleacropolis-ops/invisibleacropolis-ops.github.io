@@ -1,4 +1,4 @@
-export const pages=['overview','profile','architecture','controls','research','conversations','documents','images','media','links','roadmap','plans','manuals','versions','builds','sessions','notes'];
+export const pages=['overview','profile','architecture','controls','research','conversations','documents','sources','images','media','links','roadmap','plans','manuals','versions','builds','sessions','notes'];
 export const BRRBOX_ID='local-144e9c8c-874f-4fa0-ae82-f7d69fcc2ec0';
 export const projectSlug=id=>id===BRRBOX_ID?'brrbox':id;
 export const projects=[
