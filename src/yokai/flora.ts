@@ -1,11 +1,13 @@
 import * as THREE from "three";
 import { createRng } from "../scene/random.ts";
 import { fbm2D } from "../scene/noise.ts";
-import { KAKURIYO, toon } from "./palette.ts";
+import { KAKURIYO, getToonGradient, toon } from "./palette.ts";
 import { WORLD_SIZE, TEMPLE_CENTER, POND_CENTER, heightAt, slopeAt } from "./terrain.ts";
 import { isFree } from "./occupancy.ts";
-import { applyWindSway } from "./shaders.ts";
+import { applyWindSway, gustAt, windTime, type WindProfile } from "./shaders.ts";
 import { getPetalTexture } from "./textures.ts";
+import { getWorldModel } from "./kamiModels.ts";
+import { CASTLE_CENTER } from "./terrain.ts";
 
 /**
  * The living green of Kakuriyo: sakura in perpetual bloom around the
@@ -29,7 +31,13 @@ const placeMatrix = (dummy: THREE.Object3D, p: Placement, yOffset: number) => {
   dummy.updateMatrix();
 };
 
+/** Sculpted species when flora.glb is loaded, the primitive set otherwise. */
 export const createFlora = (): Flora => {
+  const model = getWorldModel("flora");
+  return model ? createSculptedFlora(model) : createPrimitiveFlora();
+};
+
+const createPrimitiveFlora = (): Flora => {
   const group = new THREE.Group();
   const rng = createRng(0xf10a);
   const dummy = new THREE.Object3D();
@@ -41,10 +49,10 @@ export const createFlora = (): Flora => {
   const bambooMat = toon(KAKURIYO.bamboo);
 
   // The breeze: canopies rustle gently, bamboo swings with real intent
-  applyWindSway(sakuraMat, 2.6, 1.0);
-  applyWindSway(sakuraDeepMat, 2.6, 1.0);
-  applyWindSway(pineMat, 1.6, 0.8);
-  applyWindSway(bambooMat, 4.2, 1.35);
+  applyWindSway(sakuraMat, { amplitude: 2.6, height: 80 });
+  applyWindSway(sakuraDeepMat, { amplitude: 2.6, height: 80 });
+  applyWindSway(pineMat, { amplitude: 1.6, height: 90, frequency: 0.8 });
+  applyWindSway(bambooMat, { amplitude: 4.2, height: 110, frequency: 1.35 });
 
   /* ── Gather placements ── */
   const sakura: Placement[] = [];
@@ -223,5 +231,217 @@ export const createFlora = (): Flora => {
     petalAttr.needsUpdate = true;
   };
 
+  return { group, update, sakuraSpots };
+};
+
+/* ── Sculpted flora (tools/blender/flora_build.py) ─────────────────────────
+ * Six species in several variants each, instanced per variant and part.
+ * Variety comes cheaply: a random variant, scale, lean and per-instance tint
+ * on every plant. Movement comes from the shared wind field: each species
+ * bends by its own height and stiffness, crowns shimmer, and gust fronts
+ * roll through the forest and the grass together. */
+type Species = "sakura" | "pine" | "cedar" | "maple" | "bush" | "bamboo";
+type Plant = Placement & { species: Species; variant: number; lean: [number, number] };
+
+const SPECIES: Record<Species, { wind: WindProfile; ink: boolean; scale: [number, number]; tint: number }> = {
+  sakura: { wind: { amplitude: 3.2, height: 85, flutter: 0.55, frequency: 1.0 }, ink: true, scale: [0.85, 1.35], tint: 0.07 },
+  pine: { wind: { amplitude: 2.2, height: 85, flutter: 0.25, frequency: 0.8 }, ink: true, scale: [0.8, 1.4], tint: 0.09 },
+  cedar: { wind: { amplitude: 5.0, height: 170, flutter: 0.2, frequency: 0.7 }, ink: false, scale: [0.75, 1.15], tint: 0.08 },
+  maple: { wind: { amplitude: 2.8, height: 75, flutter: 0.75, frequency: 1.1 }, ink: true, scale: [0.8, 1.2], tint: 0.1 },
+  bush: { wind: { amplitude: 0.9, height: 20, flutter: 0.4, frequency: 1.4 }, ink: false, scale: [0.8, 1.6], tint: 0.1 },
+  bamboo: { wind: { amplitude: 10, height: 130, flutter: 0.9, frequency: 1.25 }, ink: false, scale: [0.8, 1.2], tint: 0.06 },
+};
+
+/** Falling petals or leaves around a set of trees, drifting on the gusts. */
+const fallingLeaves = (homes: Placement[], count: number, color: string, size: number, rng: () => number) => {
+  const geometry = new THREE.BufferGeometry();
+  const positions = new Float32Array(count * 3);
+  const seeds = new Float32Array(count);
+  const home: number[] = [];
+  for (let i = 0; i < count; i += 1) {
+    const tree = homes.length > 0 ? homes[Math.floor(rng() * homes.length)]! : { x: 0, y: 60, z: 0, scale: 1, rotation: 0 };
+    home.push(tree.x, tree.y, tree.z);
+    positions[i * 3] = tree.x + (rng() - 0.5) * 120;
+    positions[i * 3 + 1] = tree.y + 20 + rng() * 70;
+    positions[i * 3 + 2] = tree.z + (rng() - 0.5) * 120;
+    seeds[i] = rng() * 100;
+  }
+  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  const points = new THREE.Points(geometry, new THREE.PointsMaterial({
+    color, map: getPetalTexture(), alphaTest: 0.08, size, sizeAttenuation: true,
+    transparent: true, opacity: 0.92, depthWrite: false,
+  }));
+  points.frustumCulled = false;
+  const attr = geometry.getAttribute("position") as THREE.BufferAttribute;
+  const update = (t: number, dt: number) => {
+    const wt = windTime.value;
+    for (let i = 0; i < count; i += 1) {
+      const seed = seeds[i]!;
+      const hx = home[i * 3]!, hy = home[i * 3 + 1]!, hz = home[i * 3 + 2]!;
+      const gust = gustAt(hx, hz, wt);
+      let x = attr.getX(i) + (Math.sin(t * 0.9 + seed) * 8 + 0.8 * gust * 26) * dt;
+      let y = attr.getY(i) - (8 + (seed % 5) - gust * 3) * dt;
+      let z = attr.getZ(i) + (Math.cos(t * 0.7 + seed) * 8 + 0.6 * gust * 26) * dt;
+      // Blown away or settled: drift back in from the crown.
+      if (y < hy - 55 || Math.abs(x - hx) > 240 || Math.abs(z - hz) > 240) {
+        x = hx + (rng() - 0.5) * 100;
+        y = hy + 30 + (seed % 60);
+        z = hz + (rng() - 0.5) * 100;
+      }
+      attr.setXYZ(i, x, y, z);
+    }
+    attr.needsUpdate = true;
+  };
+  return { points, update };
+};
+
+const createSculptedFlora = (model: THREE.Group): Flora => {
+  const group = new THREE.Group();
+  const rng = createRng(0xf10a);
+  const dummy = new THREE.Object3D();
+  const parts = new Map<string, THREE.BufferGeometry>();
+  model.traverse((object) => { if (object instanceof THREE.Mesh) parts.set(object.name, object.geometry); });
+  const variantCount = (species: Species) => {
+    let n = 0;
+    while (parts.has(`${species}_${n}_crown`)) n += 1;
+    return n;
+  };
+
+  const plants: Plant[] = [];
+  const sakuraSpots: THREE.Vector3[] = [];
+  const tryPlace = (x: number, z: number, margin = 30): { y: number } | null => {
+    if (Math.hypot(x, z) > WORLD_SIZE * 0.46) return null;
+    const y = heightAt(x, z);
+    if (y < 24) return null; // keep out of the pond
+    if (slopeAt(x, z) > 0.85) return null;
+    if (!isFree(x, z, margin)) return null;
+    return { y };
+  };
+  const plant = (species: Species, x: number, z: number, margin = 30) => {
+    const spot = tryPlace(x, z, margin);
+    if (!spot) return null;
+    const [lo, hi] = SPECIES[species].scale;
+    const p: Plant = {
+      species, x, y: spot.y, z,
+      variant: Math.floor(rng() * Math.max(1, variantCount(species))),
+      scale: lo + rng() * (hi - lo),
+      rotation: rng() * Math.PI * 2,
+      lean: [(rng() - 0.5) * 0.09, (rng() - 0.5) * 0.09],
+    };
+    plants.push(p);
+    return p;
+  };
+
+  // Sakura ring the shrine plateau and dot the southern meadows
+  for (let i = 0; i < 90; i += 1) {
+    const nearTemple = i < 40;
+    const angle = rng() * Math.PI * 2;
+    const r = nearTemple ? 480 + rng() * 500 : 900 + rng() * 2400;
+    const cx = nearTemple ? TEMPLE_CENTER.x : 400;
+    const cz = nearTemple ? TEMPLE_CENTER.y : 1600;
+    const p = plant("sakura", cx + Math.cos(angle) * r, cz + Math.sin(angle) * r * (nearTemple ? 1 : 0.7));
+    if (p && sakuraSpots.length < 14 && rng() < 0.4) sakuraSpots.push(new THREE.Vector3(p.x, p.y, p.z));
+  }
+
+  // Maples blaze around the shrine, the castle gardens and the pond shore
+  const maples: Array<[THREE.Vector2, number, number, number]> = [
+    [TEMPLE_CENTER, 430, 720, 18], [CASTLE_CENTER, 700, 1050, 14], [POND_CENTER, 600, 860, 12],
+  ];
+  for (const [center, inner, outer, count] of maples) {
+    for (let i = 0; i < Math.round(count * 1.2); i += 1) {
+      const angle = rng() * Math.PI * 2, r = inner + rng() * (outer - inner);
+      plant("maple", center.x + Math.cos(angle) * r, center.y + Math.sin(angle) * r);
+    }
+  }
+
+  // Evergreen stands by noise: niwaki pines on the low hills, tall sugi
+  // cedars taking over as the ground rises toward the rim
+  for (let i = 0; i < 1400; i += 1) {
+    const x = (rng() - 0.5) * WORLD_SIZE * 0.9;
+    const z = (rng() - 0.5) * WORLD_SIZE * 0.9;
+    const mask = fbm2D(x * (3.4 / WORLD_SIZE), z * (3.4 / WORLD_SIZE), 4451, 3);
+    if (mask < 0.56) continue;
+    if (heightAt(x, z) < 60) continue;
+    const cedarChance = heightAt(x, z) > 260 ? 0.65 : 0.15;
+    plant(rng() < cedarChance ? "cedar" : "pine", x, z);
+  }
+
+  // Bamboo crowds the damp hollow north-east of the pond
+  for (let i = 0; i < 340; i += 1) {
+    const x = -300 + (rng() - 0.5) * 1500;
+    const z = 1750 + (rng() - 0.5) * 1300;
+    if (heightAt(x, z) > 170) continue;
+    plant("bamboo", x, z, 14);
+  }
+
+  // Azalea understorey: clumps at the feet of the trees, a few in the meadows
+  const canopy = plants.filter((p) => p.species === "sakura" || p.species === "maple" || p.species === "pine");
+  for (let i = 0; i < 230 && canopy.length; i += 1) {
+    const tree = canopy[Math.floor(rng() * canopy.length)]!;
+    const angle = rng() * Math.PI * 2, r = 26 + rng() * 40;
+    plant("bush", tree.x + Math.cos(angle) * r, tree.z + Math.sin(angle) * r, 12);
+  }
+  for (let i = 0; i < 120; i += 1) {
+    plant("bush", (rng() - 0.5) * WORLD_SIZE * 0.82, (rng() - 0.5) * WORLD_SIZE * 0.82, 14);
+  }
+
+  /* ── Instancing: one InstancedMesh per species, variant and part ── */
+  const materials = new Map<string, THREE.MeshToonMaterial>();
+  const materialFor = (species: Species, part: "trunk" | "crown") => {
+    const key = `${species}:${part}`;
+    let mat = materials.get(key);
+    if (!mat) {
+      mat = new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: getToonGradient() });
+      const wind = SPECIES[species].wind;
+      // Trunks bend with their crowns but do not shimmer.
+      applyWindSway(mat, part === "trunk" ? { ...wind, flutter: 0 } : wind);
+      materials.set(key, mat);
+    }
+    return mat;
+  };
+  const groups = new Map<string, Plant[]>();
+  for (const p of plants) {
+    const key = `${p.species}_${p.variant}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(p);
+  }
+  const tint = new THREE.Color();
+  for (const [key, list] of groups) {
+    const species = list[0]!.species;
+    for (const part of ["trunk", "crown"] as const) {
+      const geometry = parts.get(`${key}_${part}`);
+      if (!geometry) continue;
+      const mesh = new THREE.InstancedMesh(geometry, materialFor(species, part), list.length);
+      mesh.name = `${key}-${part}`;
+      mesh.userData.inkCanopy = part === "crown" && SPECIES[species].ink;
+      list.forEach((p, i) => {
+        dummy.position.set(p.x, p.y - 1.5 * p.scale, p.z);
+        dummy.rotation.set(p.lean[0], p.rotation, p.lean[1]);
+        dummy.scale.setScalar(p.scale);
+        dummy.updateMatrix();
+        mesh.setMatrixAt(i, dummy.matrix);
+        // Per-plant colour: a little lighter or deeper, warmer or cooler.
+        const spread = SPECIES[species].tint * (part === "crown" ? 1 : 0.5);
+        const value = 1 + (rng() - 0.5) * 2 * spread;
+        const warm = (rng() - 0.5) * spread;
+        tint.setRGB(value * (1 + warm), value, value * (1 - warm));
+        mesh.setColorAt(i, tint);
+      });
+      mesh.instanceMatrix.needsUpdate = true;
+      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+      group.add(mesh);
+    }
+  }
+
+  /* ── Falling sakura petals and maple leaves, riding the gusts ── */
+  const homesOf = (species: Species) => plants.filter((p) => p.species === species);
+  const petals = fallingLeaves(homesOf("sakura"), 340, KAKURIYO.sakura, 8, rng);
+  const leaves = fallingLeaves(homesOf("maple"), 160, "#e0643c", 10, rng);
+  group.add(petals.points, leaves.points);
+
+  const update = (t: number, dt: number) => {
+    petals.update(t, dt);
+    leaves.update(t, dt);
+  };
   return { group, update, sakuraSpots };
 };

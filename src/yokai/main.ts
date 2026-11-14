@@ -176,6 +176,23 @@ const controls = createFlyControls({
 
 let freeFlight = false;
 let driftAngle = Math.PI * 0.7;
+// ?debug: pose the camera from the console for reviews and captures:
+//   __kakuriyo.view([x, y, z], [lookX, lookY, lookZ]);  __kakuriyo.release()
+let debugPose = false;
+if (new URLSearchParams(window.location.search).has("debug")) {
+  (window as Window & { __kakuriyo?: unknown }).__kakuriyo = {
+    camera,
+    scene,
+    view(from: [number, number, number], to: [number, number, number]) {
+      debugPose = true;
+      ui.dismissIntro();
+      camera.position.set(...from);
+      camera.lookAt(...to);
+    },
+    release() { debugPose = false; },
+    groundAt: (x: number, z: number) => worldGroundY(x, z),
+  };
+}
 const lookTarget = new THREE.Vector3(TEMPLE_CENTER.x, 190, TEMPLE_CENTER.y);
 
 /* ── Tales of Kakuriyo ── */
@@ -250,6 +267,8 @@ const animate = () => {
     // Debug hook: lets tests fast-forward a tale (unset = real time)
     const speed = (window as Window & { __STORY_SPEED__?: number }).__STORY_SPEED__ ?? 1;
     storyPlayer.update(t, dt * speed);
+  } else if (debugPose) {
+    // The console holds the camera.
   } else if (freeFlight) {
     controls.update(dt);
     // Stay above the land and inside the painting

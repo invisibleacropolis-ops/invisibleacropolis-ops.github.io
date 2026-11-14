@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { createRng } from "../scene/random.ts";
 import { POND_CENTER, heightAt, pondShoreRadiiAt, slopeAt } from "./terrain.ts";
 import { isFree } from "./occupancy.ts";
-import { windTime } from "./shaders.ts";
+import { GUST_GLSL, windTime } from "./shaders.ts";
 
 /**
  * The blade field: real grass the way stylized games do it — one tapered
@@ -53,6 +53,7 @@ const vertexShader = /* glsl */ `
   varying float vHeight;
   varying vec3 vTint;
   varying float vViewDepth;
+  ${GUST_GLSL}
 
   void main() {
     vHeight = uv.y;
@@ -66,11 +67,12 @@ const vertexShader = /* glsl */ `
 
     #ifdef USE_INSTANCING
       vec3 base = vec3(instanceMatrix[3][0], instanceMatrix[3][1], instanceMatrix[3][2]);
-      // Two crossed waves plus a slow travelling gust; tips bend, roots hold
+      // Two crossed ripples plus the valley's shared gust fronts, so a gust
+      // rolls across the meadow in step with the trees; tips bend, roots hold
       float phase = base.x * 0.043 + base.z * 0.049;
       float bendW = sin(uTime * 1.45 + phase) + sin(uTime * 0.92 + phase * 1.7) * 0.55;
-      float gust = sin(uTime * 0.31 + base.x * 0.0016 + base.z * 0.0011);
-      float bend = (bendW * 1.5 + gust * 2.2) * vHeight * vHeight;
+      float gust = kakuriyoGust(base.xz, uTime);
+      float bend = (bendW * 1.3 + (gust - 0.35) * 3.6) * vHeight * vHeight;
       transformed.x += bend;
       transformed.z += bend * 0.6;
       transformed = (instanceMatrix * vec4(transformed, 1.0)).xyz;

@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
 /**
@@ -64,15 +65,48 @@ export function registerSculptModel(kind: string, scene: THREE.Object3D): Sculpt
   return model;
 }
 
-export async function loadSculptModel(kind: string, url: string): Promise<SculptModel> {
-  const gltf = await new GLTFLoader().loadAsync(url);
+let loader: GLTFLoader | undefined;
+function gltfLoader(base: string) {
+  if (!loader) {
+    // Large world meshes ship Draco-compressed; the WASM decoder is served
+    // from public/kami/draco.
+    const draco = new DRACOLoader();
+    draco.setDecoderPath(`${base}kami/draco/`);
+    draco.setDecoderConfig({ type: "wasm" });
+    loader = new GLTFLoader().setDRACOLoader(draco);
+  }
+  return loader;
+}
+
+export async function loadSculptModel(kind: string, url: string, base = "/"): Promise<SculptModel> {
+  const gltf = await gltfLoader(base).loadAsync(url);
   return registerSculptModel(kind, gltf.scene);
 }
 
-/** Fetch every shipped model; a failure only means that kami stays procedural. */
+/**
+ * World scenery authored in Blender (mountain ranges, ...), kept as loaded
+ * scenes: their vertex colours and custom normals are part of the look.
+ * A missing entry means the procedural scenery is built instead.
+ */
+const worldModels = new Map<string, THREE.Group>();
+export const WORLD_MODEL_URLS: Record<string, string> = {
+  mountains: "kami/models/mountains.glb",
+  flora: "kami/models/flora.glb",
+};
+export function getWorldModel(name: string): THREE.Group | undefined {
+  return worldModels.get(name);
+}
+
+/** Fetch every shipped model; a failure only means that piece stays procedural. */
 export async function preloadKamiModels(base = "/"): Promise<void> {
-  await Promise.all(Object.entries(KAMI_MODEL_URLS).map(([kind, path]) =>
-    loadSculptModel(kind, base + path).catch((error) => {
-      console.warn(`Kakuriyo: ${kind} model unavailable, using the procedural body`, error);
-    })));
+  await Promise.all([
+    ...Object.entries(KAMI_MODEL_URLS).map(([kind, path]) =>
+      loadSculptModel(kind, base + path, base).catch((error) => {
+        console.warn(`Kakuriyo: ${kind} model unavailable, using the procedural body`, error);
+      })),
+    ...Object.entries(WORLD_MODEL_URLS).map(([name, path]) =>
+      gltfLoader(base).loadAsync(base + path).then((gltf) => { worldModels.set(name, gltf.scene); }).catch((error) => {
+        console.warn(`Kakuriyo: ${name} model unavailable, using procedural scenery`, error);
+      })),
+  ]);
 }
