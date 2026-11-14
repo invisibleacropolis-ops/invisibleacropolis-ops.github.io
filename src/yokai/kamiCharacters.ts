@@ -5,6 +5,7 @@ import { worldGroundY } from "./story/motion.ts";
 import { DigitigradeLeg, FootGait, TwoBoneIK, type GroundSampler, type Limb } from "./kamiRig.ts";
 import { getSculptModel, type SculptModel } from "./kamiModels.ts";
 import type { SpiritBuild } from "./spirits.ts";
+import { createWisps, type Wisps } from "./vfx.ts";
 
 export type KamiKind = "kitsune" | "shika" | "nekomata" | "baku" | "tanuki" | "kappa" | "oni" | "kodama";
 export type KamiPerformance = { wonder?: number; joy?: number; protect?: number; cast?: number; drum?: number };
@@ -608,6 +609,15 @@ export function buildArticulatedKami(kind: KamiKind): ArticulatedKami {
   let cycleClock = 0;
   const girdleSpan = p.canine ? p.canine.front.z - p.canine.hind.z : 1;
 
+  // Kitsunebi: foxfire wisps drifting around the fox (browser only; the
+  // node-side checks build the bare rig).
+  let foxfire: Wisps | undefined;
+  if (kind === "kitsune" && typeof document !== "undefined") {
+    foxfire = createWisps({ count: 3, radius: 32, height: 44, size: 12, speed: 0.55, bob: 7, colors: ["#1d74ff", "#6ae4ff", "#eaffff"] });
+    foxfire.setIntensity(0.85);
+    group.add(foxfire.group);
+  }
+
   const build: ArticulatedKami = {
     group, skeleton, limbs,
     setGait: (gait) => { gaitTarget = gait; },
@@ -621,6 +631,7 @@ export function buildArticulatedKami(kind: KamiKind): ArticulatedKami {
       return (joint ?? head).getWorldPosition(out);
     },
     animate(t, phase, moving01) {
+      foxfire?.update(t + phase);
       const moving = THREE.MathUtils.clamp(moving01, 0, 1);
       const dt = lastTime === undefined || t < lastTime ? 1 / 60 : Math.min(0.1, t - lastTime);
       lastTime = t;

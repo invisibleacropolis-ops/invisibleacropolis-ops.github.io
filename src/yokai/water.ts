@@ -3,7 +3,7 @@ import { createRng } from "../scene/random.ts";
 import { KAKURIYO, toon } from "./palette.ts";
 import { POND_CENTER, WATER_LEVEL } from "./terrain.ts";
 import { reserve } from "./occupancy.ts";
-import { getGlowTexture } from "./textures.ts";
+import { createFlipbook } from "./vfx.ts";
 
 /**
  * The spirit pond and its waterfall. A rocky bluff rises at the pond's
@@ -284,35 +284,19 @@ export const createWaterFeature = (): WaterFeature => {
   pond.position.set(POND_CENTER.x, WATER_LEVEL, POND_CENTER.y);
   group.add(pond);
 
-  /* ── Mist at the plunge pool ── */
-  const mistMat = new THREE.SpriteMaterial({
-    map: getGlowTexture(),
-    color: KAKURIYO.foam,
-    transparent: true,
-    opacity: 0.16,
-    depthWrite: false,
+  /* ── Spray and mist at the plunge pool ──
+   * A continuous stream of cel-shaded puffs (the Blender-baked flipbook)
+   * boils up where the sheet meets the pool, drifts on the valley wind and
+   * dissolves; it thins with the flow when a tale stills the river. */
+  const mist = createFlipbook({
+    atlas: "puff", capacity: 140, colors: ["#a9c6d2", "#eef8fb", "#ffffff"],
+    drag: 0.8, gravity: -5, turbulence: 9, wind: 0.45, growth: 2.6, spin: 0.25, opacity: 0.7,
   });
-  const mistPuffs: THREE.Sprite[] = [];
-  for (let i = 0; i < 5; i += 1) {
-    const puff = new THREE.Sprite(mistMat);
-    const width = 65 + rng() * 50;
-    const height = 30 + rng() * 24;
-    puff.position.set(
-      facePos.x + (rng() - 0.5) * 125,
-      WATER_LEVEL + 12 + rng() * 18,
-      facePos.y + (rng() - 0.5) * 90
-    );
-    puff.userData.phase = rng() * Math.PI * 2;
-    puff.userData.width = width;
-    puff.userData.height = height;
-    puff.userData.baseY = puff.position.y;
-    puff.scale.set(width, height, 1);
-    mistPuffs.push(puff);
-    group.add(puff);
-  }
-
-  const MIST_BASE_OPACITY = 0.16;
-
+  group.add(mist.group);
+  const mistAt = new THREE.Vector3();
+  const across = new THREE.Vector2(Math.cos(bluffAngle), -Math.sin(bluffAngle));
+  let flow = 1;
+  let lastT: number | undefined;
   return {
     group,
     setIce: (k) => {
@@ -321,17 +305,20 @@ export const createWaterFeature = (): WaterFeature => {
     setFlow: (k) => {
       fallsUniforms.uFlow.value = k;
       pondUniforms.uFlow.value = k;
-      mistMat.opacity = MIST_BASE_OPACITY * k;
+      flow = k;
+      mist.setOpacity(0.7 * k);
     },
     update: (t) => {
       fallsUniforms.time.value = t;
       pondUniforms.time.value = t;
-      for (const puff of mistPuffs) {
-        const phase = Number(puff.userData.phase);
-        const s = 1 + Math.sin(t * 0.9 + phase) * 0.18;
-        puff.scale.set(Number(puff.userData.width) * s, Number(puff.userData.height) * s, 1);
-        puff.position.y = Number(puff.userData.baseY) + Math.sin(t * 0.6 + phase) * 3;
+      const dt = lastT === undefined || t < lastT ? 0 : Math.min(0.1, t - lastT);
+      lastT = t;
+      if (flow > 0.02) {
+        const along = (Math.random() - 0.5) * FALLS_WIDTH;
+        mistAt.set(facePos.x + across.x * along, WATER_LEVEL + 6, facePos.y + across.y * along);
+        mist.stream(dt, 9 * flow, mistAt, { count: 1, spread: 30, speed: 22, upward: 0.9, size: 46, life: 3.6 });
       }
+      mist.update(t);
     },
   };
 };

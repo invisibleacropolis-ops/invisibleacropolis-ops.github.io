@@ -1,11 +1,17 @@
 import * as THREE from "three";
+import { createFlipbook, createRain, createRingPool } from "../vfx.ts";
+import { createSpellParticles } from "./spectacleFx.ts";
 
 /**
- * Small reusable story effects.
+ * Small reusable story effects, now all on the GPU.
  *
- * Poof — the leaf-and-smoke burst of tanuki henge magic (and any other
- * transformation a tale needs). Ripple — expanding rings for splashes,
- * belly-drum beats, and other percussive moments.
+ * Poof — the leaf-and-smoke burst of tanuki henge magic: a cluster of
+ * cel-shaded smoke puffs (the Blender-baked flipbook) with leaves tumbling
+ * out of it. Ripple — expanding rings with a wobbling edge and an echo,
+ * for splashes and belly-drum beats. Rain — wind-slanted streaks.
+ *
+ * The interfaces are unchanged: each effect keeps its own clock from the
+ * dt it is given.
  */
 
 export type PoofFx = {
@@ -17,63 +23,33 @@ export type PoofFx = {
 
 export const createPoofFx = (color = "#cfe3a8", count = 42): PoofFx => {
   const group = new THREE.Group();
-  const geometry = new THREE.BufferGeometry();
-  const positions = new Float32Array(count * 3);
-  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-  const material = new THREE.PointsMaterial({
-    color,
-    size: 16,
-    sizeAttenuation: true,
-    transparent: true,
-    opacity: 0,
-    depthWrite: false,
+  const lit = new THREE.Color(color);
+  const shadow = lit.clone().multiplyScalar(0.62);
+  const rim = lit.clone().lerp(new THREE.Color("#ffffff"), 0.65);
+  const smoke = createFlipbook({
+    atlas: "puff", capacity: 48, colors: [`#${shadow.getHexString()}`, `#${lit.getHexString()}`, `#${rim.getHexString()}`],
+    drag: 2.4, gravity: -14, turbulence: 6, wind: 0.25, growth: 2.0, spin: 0.6,
   });
-  const points = new THREE.Points(geometry, material);
-  points.frustumCulled = false;
-  group.add(points);
-
-  const velocities: THREE.Vector3[] = [];
-  for (let i = 0; i < count; i += 1) velocities.push(new THREE.Vector3());
-  const origin = new THREE.Vector3();
-  let life = 0;
-
+  const leaves = createSpellParticles("leaves", Math.max(16, count), 404);
+  leaves.setColors("#6f9a3e", "#b7cf5a");
+  group.add(smoke.group, leaves.group);
+  let clock = 0;
   return {
     group,
     burst: (at) => {
-      origin.copy(at);
-      life = 1;
-      const attr = geometry.getAttribute("position") as THREE.BufferAttribute;
-      for (let i = 0; i < count; i += 1) {
-        attr.setXYZ(i, at.x, at.y, at.z);
-        velocities[i]!.set(
-          (Math.random() - 0.5) * 2,
-          Math.random() * 1.2 + 0.2,
-          (Math.random() - 0.5) * 2
-        ).normalize().multiplyScalar(40 + Math.random() * 90);
-      }
-      attr.needsUpdate = true;
-      material.opacity = 0.95;
+      // A core billow plus a ring of smaller puffs thrown outward.
+      smoke.emit(at, { count: 4, spread: 10, speed: 10, upward: 0.4, size: 46, life: 1.6 });
+      smoke.emit(at, { count: 9, spread: 14, speed: 70, upward: 0.25, size: 26, life: 1.3 });
+      leaves.burst(at, { count, speed: 85, size: 7, life: 2.6, upward: 0.9 });
     },
     update: (dt) => {
-      if (life <= 0) return;
-      life = Math.max(0, life - dt * 1.1);
-      material.opacity = life * 0.95;
-      const attr = geometry.getAttribute("position") as THREE.BufferAttribute;
-      for (let i = 0; i < count; i += 1) {
-        velocities[i]!.y -= 60 * dt; // leaves settle
-        velocities[i]!.multiplyScalar(1 - dt * 1.6);
-        attr.setXYZ(
-          i,
-          attr.getX(i) + velocities[i]!.x * dt,
-          attr.getY(i) + velocities[i]!.y * dt,
-          attr.getZ(i) + velocities[i]!.z * dt
-        );
-      }
-      attr.needsUpdate = true;
+      clock += dt;
+      smoke.update(clock);
+      leaves.update(clock);
     },
     dispose: () => {
-      geometry.dispose();
-      material.dispose();
+      smoke.dispose();
+      leaves.dispose();
       group.removeFromParent();
     },
   };
@@ -88,9 +64,9 @@ export type RainFx = {
 };
 
 /**
- * A curtain of rain: streaked line segments falling over a region, each
- * wrapping back to the cloud base when it lands. Fade via intensity so a
- * storm can arrive the way real ones do — a few drops, then everything.
+ * A curtain of rain. Intensity thins the curtain by dropping streaks
+ * rather than fading them, so a storm arrives the way real ones do — a few
+ * drops, then everything.
  */
 export const createRainFx = ({
   center = new THREE.Vector3(0, 0, 0),
@@ -103,63 +79,17 @@ export const createRainFx = ({
   top?: number;
   drops?: number;
 } = {}): RainFx => {
-  const group = new THREE.Group();
-  const geometry = new THREE.BufferGeometry();
-  const positions = new Float32Array(drops * 2 * 3);
-  const speeds = new Float32Array(drops);
-  const STREAK = 30;
-
-  for (let i = 0; i < drops; i += 1) {
-    const angle = Math.random() * Math.PI * 2;
-    const r = Math.sqrt(Math.random()) * radius;
-    const x = center.x + Math.cos(angle) * r;
-    const z = center.z + Math.sin(angle) * r;
-    const y = Math.random() * top;
-    positions[i * 6] = x;
-    positions[i * 6 + 1] = y;
-    positions[i * 6 + 2] = z;
-    positions[i * 6 + 3] = x + 4;
-    positions[i * 6 + 4] = y + STREAK;
-    positions[i * 6 + 5] = z;
-    speeds[i] = 620 + Math.random() * 340;
-  }
-  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-
-  const material = new THREE.LineBasicMaterial({
-    color: "#cfdce8",
-    transparent: true,
-    opacity: 0,
-    depthWrite: false,
-  });
-  const lines = new THREE.LineSegments(geometry, material);
-  lines.frustumCulled = false;
-  group.add(lines);
-
-  let intensity = 0;
-
+  // The GPU can afford a far denser curtain than the CPU version did.
+  const rain = createRain({ center, radius, top, drops: drops * 4 });
+  let clock = 0;
   return {
-    group,
-    setIntensity: (k) => {
-      intensity = THREE.MathUtils.clamp(k, 0, 1);
-      material.opacity = intensity * 0.55;
-    },
+    group: rain.group,
+    setIntensity: rain.setIntensity,
     update: (dt) => {
-      if (intensity <= 0) return;
-      const attr = geometry.getAttribute("position") as THREE.BufferAttribute;
-      for (let i = 0; i < drops; i += 1) {
-        const fall = speeds[i]! * dt;
-        let y = attr.getY(i * 2) - fall;
-        if (y < 0) y = top - (Math.random() * 80);
-        attr.setY(i * 2, y);
-        attr.setY(i * 2 + 1, y + STREAK);
-      }
-      attr.needsUpdate = true;
+      clock += dt;
+      rain.update(clock);
     },
-    dispose: () => {
-      geometry.dispose();
-      material.dispose();
-      group.removeFromParent();
-    },
+    dispose: rain.dispose,
   };
 };
 
@@ -171,44 +101,15 @@ export type RippleFx = {
 };
 
 export const createRippleFx = (color = "#ffe2a0", poolSize = 5): RippleFx => {
-  const group = new THREE.Group();
-  type Ring = { mesh: THREE.Mesh; material: THREE.MeshBasicMaterial; life: number };
-  const rings: Ring[] = [];
-  for (let i = 0; i < poolSize; i += 1) {
-    const material = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0, depthWrite: false });
-    const mesh = new THREE.Mesh(new THREE.TorusGeometry(14, 1.8, 6, 28), material);
-    mesh.rotation.x = -Math.PI / 2;
-    mesh.visible = false;
-    rings.push({ mesh, material, life: 0 });
-    group.add(mesh);
-  }
-  let next = 0;
-
+  const rings = createRingPool(color, Math.max(poolSize * 2, 8));
+  let clock = 0;
   return {
-    group,
-    ring: (at) => {
-      const ring = rings[next]!;
-      next = (next + 1) % rings.length;
-      ring.mesh.position.copy(at);
-      ring.mesh.visible = true;
-      ring.life = 1;
-    },
+    group: rings.group,
+    ring: (at) => rings.ring(at, 85, 1.5),
     update: (dt) => {
-      for (const ring of rings) {
-        if (ring.life <= 0) continue;
-        ring.life = Math.max(0, ring.life - dt * 0.9);
-        const grown = 1 + (1 - ring.life) * 5;
-        ring.mesh.scale.setScalar(grown);
-        ring.material.opacity = ring.life * 0.7;
-        if (ring.life <= 0) ring.mesh.visible = false;
-      }
+      clock += dt;
+      rings.update(clock);
     },
-    dispose: () => {
-      rings.forEach((ring) => {
-        ring.mesh.geometry.dispose();
-        ring.material.dispose();
-      });
-      group.removeFromParent();
-    },
+    dispose: rings.dispose,
   };
 };

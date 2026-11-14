@@ -4,6 +4,7 @@ import { createRng } from "../scene/random.ts";
 import { KAKURIYO, getToonGradient, toon } from "./palette.ts";
 import { POND_CENTER, TEMPLE_CENTER, heightAt, slopeAt } from "./terrain.ts";
 import { SACRED_PEAK } from "./mountains.ts";
+import { createWisps } from "./vfx.ts";
 import { castleGroundY, castleSegmentClear, type CastleLayout } from "./castleLayout.ts";
 import { createCastleVisitor, planCastleVisit, advanceCastleVisit, safeVisitorHome, type CastleVisitor } from "./castleVisits.ts";
 
@@ -371,29 +372,19 @@ const buildTengu = (): SpiritBuild => {
 };
 
 export const buildHitodama = (): SpiritBuild => {
+  // A pale soul-flame: two intertwined flames from the Blender-baked
+  // flipbook, licking upward and breathing in brightness.
   const group = new THREE.Group();
-  const flameMat = new THREE.MeshBasicMaterial({
-    color: KAKURIYO.spiritGlow,
-    transparent: true,
-    opacity: 0.75,
+  const flame = createWisps({
+    count: 2, radius: 2.5, height: -4, size: 21, speed: 2.2, bob: 1.5,
+    colors: ["#3a9dff", "#9fe6ff", "#ffffff"],
   });
-  const coreMat = new THREE.MeshBasicMaterial({ color: "#ffffff", transparent: true, opacity: 0.9 });
-
-  const flame = mesh(new THREE.ConeGeometry(6, 18, 7), flameMat);
-  flame.rotation.x = Math.PI; // teardrop, tail up
-  flame.position.y = 6;
-  const core = mesh(new THREE.SphereGeometry(4.4, 8, 6), coreMat);
-  const tail = mesh(new THREE.ConeGeometry(2.4, 14, 5), flameMat);
-  tail.rotation.x = Math.PI + 0.5;
-  tail.position.set(0, 10, -6);
-  group.add(flame, core, tail);
-
+  group.add(flame.group);
   return {
     group,
     animate: (t, phase) => {
-      const flicker = 0.85 + Math.sin(t * 6 + phase) * 0.1 + Math.sin(t * 13.7 + phase * 2) * 0.05;
-      group.scale.setScalar(flicker);
-      flameMat.opacity = 0.55 + Math.sin(t * 4.2 + phase) * 0.18;
+      flame.update(t + phase * 3.7);
+      flame.setIntensity(0.78 + Math.sin(t * 4.2 + phase) * 0.18);
     },
   };
 };

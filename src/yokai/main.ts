@@ -15,6 +15,8 @@ import { createCastle } from "./castle.ts";
 import { registerNavigationObstacles } from "./castleVisits.ts";
 import { createVillage } from "./village.ts";
 import { createSpirits } from "./spirits.ts";
+import { createFireflies } from "./vfx.ts";
+import { POND_CENTER } from "./terrain.ts";
 import { createYokaiUi } from "./ui.ts";
 import { configureCelOutlines, windStrength, windTime } from "./shaders.ts";
 import { createCinematicRenderer } from "./cinematic.ts";
@@ -125,6 +127,16 @@ const spirits = createSpirits({
   villageSquare: village.square,
 });
 scene.add(spirits.group);
+
+// Hotaru over the pond and through the bamboo hollow: a few glints by day,
+// the full display whenever a tale turns the sky to night.
+const fireflies = createFireflies([
+  { x: POND_CENTER.x, y: heightAt(POND_CENTER.x, POND_CENTER.y), z: POND_CENTER.y, radius: 520, count: 120 },
+  { x: -300, y: heightAt(-300, 1750), z: 1750, radius: 620, count: 140 },
+  { x: TEMPLE_CENTER.x, y: heightAt(TEMPLE_CENTER.x, TEMPLE_CENTER.y), z: TEMPLE_CENTER.y, radius: 700, count: 80 },
+]);
+scene.add(fireflies.group);
+const zenithLuma = new THREE.Color();
 
 // Opaque authored geometry participates in the new shadow pipeline. Shader
 // surfaces (sky, water, clouds, grass) keep their specialized depth behavior.
@@ -258,10 +270,13 @@ document.addEventListener("pointerlockchange", () => {
 });
 
 const clock = new THREE.Clock();
+// World time: the real clock, plus any time the ?debug hook steps forward.
+let worldTime = 0;
 
-const animate = () => {
-  const dt = Math.min(0.05, clock.getDelta());
-  const t = clock.elapsedTime;
+/** Advance the whole world by dt seconds (without drawing). */
+const stepWorld = (dt: number) => {
+  worldTime += dt;
+  const t = worldTime;
 
   if (storyPlayer.isActive()) {
     // Debug hook: lets tests fast-forward a tale (unset = real time)
@@ -294,13 +309,33 @@ const animate = () => {
   clouds.update(t, dt);
   flora.update(t, dt);
   water.update(t);
+  village.update(t);
+  // Night is read from the sky itself: tales that dim the zenith wake the fireflies.
+  zenithLuma.copy(sky.uniforms.zenithColor.value);
+  fireflies.setNight((0.2 - (0.2126 * zenithLuma.r + 0.7152 * zenithLuma.g + 0.0722 * zenithLuma.b)) / 0.15);
+  fireflies.update(t);
   architecture.update(t);
   (mountains.userData.updateShrine as ((t: number) => void) | undefined)?.(t);
   spirits.update(t, dt);
+};
 
-  cinematic.render(t);
+const animate = () => {
+  stepWorld(Math.min(0.05, clock.getDelta()));
+  cinematic.render(worldTime);
   requestAnimationFrame(animate);
 };
+
+if (new URLSearchParams(window.location.search).has("debug")) {
+  // Step the world deterministically (reviews, captures, hidden tabs), then draw once.
+  Object.assign((window as Window & { __kakuriyo?: object }).__kakuriyo ?? {}, {
+    tick(seconds: number, fps = 30) {
+      const steps = Math.max(1, Math.round(seconds * fps));
+      for (let i = 0; i < steps; i += 1) stepWorld(1 / fps);
+      cinematic.render(worldTime);
+      return worldTime;
+    },
+  });
+}
 
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
