@@ -4,6 +4,7 @@ import { KAKURIYO, getToonGradient, toon } from "./palette.ts";
 import { TEMPLE_CENTER, heightAt } from "./terrain.ts";
 import { getGlowTexture, roofTexture, shojiTexture, stoneWallTexture, woodTexture } from "./textures.ts";
 import { reserve } from "./occupancy.ts";
+import { archPiece } from "./archKit.ts";
 
 /**
  * Sacred architecture on the shrine plateau: a five-storied pagoda, a
@@ -51,6 +52,8 @@ const roofTier = (width: number): THREE.Group => {
 };
 
 const createPagoda = (height = 5): THREE.Group => {
+  const sculpted = archPiece("pagoda");
+  if (sculpted) return sculpted;
   const pagoda = new THREE.Group();
   let y = 0;
   let width = 150;
@@ -93,6 +96,11 @@ const createPagoda = (height = 5): THREE.Group => {
 };
 
 const createTorii = (scale = 1): THREE.Group => {
+  const sculpted = archPiece("torii");
+  if (sculpted) {
+    sculpted.scale.setScalar(scale);
+    return sculpted;
+  }
   const torii = new THREE.Group();
   const postH = 90 * scale;
   for (const side of [-1, 1]) {
@@ -118,7 +126,26 @@ const createTorii = (scale = 1): THREE.Group => {
   return torii;
 };
 
+const lanternHalo = (y: number) => {
+  const halo = new THREE.Sprite(
+    new THREE.SpriteMaterial({
+      map: getGlowTexture(), color: "#ffd98a", transparent: true, opacity: 0.4,
+      blending: THREE.AdditiveBlending, depthWrite: false,
+    })
+  );
+  halo.scale.set(58, 58, 1);
+  halo.position.y = y;
+  halo.name = "lantern-halo";
+  return halo;
+};
+
 const createLantern = (): THREE.Group => {
+  const sculpted = archPiece("lantern");
+  if (sculpted) {
+    // The kit's flame chamber is named lantern-glow; its halo breathes with it.
+    sculpted.add(lanternHalo(42));
+    return sculpted;
+  }
   const lantern = new THREE.Group();
   const base = new THREE.Mesh(new THREE.CylinderGeometry(9, 12, 10, 6), stoneMat);
   base.position.y = 5;
@@ -153,6 +180,8 @@ const createLantern = (): THREE.Group => {
 };
 
 const createKomainu = (): THREE.Group => {
+  const sculpted = archPiece("komainu");
+  if (sculpted) return sculpted;
   const komainu = new THREE.Group();
   const body = new THREE.Mesh(new THREE.BoxGeometry(20, 22, 34), stoneMat);
   body.position.y = 24;
@@ -191,14 +220,17 @@ export const createArchitecture = (): Architecture => {
   const pagodaTop = new THREE.Vector3(TEMPLE_CENTER.x, templeY + 320, TEMPLE_CENTER.y);
 
   // A small honden hall beside it
-  const honden = new THREE.Group();
-  const hall = new THREE.Mesh(new THREE.BoxGeometry(120, 54, 90), woodMat);
-  hall.position.y = 33;
-  const hondenRoof = roofTier(170);
-  hondenRoof.position.y = 78;
-  const steps = new THREE.Mesh(new THREE.BoxGeometry(44, 12, 30), stoneMat);
-  steps.position.set(0, 6, 58);
-  honden.add(hall, hondenRoof, steps);
+  let honden = archPiece("honden");
+  if (!honden) {
+    honden = new THREE.Group();
+    const hall = new THREE.Mesh(new THREE.BoxGeometry(120, 54, 90), woodMat);
+    hall.position.y = 33;
+    const hondenRoof = roofTier(170);
+    hondenRoof.position.y = 78;
+    const steps = new THREE.Mesh(new THREE.BoxGeometry(44, 12, 30), stoneMat);
+    steps.position.set(0, 6, 58);
+    honden.add(hall, hondenRoof, steps);
+  }
   honden.position.set(TEMPLE_CENTER.x - 240, templeY, TEMPLE_CENTER.y + 160);
   honden.rotation.y = 0.5;
   group.add(honden);
@@ -212,6 +244,8 @@ export const createArchitecture = (): Architecture => {
     const gz = TEMPLE_CENTER.y + Math.sin(approachAngle) * 250 + Math.sin(approachAngle + Math.PI / 2) * side * 70;
     guardian.position.set(gx, heightAt(gx, gz), gz);
     guardian.lookAt(gx + Math.cos(approachAngle), guardian.position.y, gz + Math.sin(approachAngle));
+    // The pair mirror each other across the approach.
+    if (side > 0) guardian.scale.x = -1;
     group.add(guardian);
     reserve(gx, gz, 50);
   }

@@ -7,7 +7,7 @@ import "./kamiStudio.css";
 /** Close-up review of the very same builders used by roaming and story actors.
  * No alternate models or animation mocks. Open /kami.html?kami to inspect them. */
 const descriptions: Record<KamiKind, [string, string]> = {
-  kitsune: ["Kitsune", "Nine jointed tails · fox-mask markings · listening ears"],
+  kitsune: ["Kitsune · クロード", "クロード, the nine-tailed fox of the shrine road · fox-mask markings · canine gait from walk to gallop"],
   shika: ["Shika", "Branching golden antlers · spotted coat · grazing and attention"],
   nekomata: ["Nekomata", "Twin curling tails · whiskers · alert ears and slit pupils"],
   tanuki: ["Tanuki", "Masked eyes · bell charm · finger joints and curious gestures"],

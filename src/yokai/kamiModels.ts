@@ -92,6 +92,7 @@ const worldModels = new Map<string, THREE.Group>();
 export const WORLD_MODEL_URLS: Record<string, string> = {
   mountains: "kami/models/mountains.glb",
   flora: "kami/models/flora.glb",
+  architecture: "kami/models/architecture.glb",
 };
 export function getWorldModel(name: string): THREE.Group | undefined {
   return worldModels.get(name);

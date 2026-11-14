@@ -4,6 +4,7 @@ import { KAKURIYO, getToonGradient, toon } from "./palette.ts";
 import { POND_CENTER, VILLAGE_CENTER, VILLAGE_HEIGHT, heightAt } from "./terrain.ts";
 import { paddyTexture, plasterTexture, thatchTexture, woodTexture } from "./textures.ts";
 import { reserve, reserveLine } from "./occupancy.ts";
+import { archPiece } from "./archKit.ts";
 
 /**
  * The farm hamlet: steep-roofed thatched minka gathered on their shelf of
@@ -96,7 +97,12 @@ export const createVillage = (): Village => {
     const r = 190 + rng() * 190;
     const x = VILLAGE_CENTER.x + Math.cos(angle) * r;
     const z = VILLAGE_CENTER.y + Math.sin(angle) * r * 0.8;
-    const house = buildMinka(rng, thatchMat, wallMat, timberMat, darkMat);
+    // A sculpted minka variant when the kit is loaded. It draws the same
+    // three random numbers the procedural house would, so the rest of the
+    // hamlet (terraces, bridge) keeps its layout.
+    const sculpted = archPiece(`minka${Math.floor(rng() * 3)}`);
+    if (sculpted) { rng(); rng(); }
+    const house = sculpted ?? buildMinka(rng, thatchMat, wallMat, timberMat, darkMat);
     house.position.set(x, heightAt(x, z) - 1, z);
     house.rotation.y = -angle + Math.PI / 2 + (rng() - 0.5) * 0.4;
     group.add(house);
