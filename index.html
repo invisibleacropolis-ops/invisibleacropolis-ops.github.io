@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#050d14" />
-    <meta name="description" content="Invisible Acropolis. Worlds, experiments, and systems." />
+    <meta name="theme-color" content="#030308" />
+    <meta name="description" content="Invisible Acropolis. Worlds, experiments, and systems, rendered as a living field computed in real time." />
     <title>Invisible Acropolis — Index</title>
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 4 59 51H5Z' fill='none' stroke='%2399fff0' stroke-width='3'/%3E%3Cpath d='M32 19 47 45H17Z' fill='none' stroke='%2399fff0' stroke-width='2'/%3E%3Ccircle cx='32' cy='37' r='4' fill='%23ddff72'/%3E%3C/svg%3E" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='s' x1='0' x2='1'%3E%3Cstop offset='0' stop-color='%23ff1f3d'/%3E%3Cstop offset='.33' stop-color='%23ffd21a'/%3E%3Cstop offset='.55' stop-color='%2333ff7a'/%3E%3Cstop offset='.78' stop-color='%23258cff'/%3E%3Cstop offset='1' stop-color='%23a93cff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M32 5 59 52H5Z' fill='none' stroke='url(%23s)' stroke-width='4'/%3E%3Ccircle cx='32' cy='37' r='4.5' fill='%23fff'/%3E%3C/svg%3E" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -14,91 +14,91 @@
   </head>
   <body>
     <a class="skip-link" href="#destinations">Skip to destinations</a>
-    <div class="console">
-      <header class="topbar">
-        <a class="brand" href="/" aria-label="Invisible Acropolis home">
-          <span class="brand-mark" aria-hidden="true"><span></span></span>
-          <span class="brand-name">INVISIBLE<br />ACROPOLIS</span>
-        </a>
-        <span class="topbar-center" aria-hidden="true">IA <b>/</b> INDEX <b>/</b> 001</span>
-        <div class="topbar-actions">
-          <span class="topbar-status"><i aria-hidden="true"></i><span id="destination-count">14 ROUTES</span></span>
-          <button class="directory-toggle" id="directory-toggle" type="button" aria-controls="destinations" aria-haspopup="true" aria-expanded="false"><span>DIRECTORY</span><span aria-hidden="true">☷</span></button>
+    <h1 class="visually-hidden">Invisible Acropolis</h1>
+
+    <canvas id="field" class="field" aria-hidden="true"></canvas>
+    <div class="node-layer" id="node-layer" aria-label="Destinations in the field"></div>
+
+    <header class="hud hud-top">
+      <a class="brand" href="/" aria-label="Invisible Acropolis home">
+        <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
+          <defs>
+            <linearGradient id="brand-spectrum" x1="0" x2="1">
+              <stop offset="0" stop-color="#ff1f3d" /><stop offset=".2" stop-color="#ff7a12" />
+              <stop offset=".38" stop-color="#ffd21a" /><stop offset=".55" stop-color="#33ff7a" />
+              <stop offset=".75" stop-color="#258cff" /><stop offset=".88" stop-color="#5a46ff" />
+              <stop offset="1" stop-color="#a93cff" />
+            </linearGradient>
+          </defs>
+          <path d="M32 5 59 52H5Z" fill="none" stroke="url(#brand-spectrum)" stroke-width="3" />
+          <path d="M32 21 46 45H18Z" fill="none" stroke="url(#brand-spectrum)" stroke-width="1.6" opacity=".7" />
+          <circle cx="32" cy="37" r="3.6" fill="#fff" />
+        </svg>
+        <span class="brand-name" id="brand-name" data-text="INVISIBLE ACROPOLIS" aria-hidden="true"></span>
+      </a>
+      <div class="hud-actions">
+        <button class="hud-button" id="toggle-motion" type="button" aria-pressed="true" title="Toggle motion intensity">MOTION <b>ON</b></button>
+        <button class="directory-toggle" id="directory-toggle" type="button" aria-controls="destinations" aria-haspopup="true" aria-expanded="false"><span>DIRECTORY</span><span class="directory-count" id="destination-count">14</span></button>
+      </div>
+    </header>
+
+    <aside class="metadata-card" id="metadata-card" aria-label="Destination metadata" aria-live="polite" hidden>
+      <button class="metadata-card__close" type="button" id="metadata-close" aria-label="Close destination metadata">×</button>
+      <div class="metadata-card__title"><span class="metadata-key" id="metadata-title-key"></span><h2 id="metadata-title"></h2></div>
+      <dl class="metadata-card__fields">
+        <div><dt id="metadata-class-key"></dt><dd id="metadata-class"></dd></div>
+        <div><dt id="metadata-address-key"></dt><dd id="metadata-address"></dd></div>
+        <div><dt id="metadata-band-key"></dt><dd id="metadata-band"></dd></div>
+        <div><dt id="metadata-vector-key"></dt><dd id="metadata-vector"></dd></div>
+      </dl>
+      <a class="metadata-card__enter" id="metadata-enter" href="#"><span id="metadata-enter-label"></span></a>
+    </aside>
+
+    <footer class="hud hud-bottom">
+      <p class="ticker"><span id="ticker"></span><i aria-hidden="true"></i></p>
+      <div class="spectrum" aria-hidden="true">
+        <div class="spectrum-band"></div>
+        <div class="spectrum-ticks" id="spectrum-ticks"></div>
+        <div class="spectrum-scale"><span>700 NM</span><span>R · O · Y · G · B · I · V</span><span>400 NM</span></div>
+      </div>
+      <p class="telemetry" id="telemetry" aria-hidden="true"></p>
+    </footer>
+
+    <p class="webgl-fallback" id="webgl-fallback" hidden>The live field needs WebGL2. Every destination is in the directory.</p>
+
+    <nav class="directory" id="destinations" aria-label="All destinations" hidden>
+      <div class="directory-header"><span>DIRECTORY</span><button type="button" id="directory-close" aria-label="Close directory">×</button></div>
+      <section class="route-group" aria-labelledby="world-label">
+        <h2 id="world-label">WORLD <span>03</span></h2>
+        <div class="route-list">
+          <a class="route route-featured" href="/kami.html"><span class="route-number">01</span><span class="route-name">KAKURIYO</span><span class="route-arrow" aria-hidden="true">↗</span></a>
+          <a class="route" href="/kami.html?classic"><span class="route-number">02</span><span class="route-name">CLASSIC DIMENSION</span><span class="route-arrow" aria-hidden="true">↗</span></a>
+          <a class="route" href="/kami.html?kami"><span class="route-number">03</span><span class="route-name">KAMI ATELIER</span><span class="route-arrow" aria-hidden="true">↗</span></a>
         </div>
-      </header>
-
-      <main class="workbench">
-        <section class="visual-field" aria-label="Holographic index">
-          <div class="visual-grid" aria-hidden="true"></div>
-          <div class="axis axis-x" aria-hidden="true"></div>
-          <div class="axis axis-y" aria-hidden="true"></div>
-          <div class="hero-art">
-            <canvas id="hologram" tabindex="0" aria-label="Interactive three-dimensional destination map. Drag to rotate, scroll or use the controls to zoom, and select a glowing node to inspect its metadata. Use Enter Page on the card to navigate. All pages are also linked in the directory."></canvas>
-            <span class="corner corner-tl"></span><span class="corner corner-tr"></span>
-            <span class="corner corner-bl"></span><span class="corner corner-br"></span>
-            <div class="core-label core-label--top">CORE ARRAY / 001</div>
-            <div class="core-label core-label--left">11.042° N / 73.286° E</div>
-            <div class="core-label core-label--bottom">IA.001 <span>◇</span> ACTIVE</div>
-            <div class="core-scale">00 &nbsp;—&nbsp; 20 &nbsp;—&nbsp; 40 &nbsp;—&nbsp; 60 &nbsp;—&nbsp; 80 &nbsp;—&nbsp; 100</div>
-            <aside class="metadata-card" id="metadata-card" aria-label="Destination metadata" hidden>
-              <button class="metadata-card__close" type="button" id="metadata-close" aria-label="Close destination metadata">×</button>
-              <div class="metadata-card__body">
-                <div class="metadata-card__title"><span class="metadata-key" id="metadata-title-key"></span><h2 id="metadata-title"></h2></div>
-                <dl class="metadata-card__fields">
-                  <div><dt id="metadata-class-key"></dt><dd id="metadata-class"></dd></div>
-                  <div><dt id="metadata-address-key"></dt><dd id="metadata-address"></dd></div>
-                  <div><dt id="metadata-vector-key"></dt><dd id="metadata-vector"></dd></div>
-                </dl>
-                <a class="metadata-card__enter" id="metadata-enter" href="#"><span id="metadata-enter-label"></span></a>
-              </div>
-            </aside>
-            <div class="viewport-controls" aria-label="Three-dimensional view controls">
-              <button type="button" id="zoom-in" aria-label="Zoom in">+</button>
-              <button type="button" id="zoom-out" aria-label="Zoom out">−</button>
-              <button type="button" id="reset-view" aria-label="Reset view">⌖</button>
-              <button type="button" id="toggle-motion" aria-label="Enable motion" aria-pressed="false" title="Toggle motion">✧</button>
-            </div>
-            <p class="view-hint">DRAG <span>•</span> ZOOM <span>•</span> SELECT</p>
-            <p class="webgl-fallback" id="webgl-fallback" hidden>WEBGL UNAVAILABLE</p>
-          </div>
-          <div class="visual-footer" aria-hidden="true"><span>SPATIAL INDEX / LIVE</span><span>∞</span><span>IA : 00</span></div>
-        </section>
-
-        <nav class="directory" id="destinations" aria-label="All destinations" hidden>
-          <div class="directory-header"><span>DIRECTORY</span><button type="button" id="directory-close" aria-label="Close directory">×</button></div>
-          <section class="route-group" aria-labelledby="world-label">
-            <h1 id="world-label">WORLD <span>03</span></h1>
-            <div class="route-list">
-              <a class="route route-featured" href="/kami.html"><span class="route-number">01</span><span class="route-name">KAKURIYO</span><span class="route-arrow" aria-hidden="true">↗</span></a>
-              <a class="route" href="/kami.html?classic"><span class="route-number">02</span><span class="route-name">CLASSIC DIMENSION</span><span class="route-arrow" aria-hidden="true">↗</span></a>
-              <a class="route" href="/kami.html?kami"><span class="route-number">03</span><span class="route-name">KAMI ATELIER</span><span class="route-arrow" aria-hidden="true">↗</span></a>
-            </div>
-          </section>
-          <section class="route-group" aria-labelledby="experiments-label">
-            <h2 id="experiments-label">EXPERIMENTS <span id="experiment-count">07</span></h2>
-            <div class="route-list" id="project-grid">
-              <a class="route" href="/galaxy.html"><span class="route-number">04</span><span class="route-name">NEBULA GALAXY</span><span class="route-arrow" aria-hidden="true">↗</span></a>
-              <a class="route" href="/audio-reactive.html"><span class="route-number">05</span><span class="route-name">SPECTRUM SCULPT</span><span class="route-arrow" aria-hidden="true">↗</span></a>
-              <a class="route" href="/flow-field.html"><span class="route-number">06</span><span class="route-name">FLOW FIELD</span><span class="route-arrow" aria-hidden="true">↗</span></a>
-              <a class="route" href="/procedural-city.html"><span class="route-number">07</span><span class="route-name">PROCEDURAL CITY</span><span class="route-arrow" aria-hidden="true">↗</span></a>
-              <a class="route" href="/volumetric-nebula.html"><span class="route-number">08</span><span class="route-name">VOLUMETRIC NEBULA</span><span class="route-arrow" aria-hidden="true">↗</span></a>
-              <a class="route" href="/cloth.html"><span class="route-number">09</span><span class="route-name">CLOTH PLAYGROUND</span><span class="route-arrow" aria-hidden="true">↗</span></a>
-              <a class="route" href="/fluid.html"><span class="route-number">10</span><span class="route-name">FLUID VOLUME</span><span class="route-arrow" aria-hidden="true">↗</span></a>
-            </div>
-          </section>
-          <section class="route-group" aria-labelledby="systems-label">
-            <h2 id="systems-label">SYSTEMS <span>04</span></h2>
-            <div class="route-list">
-              <a class="route" href="/invisible-support/"><span class="route-number">11</span><span class="route-name">INVISIBLE SUPPORT</span><span class="route-arrow" aria-hidden="true">↗</span></a>
-              <a class="route" href="/invisible-support/subspace.html"><span class="route-number">12</span><span class="route-name">SUPPORT SUBSPACE</span><span class="route-arrow" aria-hidden="true">↗</span></a>
-              <a class="route" href="/InvisibleSupport2/"><span class="route-number">13</span><span class="route-name">INVISIBLE SUPPORT 2</span><span class="route-arrow" aria-hidden="true">↗</span></a>
-              <a class="route" href="/InvisibleSupport2/subspace.html"><span class="route-number">14</span><span class="route-name">SUPPORT 2 SUBSPACE</span><span class="route-arrow" aria-hidden="true">↗</span></a>
-            </div>
-          </section>
-          <div class="directory-footer"><span>IA / NAV</span><span>END OF INDEX</span></div>
-        </nav>
-      </main>
-    </div>
+      </section>
+      <section class="route-group" aria-labelledby="experiments-label">
+        <h2 id="experiments-label">EXPERIMENTS <span id="experiment-count">07</span></h2>
+        <div class="route-list" id="project-grid">
+          <a class="route" href="/galaxy.html"><span class="route-number">04</span><span class="route-name">NEBULA GALAXY</span><span class="route-arrow" aria-hidden="true">↗</span></a>
+          <a class="route" href="/audio-reactive.html"><span class="route-number">05</span><span class="route-name">SPECTRUM SCULPT</span><span class="route-arrow" aria-hidden="true">↗</span></a>
+          <a class="route" href="/flow-field.html"><span class="route-number">06</span><span class="route-name">FLOW FIELD</span><span class="route-arrow" aria-hidden="true">↗</span></a>
+          <a class="route" href="/procedural-city.html"><span class="route-number">07</span><span class="route-name">PROCEDURAL CITY</span><span class="route-arrow" aria-hidden="true">↗</span></a>
+          <a class="route" href="/volumetric-nebula.html"><span class="route-number">08</span><span class="route-name">VOLUMETRIC NEBULA</span><span class="route-arrow" aria-hidden="true">↗</span></a>
+          <a class="route" href="/cloth.html"><span class="route-number">09</span><span class="route-name">CLOTH PLAYGROUND</span><span class="route-arrow" aria-hidden="true">↗</span></a>
+          <a class="route" href="/fluid.html"><span class="route-number">10</span><span class="route-name">FLUID VOLUME</span><span class="route-arrow" aria-hidden="true">↗</span></a>
+        </div>
+      </section>
+      <section class="route-group" aria-labelledby="systems-label">
+        <h2 id="systems-label">SYSTEMS <span>04</span></h2>
+        <div class="route-list">
+          <a class="route" href="/invisible-support/"><span class="route-number">11</span><span class="route-name">INVISIBLE SUPPORT</span><span class="route-arrow" aria-hidden="true">↗</span></a>
+          <a class="route" href="/invisible-support/subspace.html"><span class="route-number">12</span><span class="route-name">SUPPORT SUBSPACE</span><span class="route-arrow" aria-hidden="true">↗</span></a>
+          <a class="route" href="/InvisibleSupport2/"><span class="route-number">13</span><span class="route-name">INVISIBLE SUPPORT 2</span><span class="route-arrow" aria-hidden="true">↗</span></a>
+          <a class="route" href="/InvisibleSupport2/subspace.html"><span class="route-number">14</span><span class="route-name">SUPPORT 2 SUBSPACE</span><span class="route-arrow" aria-hidden="true">↗</span></a>
+        </div>
+      </section>
+      <div class="directory-footer"><span>IA / NAV</span><span>END OF INDEX</span></div>
+    </nav>
     <script type="module" src="/src/landing.ts"></script>
   </body>
 </html>

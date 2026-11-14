@@ -1,10 +1,9 @@
-import { createAtlas } from "./landing/atlas.ts";
+import { createLivingIndex } from "./living/living.ts";
 
 type Page = { title: string; url: string };
 
-const canvas = document.querySelector<HTMLCanvasElement>("#hologram");
-const art = document.querySelector<HTMLElement>(".hero-art");
-const atlas = canvas && art ? createAtlas(canvas, art) : null;
+const canvas = document.querySelector<HTMLCanvasElement>("#field");
+const atlas = canvas ? createLivingIndex(canvas) : null;
 const directory = document.querySelector<HTMLElement>("#destinations");
 const directoryToggle = document.querySelector<HTMLButtonElement>("#directory-toggle");
 const directoryClose = document.querySelector<HTMLButtonElement>("#directory-close");
@@ -83,7 +82,7 @@ if (grid) {
         label.textContent = String(index + 1).padStart(2, "0");
       });
       if (experimentCount) experimentCount.textContent = String(known.size).padStart(2, "0");
-      if (count) count.textContent = `${document.querySelectorAll(".route").length} ROUTES`;
+      if (count) count.textContent = String(document.querySelectorAll(".route").length);
       atlas?.refreshRoutes();
     })
     .catch((error) => console.info("Destination manifest unavailable; built-in links remain visible.", error));
