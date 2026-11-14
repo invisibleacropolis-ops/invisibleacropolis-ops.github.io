@@ -1,7 +1,9 @@
-// GLSL for the living index. Everything visible on the page is generated here:
-// no meshes, no textures, no baked assets. WebGL2 / GLSL ES 3.00.
+// GLSL for the living index. Everything visible on the page is generated here
+// or by CPU code streamed in every frame: no meshes, no textures, no baked
+// assets. WebGL2 / GLSL ES 3.00.
 
-export const MAX_NODES = 24;
+export const MAX_CORES = 6;
+export const MAX_LEAVES = 24;
 
 const HEADER = /* glsl */ `#version 300 es
 precision highp float;
@@ -9,41 +11,33 @@ precision highp int;
 precision highp sampler2D;
 `;
 
-// Shared routing + spectrum code. The simulation and the renderer run the same
-// routing function, so a particle's colour always matches where it is headed.
-const ROUTE = /* glsl */ `
-#define MAXN ${MAX_NODES}
-uniform vec4 uNodes[MAXN];   // xyz = position, w = activity (hover / select)
-uniform int uCount;          // live node count (>= 1)
-uniform float uHot;          // node that is pulling extra agents, -1 for none
+// Shared field description. Agents belong to one of four species; the first
+// three are hosted by the core whose archetype owns that species.
+const FIELD = /* glsl */ `
+#define MAXC ${MAX_CORES}
+#define MAXL ${MAX_LEAVES}
+uniform vec4 uCores[MAXC];    // xyz, open
+uniform int uCoreCount;
+uniform vec3 uSlots;          // core index hosting embers / swarm / packets (-1: none)
+uniform vec4 uLeaves[MAXL];   // xyz, owning core index
+uniform int uLeafCount;
+uniform vec3 uBoost;          // momentary energy per species
 uniform float uTime;
 
 float hash11(float p) { p = fract(p * .1031); p *= p + 33.33; p *= p + p; return fract(p); }
 float tri(float x) { return 1. - abs(fract(x) * 2. - 1.); }
-float nodeHue(int i) { return uCount > 1 ? float(i) / float(uCount - 1) : .5; }
 
-// Each migrating agent belongs to a node for one "epoch", then picks another.
-// The hand-over is what draws the luminous streams between destinations.
-void route(float seed, out int prevN, out int home) {
-  float period = 6. + seed * 12.;
-  float tt = uTime + seed * 97.;
-  float e = floor(tt / period);
-  float n = float(uCount);
-  home = int(min(floor(hash11(seed * 13.7 + e * 1.618) * n), n - 1.));
-  prevN = int(min(floor(hash11(seed * 13.7 + (e - 1.) * 1.618) * n), n - 1.));
-  if (uHot >= 0. && hash11(seed * 5.31 + e * .77) < .16) home = int(uHot);
+int speciesOf(float seed) { return seed < .2 ? 0 : seed < .55 ? 1 : seed < .8 ? 2 : 3; }
+int hostOf(int sp) {
+  int c = sp == 0 ? int(uSlots.x) : sp == 1 ? int(uSlots.y) : sp == 2 ? int(uSlots.z) : -1;
+  return c >= 0 && c < uCoreCount ? c : -1;
 }
 
 // ROYGBIV, red (0) -> violet (1). Linear-light values for the HDR buffer.
 vec3 spectrum(float x) {
   vec3 c[7] = vec3[7](
-    vec3(1., .07, .14),  // R
-    vec3(1., .38, .03),  // O
-    vec3(1., .85, .10),  // Y
-    vec3(.12, 1., .30),  // G
-    vec3(.06, .55, 1.),  // B
-    vec3(.22, .16, 1.),  // I
-    vec3(.66, .14, 1.)   // V
+    vec3(1., .07, .14), vec3(1., .38, .03), vec3(1., .85, .10), vec3(.12, 1., .30),
+    vec3(.06, .55, 1.), vec3(.22, .16, 1.), vec3(.66, .14, 1.)
   );
   float s = clamp(x, 0., 1.) * 6.;
   int i = int(min(floor(s), 5.));
@@ -52,8 +46,7 @@ vec3 spectrum(float x) {
 }
 `;
 
-// Simplex noise with analytic gradient (Ashima / Gustavson), used to build a
-// divergence-free curl field: the fluid-like motion that never settles.
+// Simplex noise with analytic gradient (Ashima / Gustavson) -> curl field.
 const NOISE = /* glsl */ `
 vec3 mod289(vec3 x) { return x - floor(x * (1. / 289.)) * 289.; }
 vec4 mod289(vec4 x) { return x - floor(x * (1. / 289.)) * 289.; }
@@ -125,19 +118,17 @@ void main() {
 `;
 
 // ---------------------------------------------------------------- simulation
-// One fragment = one agent. Position and velocity live in float textures and
-// are ping-ponged every frame, written together through two colour attachments.
-export const SIM_FS = HEADER + ROUTE + NOISE + /* glsl */ `
+export const SIM_FS = HEADER + FIELD + NOISE + /* glsl */ `
 uniform sampler2D uPos;
 uniform sampler2D uVel;
 uniform float uDt;
-uniform vec3 uRayO;      // pointer ray
+uniform vec3 uRayO;
 uniform vec3 uRayD;
-uniform vec3 uFocus;     // pointer ray hit on the focal plane
-uniform float uStir;     // pointer energy (speed driven)
-uniform float uPress;    // held pointer: gravity well
-uniform vec4 uShock;     // xyz = centre, w = age in seconds (< 0: none)
-uniform float uDrift;    // fraction of agents that orbit the core instead of migrating
+uniform vec3 uFocus;
+uniform float uStir;
+uniform float uPress;
+uniform vec4 uShock;     // xyz centre, w age (< 0: none)
+uniform vec4 uMigrate;   // from core, to core, fraction, active
 layout(location = 0) out vec4 oPos;
 layout(location = 1) out vec4 oVel;
 
@@ -145,6 +136,18 @@ vec3 hash33(vec3 p3) {
   p3 = fract(p3 * vec3(.1031, .1030, .0973));
   p3 += dot(p3, p3.yxz + 33.33);
   return fract((p3.xxy + p3.yxx) * p3.zyx);
+}
+
+int pickLeaf(int c, float r) {
+  int count = 0;
+  for (int i = 0; i < MAXL; i++) { if (i >= uLeafCount) break; if (int(uLeaves[i].w + .5) == c) count++; }
+  if (count == 0) return -1;
+  int want = int(min(floor(r * float(count)), float(count - 1)));
+  for (int i = 0; i < MAXL; i++) {
+    if (i >= uLeafCount) break;
+    if (int(uLeaves[i].w + .5) == c) { if (want == 0) return i; want--; }
+  }
+  return -1;
 }
 
 void main() {
@@ -156,70 +159,113 @@ void main() {
   float seed = P.w;
   float life = V.w;
   float t = uTime;
+  int sp = speciesOf(seed);
+  int c = hostOf(sp);
+  if (sp < 3 && c < 0) sp = 3;
+  float h1 = fract(seed * 91.71), h2 = fract(seed * 47.13), h3 = fract(seed * 13.37);
+  vec3 C = vec3(0.);
+  float open = 0.;
+  if (sp < 3) { C = uCores[c].xyz; open = uCores[c].w; }
   vec3 acc = vec3(0.);
-  bool drifter = seed < uDrift;
-  int prevN = 0;
-  int home = 0;
+  float decay = .03;
 
-  if (drifter) {
-    // A breathing shell around the core, combed by the curl field.
-    float R = .7 + .7 * fract(seed * 17.31) + .2 * sin(t * .6 + seed * 40.);
-    float r = length(p) + 1e-4;
-    acc -= p / r * (r - R) * 3.2;
-    vec3 ax = normalize(vec3(sin(t * .11), 1.3, cos(t * .07)));
-    acc += cross(ax, p / r) * (1.3 + fract(seed * 7.7));
-    acc += curl(p * .8 + vec3(0., t * .09, 0.)) * 1.2;
-  } else {
-    route(seed, prevN, home);
-    vec4 N = uNodes[home];
-    vec3 to = N.xyz - p;
+  if (sp == 0) {
+    // embers: buoyant, turbulent, short-lived
+    acc.y += 2.1 + 2.6 * uBoost.x;
+    acc += curl(p * 1.25 + vec3(0., -t * .9, t * .2)) * (1.7 + 1.3 * uBoost.x);
+    acc.xz += (C.xz - p.xz) * (1.5 - .7 * open);
+    decay = (.42 + .6 * h1) * (1. + .5 * uBoost.x);
+  } else if (sp == 1) {
+    // swarm: orbits its cell, visits leaves when open, migrates on cue
+    vec3 T = C;
+    float R = .8 + .45 * h2;
+    bool mig = uMigrate.w > .5 && int(uMigrate.x + .5) == c && h3 < uMigrate.z;
+    if (mig) {
+      T = uCores[int(uMigrate.y + .5)].xyz;
+      R = .45 + .5 * h2;
+    } else if (open > .3 && h3 < open * .55) {
+      float ep = floor((t + h2 * 20.) / (5. + h1 * 6.));
+      int li = pickLeaf(c, hash11(seed * 3.3 + ep * .618));
+      if (li >= 0) { T = uLeaves[li].xyz; R = .1 + .22 * h2; }
+    }
+    vec3 to = T - p;
     float d = length(to) + 1e-4;
     vec3 dir = to / d;
-    float r0 = .14 + .34 * fract(seed * 7.13) + N.w * .6 * fract(seed * 2.91);
-    acc += dir * clamp(d - r0, -1.5, 3.) * (2.6 + N.w);
-    float fh = float(home);
-    vec3 ax = normalize(vec3(sin(fh * 1.7), 1.2, cos(fh * 2.3)));
-    acc += cross(ax, dir) * (2.2 + 1.6 * fract(seed * 3.1)) * (1. - smoothstep(.05, 1.1, d));
-    acc += curl(p * .42 + vec3(t * .05, 0., -t * .04)) * (.25 + 1.1 * smoothstep(.5, 2., d));
+    acc += dir * clamp(d - R, -1.5, 3.) * 2.5;
+    vec3 ax = normalize(vec3(sin(h1 * 6.3), 1.3, cos(h2 * 6.3)));
+    acc += cross(ax, dir) * (2. + 1.6 * h2) * (1. - smoothstep(.1, 1.6, d));
+    acc += curl(p * .7 + vec3(t * .06, 0., -t * .05)) * (.55 + .9 * smoothstep(.4, 2., d)) * (1. + uBoost.y);
+    decay = .03 + .05 * h1;
+  } else if (sp == 2) {
+    // packets: axis-locked travel between box faces and terminals
+    float ep = floor((t + h2 * 7.) / (1.4 + h1 * 2.));
+    float r = hash11(seed * 7.7 + ep * 1.31);
+    int li = -1;
+    if (open > .3 && r < open * .7) li = pickLeaf(c, fract(r * 7.13));
+    vec3 T;
+    if (li >= 0) T = uLeaves[li].xyz;
+    else {
+      vec3 hb = vec3(hash11(seed + ep * 3.1), hash11(seed * 2.3 + ep * 5.7), hash11(seed * 4.1 + ep * 1.9)) * 2. - 1.;
+      float f = floor(r * 3.);
+      if (f < .5) hb.x = sign(hb.x); else if (f < 1.5) hb.y = sign(hb.y); else hb.z = sign(hb.z);
+      T = C + hb * vec3(1.15, .85, 1.15);
+    }
+    vec3 to = T - p;
+    vec3 ad = abs(to);
+    vec3 ax = ad.x > ad.y && ad.x > ad.z ? vec3(sign(to.x), 0., 0.) : (ad.y > ad.z ? vec3(0., sign(to.y), 0.) : vec3(0., 0., sign(to.z)));
+    float spd = (1.6 + 1.4 * h1) * (1. + 1.3 * uBoost.z) * min(1., length(to) * 2.5);
+    acc += (ax * spd - v) * 11.;
+    decay = .05 + .05 * h1;
+  } else {
+    // dust: slow atmospheric drift through the whole scene
+    acc += curl(p * .2 + vec3(0., t * .02, 0.)) * .4;
+    acc -= p * .012;
+    acc.y -= p.y * .03;
+    decay = .02 + .02 * h1;
   }
 
-  // Pointer: a vortex tube along the view ray that also pushes outward.
+  // pointer: a vortex tube along the view ray
   vec3 onRay = uRayO + uRayD * max(dot(p - uRayO, uRayD), 0.);
   vec3 off = p - onRay;
   float od = length(off) + 1e-4;
   float fall = exp(-od * od * 1.6);
   acc += (cross(uRayD, off / od) * 7. + off / od * 2.5) * fall * uStir;
-
-  // Held pointer: everything spirals into the focal point.
+  // held pointer: gravity well
   vec3 tf = uFocus - p;
   float fd = length(tf) + 1e-4;
   acc += tf / fd * min(fd, 3.) * 4.5 * uPress;
   acc += cross(uRayD, tf / fd) * 3. * uPress * exp(-fd * .5);
-
-  // Click: an expanding spherical shock front.
+  // click: spherical shock front
   if (uShock.w >= 0.) {
-    vec3 sp = p - uShock.xyz;
-    float sr = length(sp) + 1e-4;
-    float ring = uShock.w * 5.;
-    acc += sp / sr * 24. * exp(-pow((sr - ring) * 2.5, 2.)) * exp(-uShock.w * 1.6);
+    vec3 sp3 = p - uShock.xyz;
+    float sr = length(sp3) + 1e-4;
+    acc += sp3 / sr * 24. * exp(-pow((sr - uShock.w * 5.) * 2.5, 2.)) * exp(-uShock.w * 1.6);
   }
 
   v = v * pow(.955, uDt * 60.) + acc * uDt;
   float speed = length(v);
   if (speed > 9.) v *= 9. / speed;
   p += v * uDt;
+  life -= uDt * decay;
 
-  life -= uDt * (.025 + .05 * fract(seed * 91.7));
-  if (life <= 0. || dot(p, p) > 110.) {
+  if (life <= 0. || dot(p, p) > 160.) {
     vec3 h = hash33(vec3(gl_FragCoord.xy, uTime * 61.7));
     vec3 rd = normalize(h * 2. - 1. + 1e-4);
-    if (drifter) {
-      p = rd * (.25 + .35 * h.x);
+    if (sp == 0) {
+      float ang = h.x * 6.2832;
+      float rr = .08 + .32 * h.y;
+      p = C + vec3(cos(ang) * rr, -.1 + .15 * h.z, sin(ang) * rr);
+      v = vec3((h.y - .5) * .4, .5 + h.z * .8, (h.x - .5) * .4);
+    } else if (sp == 1) {
+      p = C + rd * (.9 + .5 * h.x);
+      v = rd * .3;
+    } else if (sp == 2) {
+      p = C + (h * 2. - 1.) * .45;
+      v = vec3(0.);
     } else {
-      route(seed, prevN, home);
-      p = uNodes[home].xyz + rd * (.1 + .25 * h.y);
+      p = rd * (2. + 5.5 * h.x) * vec3(1., .55, 1.);
+      v = vec3(0.);
     }
-    v = rd * .6;
     life = 1.;
   }
   oPos = vec4(p, seed);
@@ -228,18 +274,16 @@ void main() {
 `;
 
 // ----------------------------------------------------------------- particles
-// Drawn twice from the same state: as soft points and as velocity streaks.
-export const PARTICLE_VS = HEADER + ROUTE + /* glsl */ `
+export const PARTICLE_VS = HEADER + FIELD + /* glsl */ `
 uniform sampler2D uPos;
 uniform sampler2D uVel;
 uniform int uSize;
 uniform mat4 uProj;
 uniform mat4 uView;
-uniform float uLines;     // 0 = points, 1 = streaks
-uniform float uPx;        // world size -> pixels at depth 1
+uniform float uLines;
+uniform float uPx;
 uniform float uIntensity;
-uniform float uStreak;
-uniform float uDrift;
+uniform float uCoreHue[MAXC];
 out vec3 vColor;
 out float vAlpha;
 
@@ -251,35 +295,54 @@ void main() {
   vec4 V = texelFetch(uVel, uv, 0);
   float seed = P.w;
   float speed = length(V.xyz);
+  float life = V.w;
+  int sp = speciesOf(seed);
+  int c = hostOf(sp);
+  if (sp < 3 && c < 0) sp = 3;
+  float h1 = fract(seed * 91.71);
+  float streakLen = sp == 0 ? .05 : sp == 1 ? .06 : sp == 2 ? .1 : 0.;
   vec3 p = P.xyz;
-  if (end == 0) p -= V.xyz * uStreak;
+  if (end == 0) p -= V.xyz * streakLen;
 
   vec3 col;
-  float boost = 1.;
-  if (seed < uDrift) {
-    col = spectrum(tri(atan(P.z, P.x) * .15915 + P.y * .12 - uTime * .03));
-    boost = .7;
-  } else {
-    int a; int b;
-    route(seed, a, b);
-    vec3 A = uNodes[a].xyz;
-    vec3 B = uNodes[b].xyz;
-    float prog = clamp(1. - distance(P.xyz, B) / max(distance(A, B), .01), 0., 1.);
-    col = spectrum(mix(nodeHue(a), nodeHue(b), smoothstep(0., 1., prog)));
-    boost = 1. + .35 * uNodes[b].w;
-  }
-  col = mix(col, vec3(1.), smoothstep(4., 9., speed) * .25);
-
-  float life = V.w;
+  float bright;
+  float size;
   float fade = (1. - smoothstep(.93, 1., life)) * smoothstep(0., .12, life);
+  if (sp == 0) {
+    float age = 1. - life;
+    col = mix(vec3(1., .9, .72) * 1.5, spectrum(mix(.22, 0., smoothstep(.05, .85, age))), smoothstep(0., .3, age));
+    bright = pow(max(life, 0.), 1.4) * (.38 + .5 * uBoost.x);
+    size = .014 + .02 * life;
+    fade = smoothstep(0., .25, life) * (1. - smoothstep(.97, 1., life));
+  } else if (sp == 1) {
+    col = spectrum(.32 + .26 * fract(h1 + speed * .05));
+    bright = .7 + .4 * uCores[c].w;
+    size = .011;
+  } else if (sp == 2) {
+    col = mix(spectrum(.64 + .36 * h1), vec3(1.), smoothstep(2., 4., speed) * .35);
+    bright = 1.1 + uBoost.z;
+    size = .009;
+  } else {
+    int nc = 0;
+    float best = 1e9;
+    for (int i = 0; i < MAXC; i++) {
+      if (i >= uCoreCount) break;
+      float d = distance(P.xyz, uCores[i].xyz);
+      if (d < best) { best = d; nc = i; }
+    }
+    col = mix(vec3(.5), spectrum(uCoreHue[nc]), .6);
+    bright = .28;
+    size = .045;
+  }
+
   vec4 mv = uView * vec4(p, 1.);
   float depth = max(-mv.z, .1);
   gl_Position = uProj * mv;
-  gl_PointSize = clamp(uPx * (.010 + .012 * fract(seed * 31.7)) / depth, 1., 9.);
-  float fog = exp(-max(depth - 7., 0.) * .18);
-  float streak = uLines > .5 ? (.35 + .65 * smoothstep(.4, 4., speed)) * float(end) / (1. + .12 * max(speed - 3., 0.)) : 1.;
+  gl_PointSize = clamp(uPx * size * (.7 + .6 * fract(seed * 31.7)) / depth, 1., 14.);
+  float fog = exp(-max(depth - 12., 0.) * .12);
+  float lineMul = uLines > .5 ? (sp == 3 ? 0. : (.35 + .65 * smoothstep(.4, 4., speed)) * float(end)) : 1.;
   vColor = col;
-  vAlpha = uIntensity * boost * fade * fog * streak;
+  vAlpha = uIntensity * bright * fade * fog * lineMul;
 }
 `;
 
@@ -290,159 +353,138 @@ in float vAlpha;
 out vec4 o;
 void main() {
   float a = vAlpha;
-  if (uLines < .5) {
-    float d = length(gl_PointCoord - .5);
-    a *= (1. - smoothstep(0., .5, d));
-  }
+  if (uLines < .5) a *= 1. - smoothstep(0., .5, length(gl_PointCoord - .5));
   o = vec4(vColor * a, 1.);
 }
 `;
 
-// -------------------------------------------------------------------- glyphs
-// Every destination is a living parametric curve evaluated per vertex:
-// torus knots, roses, Lissajous figures and loxodromes that breathe and turn.
-// The extra instance is the gyroscopic core.
-export const GLYPH_VS = HEADER + ROUTE + /* glsl */ `
-uniform vec4 uMeta[MAXN + 1];  // x = kind, y = activity, z = random, w = scale
+// ------------------------------------------------------------------- strokes
+// Anti-aliased screen-space-width segments, expanded from instanced quads.
+export const STROKE_VS = HEADER + /* glsl */ `
+layout(location = 0) in vec3 aA;
+layout(location = 1) in vec3 aB;
+layout(location = 2) in vec3 aCol;
+layout(location = 3) in vec2 aAlpha;
+layout(location = 4) in vec2 aWidth;
 uniform mat4 uProj;
 uniform mat4 uView;
-uniform int uSeg;
+uniform vec2 uRes;
+uniform float uPxScale;
 out vec3 vColor;
-out float vT;
-out float vHover;
-out float vRand;
-
-mat3 rot(float a, float b) {
-  float ca = cos(a), sa = sin(a), cb = cos(b), sb = sin(b);
-  return mat3(ca, 0., -sa, 0., 1., 0., sa, 0., ca) * mat3(1., 0., 0., 0., cb, sb, 0., -sb, cb);
-}
-
+out float vAlpha;
+out float vSide;
+const vec2 Q[6] = vec2[6](vec2(0., -1.), vec2(1., -1.), vec2(1., 1.), vec2(0., -1.), vec2(1., 1.), vec2(0., 1.));
 void main() {
-  int inst = gl_InstanceID;
-  int seg = gl_VertexID / 2;
-  int end = gl_VertexID - seg * 2;
-  float t = (float(seg) + float(end)) / float(uSeg);
-  vec4 meta = uMeta[inst];
-  float kind = meta.x;
-  float hover = meta.y;
-  float rnd = meta.z;
-  bool isCore = inst >= uCount;
-  float ph = 6.2831853 * t;
-  float tm = uTime * (.25 + .2 * rnd);
-  vec3 c;
-  vec3 center = vec3(0.);
+  vec2 q = Q[gl_VertexID];
+  vec4 ca = uProj * uView * vec4(aA, 1.);
+  vec4 cb = uProj * uView * vec4(aB, 1.);
+  vColor = aCol;
+  vSide = q.y;
+  if (ca.w < .05 || cb.w < .05) { gl_Position = vec4(2., 2., 2., 1.); vAlpha = 0.; return; }
+  vec2 half_ = uRes * .5;
+  vec2 sa = ca.xy / ca.w * half_;
+  vec2 sb = cb.xy / cb.w * half_;
+  vec2 d = sb - sa;
+  float l = length(d);
+  vec2 dir = l > 1e-3 ? d / l : vec2(1., 0.);
+  vec2 nrm = vec2(-dir.y, dir.x);
+  float w = mix(aWidth.x, aWidth.y, q.x) * uPxScale + 1.5;
+  vec4 c = q.x < .5 ? ca : cb;
+  vec2 off = nrm * q.y * w * .5 + dir * (q.x * 2. - 1.) * w * .3;
+  c.xy += off / half_ * c.w;
+  gl_Position = c;
+  vAlpha = mix(aAlpha.x, aAlpha.y, q.x) * exp(-max(c.w - 13., 0.) * .1);
+}
+`;
 
-  if (isCore) {
-    float ring = floor(t * 4.);
-    float f = fract(t * 4.);
-    float lt = f * 6.2831853;
-    if (ring < 3.) {
-      c = vec3(cos(lt), sin(lt), 0.) * (1. + .14 * ring) * (1. + .03 * sin(uTime * .9 + ring));
-      c = rot(uTime * (.11 + .07 * ring) + ring * 2.1, ring * 1.05 + .4 * sin(uTime * .2 + ring)) * c;
-      vColor = spectrum(tri(f + uTime * .03));
-    } else {
-      float rr = .45 * (2. + cos(5. * lt)) / 3.;
-      c = vec3(rr * cos(3. * lt), rr * sin(3. * lt), .45 * sin(5. * lt) / 3.) * (1. + .18 * sin(uTime * .8 + lt * 2.));
-      c = rot(uTime * .3, uTime * .17) * c;
-      vColor = spectrum(tri(f * 2. - uTime * .05));
-    }
+export const STROKE_FS = HEADER + /* glsl */ `
+uniform float uGain;
+in vec3 vColor;
+in float vAlpha;
+in float vSide;
+out vec4 o;
+void main() {
+  float x = abs(vSide);
+  float core = 1. - smoothstep(.2, 1., x);
+  o = vec4(vColor * vAlpha * core * uGain, 1.);
+}
+`;
+
+// ------------------------------------------------------------------- sprites
+export const SPRITE_VS = HEADER + /* glsl */ `
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in float aSize;
+layout(location = 2) in vec4 aCol;
+layout(location = 3) in vec2 aStyle;
+uniform mat4 uProj;
+uniform mat4 uView;
+out vec2 vUv;
+out vec4 vCol;
+out vec2 vStyle;
+const vec2 K[6] = vec2[6](vec2(-1., -1.), vec2(1., -1.), vec2(1., 1.), vec2(-1., -1.), vec2(1., 1.), vec2(-1., 1.));
+void main() {
+  vec2 k = K[gl_VertexID];
+  vec4 mv = uView * vec4(aPos, 1.);
+  mv.xy += k * aSize;
+  gl_Position = uProj * mv;
+  vUv = k;
+  vCol = vec4(aCol.rgb, aCol.a * exp(-max(-mv.z - 13., 0.) * .1));
+  vStyle = aStyle;
+}
+`;
+
+export const SPRITE_FS = HEADER + /* glsl */ `
+uniform float uTime;
+in vec2 vUv;
+in vec4 vCol;
+in vec2 vStyle;
+out vec4 o;
+float h21(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float vnoise(vec2 p) {
+  vec2 i = floor(p), f = fract(p);
+  vec2 u = f * f * (3. - 2. * f);
+  return mix(mix(h21(i), h21(i + vec2(1., 0.)), u.x), mix(h21(i + vec2(0., 1.)), h21(i + vec2(1., 1.)), u.x), u.y);
+}
+float fbm(vec2 p) { float s = 0., a = .5; for (int i = 0; i < 4; i++) { s += a * vnoise(p); p = p * 2.03 + 7.1; a *= .5; } return s; }
+void main() {
+  vec2 uv = vUv;
+  float r = length(uv);
+  float style = vStyle.x;
+  float seed = vStyle.y;
+  vec3 col = vCol.rgb;
+  float a = 0.;
+  if (style < .5) {
+    a = exp(-r * r * 5.);
+  } else if (style < 1.5) {
+    float ring = exp(-pow((r - .8) * 9., 2.));
+    float hi = exp(-dot(uv - vec2(-.35, .38), uv - vec2(-.35, .38)) * 40.);
+    a = (ring + hi * .9 + .07 * (1. - r)) * step(r, 1.);
+    col = mix(col, vec3(1.), hi * .6);
+  } else if (style < 2.5) {
+    float ang = seed * 1.7 + uTime * .6;
+    vec2 q = abs(mat2(cos(ang), -sin(ang), sin(ang), cos(ang)) * uv);
+    float e = max(q.x, q.y);
+    float frame = 1. - smoothstep(.0, .09, abs(e - .78));
+    float corner = step(.42, min(q.x, q.y));
+    a = frame * corner + exp(-r * r * 70.) + .25 * (1. - smoothstep(.0, .05, abs(q.x - q.y))) * step(r, .5);
+  } else if (style < 3.5) {
+    vec2 p = uv;
+    p.x *= 1.5 + (p.y + 1.) * .45;
+    float flick = sin(p.y * 7. - uTime * 13. + seed * 20.) * .07 + sin(p.y * 13. + uTime * 9.) * .03;
+    float d = length(vec2(p.x + flick, (p.y + .25) * .72));
+    a = 1. - smoothstep(.15, .85, d);
+    col = mix(col, vec3(1., .92, .72), exp(-d * d * 9.));
+  } else if (style < 4.5) {
+    float n = fbm(uv * 1.5 + seed + uTime * .04);
+    a = smoothstep(.25, .85, n) * (1. - smoothstep(.35, 1., r));
   } else {
-    if (kind < .5) {
-      float q = 3. + floor(rnd * 3.);
-      float rr = (2. + cos(q * ph)) / 3.;
-      c = vec3(rr * cos(2. * ph), rr * sin(2. * ph), sin(q * ph) * .45);
-    } else if (kind < 1.5) {
-      float k = 2. + floor(rnd * 4.);
-      float rr = cos(k * ph) * (.8 + .2 * sin(tm * 1.7));
-      c = vec3(rr * cos(ph), rr * sin(ph), .35 * sin(k * ph * .5 + tm));
-    } else if (kind < 2.5) {
-      c = vec3(sin(3. * ph + tm), sin(2. * ph), sin(5. * ph + tm * .7)) * .85;
-    } else {
-      float s = t * 2. - 1.;
-      float a = ph * 6.;
-      float q = sqrt(max(1. - s * s, 0.));
-      c = vec3(q * cos(a), s, q * sin(a)) * (.85 + .15 * sin(tm * 2. + s * 6.));
-    }
-    c *= 1. + .12 * sin(ph * 7. + uTime * 1.3 + rnd * 9.) * (1. + 2. * hover);
-    c = rot(tm * 1.3 + rnd * 6.28, tm * .9 + rnd * 3.) * c;
-    center = uNodes[inst].xyz;
-    vColor = spectrum(nodeHue(inst) + (t - .5) * .07);
+    a = exp(-abs(uv.x) * 14.) * exp(-abs(uv.y) * 2.4) + exp(-abs(uv.y) * 14.) * exp(-abs(uv.x) * 2.4) + exp(-r * r * 22.);
   }
-
-  vec3 world = center + c * meta.w * (1. + .9 * hover);
-  gl_Position = uProj * uView * vec4(world, 1.);
-  vT = t;
-  vHover = hover;
-  vRand = rnd;
-}
-`;
-
-export const GLYPH_FS = HEADER + /* glsl */ `
-uniform float uTime;
-uniform float uIntensity;
-in vec3 vColor;
-in float vT;
-in float vHover;
-in float vRand;
-out vec4 o;
-void main() {
-  float head = fract(uTime * (.07 + .1 * vRand) + vRand);
-  float tail = fract(head - vT);
-  float comet = pow(1. - tail, 4.);
-  float a = .1 + .9 * max(comet, vHover * .8);
-  o = vec4(vColor * a * uIntensity * (1. + 1.6 * vHover), 1.);
-}
-`;
-
-// ------------------------------------------------------------------- tethers
-// Bowed filaments from the core to each destination with travelling pulses.
-export const TETHER_VS = HEADER + ROUTE + /* glsl */ `
-uniform vec4 uMeta[MAXN + 1];
-uniform mat4 uProj;
-uniform mat4 uView;
-uniform int uSeg;
-out vec3 vColor;
-out float vT;
-out float vHot;
-out float vRand;
-void main() {
-  int inst = gl_InstanceID;
-  int seg = gl_VertexID / 2;
-  int end = gl_VertexID - seg * 2;
-  float t = (float(seg) + float(end)) / float(uSeg);
-  vec3 B = uNodes[inst].xyz;
-  float r = hash11(float(inst) * 3.7 + .5);
-  vec3 side = normalize(cross(B, vec3(0., 1., 0.)) + vec3(1e-4));
-  vec3 ctrl = B * .5 + side * .7 * sin(uTime * .23 + r * 6.) + vec3(0., .55 * cos(uTime * .19 + r * 4.), 0.);
-  vec3 p = mix(mix(vec3(0.), ctrl, t), mix(ctrl, B, t), t);
-  float env = sin(t * 3.14159);
-  p += vec3(sin(t * 31. + uTime * 2. + r * 9.), cos(t * 27. - uTime * 1.7), sin(t * 23. + uTime * 1.3)) * .018 * env;
-  gl_Position = uProj * uView * vec4(p, 1.);
-  vColor = mix(vec3(.9), spectrum(nodeHue(inst)), smoothstep(0., .45, t));
-  vT = t;
-  vHot = uMeta[inst].y;
-  vRand = r;
-}
-`;
-
-export const TETHER_FS = HEADER + /* glsl */ `
-uniform float uTime;
-uniform float uIntensity;
-in vec3 vColor;
-in float vT;
-in float vHot;
-in float vRand;
-out vec4 o;
-void main() {
-  float pulse = exp(-pow((fract(uTime * (.22 + .2 * vRand) + vRand) - vT) * 13., 2.));
-  float a = (.05 + .35 * vHot) + pulse * (.45 + 1.5 * vHot);
-  o = vec4(vColor * a * uIntensity, 1.);
+  o = vec4(col * a * vCol.a, 1.);
 }
 `;
 
 // ------------------------------------------------------------- post process
-// The previous frame is faded and gently advected before new light is added,
-// so every stroke leaves a trail that drifts like smoke.
 export const FADE_FS = HEADER + /* glsl */ `
 uniform sampler2D uPrev;
 uniform float uFade;
@@ -465,14 +507,13 @@ void main() {
 
 export const BRIGHT_FS = HEADER + /* glsl */ `
 uniform sampler2D uSrc;
+uniform sampler2D uSrc2;
 uniform vec2 uTexel;
 in vec2 vUv;
 out vec4 o;
+vec3 tap(vec2 uv) { return texture(uSrc, uv).rgb + texture(uSrc2, uv).rgb; }
 void main() {
-  vec3 c = texture(uSrc, vUv + uTexel * vec2(-1., -1.)).rgb
-         + texture(uSrc, vUv + uTexel * vec2(1., -1.)).rgb
-         + texture(uSrc, vUv + uTexel * vec2(-1., 1.)).rgb
-         + texture(uSrc, vUv + uTexel * vec2(1., 1.)).rgb;
+  vec3 c = tap(vUv + uTexel * vec2(-1., -1.)) + tap(vUv + uTexel * vec2(1., -1.)) + tap(vUv + uTexel * vec2(-1., 1.)) + tap(vUv + uTexel * vec2(1., 1.));
   c *= .25;
   float l = dot(c, vec3(.2126, .7152, .0722));
   o = vec4(c * smoothstep(.15, 1.1, l), 1.);
@@ -494,6 +535,7 @@ void main() {
 
 export const COMPOSITE_FS = HEADER + /* glsl */ `
 uniform sampler2D uScene;
+uniform sampler2D uCrisp;
 uniform sampler2D uBloom;
 uniform vec2 uRes;
 uniform float uTime;
@@ -508,6 +550,7 @@ void main() {
   float r2 = dot(d, d);
   vec2 off = d * r2 * .018;
   vec3 col = vec3(texture(uScene, vUv + off).r, texture(uScene, vUv).g, texture(uScene, vUv - off).b);
+  col += texture(uCrisp, vUv).rgb;
   col += texture(uBloom, vUv).rgb * uBloomStrength;
   col += vec3(.006, .007, .016) * (1. - r2 * 2.);
   col = aces(col * uExposure);
