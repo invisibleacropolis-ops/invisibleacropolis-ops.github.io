@@ -10,8 +10,6 @@ export default defineConfig({
             input: {
                 main: resolve(__dirname, 'index.html'),
                 kami: resolve(__dirname, 'kami.html'),
-                invisibleSupport: resolve(__dirname, 'invisible-support/index.html'),
-                invisibleSupport2: resolve(__dirname, 'InvisibleSupport2/index.html'),
             },
         },
     },

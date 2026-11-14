@@ -1,6 +1,8 @@
 # invisibleacropolis-ops.github.io
 
-A spatial WebGL index and a navigable world built with [Vite](https://vitejs.dev/), TypeScript, and [three.js](https://threejs.org/), served at [invisibleacropolis-ops.github.io](https://invisibleacropolis-ops.github.io). The main page maps every published experience to a selectable node on an animated 3D object. Selecting a node opens a fast typing metadata card with a link to its page. An optional floating directory opens from the header and starts closed. The Kakuriyo world lives at `/kami.html`; its monuments still link to the standalone demos.
+A spatial WebGL index and a navigable world built with [Vite](https://vitejs.dev/), TypeScript, and [three.js](https://threejs.org/), served at [invisibleacropolis-ops.github.io](https://invisibleacropolis-ops.github.io). The main page is a living field computed in raw WebGL2 shaders: GPU agents migrate between published destinations, each of which owns a band of the ROYGBIV spectrum. Selecting a node opens a fast typing metadata card with a link to its page; append `?debug` to step frames manually. An optional floating directory opens from the header and starts closed. The Kakuriyo world lives at `/kami.html`; its monuments still link to the standalone demos.
+
+[Invisible Support](https://invisibleacropolis-ops.github.io/InvisibleSupport/) is a separate app published from the `InvisibleSupport` repo; this repo only links to it.
 
 ## Running locally
 
@@ -20,7 +22,7 @@ npm run build
 This runs three steps in order:
 
 1. `scripts/generate-pages-json.cjs` — scans the repo for demo `.html` files (excluding the landing and Kami entry pages) and writes `public/pages.json`, the manifest both the landing page and 3D world read for navigation.
-2. `vite build` — bundles the landing page, Kami world, and support portals into `dist/`.
+2. `vite build` — bundles the landing page and Kami world into `dist/`.
 3. `scripts/copy-static-pages.cjs` — copies the root-level demo HTML pages (plus the non-HTML assets listed in `EXTRA_ASSETS`) into `dist/`. **This step is required**: Vite only bundles the entries in `vite.config.ts`, so without it every demo link 404s on GitHub Pages.
 
 Preview the production build with `npm run preview`.
