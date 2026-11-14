@@ -138,7 +138,7 @@ scene.traverse((object) => {
   object.receiveShadow = true;
   // Local authored forms keep grounding shadows; vast mountain hulls and the
   // instanced forest no longer paint hard graphic bars across the whole valley.
-  object.castShadow = object !== terrain && !(object instanceof THREE.InstancedMesh);
+  object.castShadow = object !== terrain && !(object instanceof THREE.InstancedMesh) && !object.userData.noShadowCast;
 });
 mountains.traverse((object) => {
   if (object instanceof THREE.Mesh) object.castShadow = false;

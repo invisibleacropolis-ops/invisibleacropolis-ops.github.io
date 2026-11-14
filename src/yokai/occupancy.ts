@@ -42,5 +42,10 @@ export const isFree = (x: number, z: number, margin = 0): boolean => {
   return true;
 };
 
+/** Visit every claimed footprint (for rasterising the register into masks). */
+export const forEachZone = (visit: (x: number, z: number, r: number) => void): void => {
+  for (const zone of zones) visit(zone.x, zone.z, zone.r);
+};
+
 /** For tests/tools: how much of the world is spoken for. */
 export const zoneCount = (): number => zones.length;

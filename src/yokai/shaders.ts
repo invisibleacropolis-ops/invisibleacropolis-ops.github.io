@@ -32,6 +32,72 @@ float kakuriyoGust(vec2 p, float t) {
 }
 `;
 
+/**
+ * A tileable noise texture (four independent fbm channels) that the grass
+ * and the meadow ground sample: r = broad zones, g = clumps, b/a = the
+ * shapes of wind gusts as they scroll across the fields.
+ */
+let windNoise: THREE.DataTexture | null = null;
+export const getWindNoiseTexture = (): THREE.DataTexture => {
+  if (windNoise) return windNoise;
+  const size = 256;
+  const data = new Uint8Array(size * size * 4);
+  // Periodic value noise: lattices whose size divides the texture, so it tiles.
+  const lattice = (cells: number, seed: number) => {
+    const values = new Float32Array(cells * cells);
+    let s = seed;
+    for (let i = 0; i < values.length; i += 1) {
+      s = (s * 1664525 + 1013904223) >>> 0;
+      values[i] = s / 4294967296;
+    }
+    return (u: number, v: number) => {
+      const x = u * cells, y = v * cells;
+      const x0 = Math.floor(x), y0 = Math.floor(y);
+      const fx = x - x0, fy = y - y0;
+      const sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
+      const at = (i: number, j: number) => values[((j % cells + cells) % cells) * cells + ((i % cells + cells) % cells)]!;
+      const a = at(x0, y0) + (at(x0 + 1, y0) - at(x0, y0)) * sx;
+      const b = at(x0, y0 + 1) + (at(x0 + 1, y0 + 1) - at(x0, y0 + 1)) * sx;
+      return a + (b - a) * sy;
+    };
+  };
+  const channels = [0, 1, 2, 3].map((c) => [4, 8, 16, 32].map((cells, o) => lattice(cells * (c === 0 ? 1 : 2), 911 + c * 97 + o * 13)));
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const u = x / size, v = y / size;
+      channels.forEach((octaves, c) => {
+        let sum = 0, amp = 0.5, norm = 0;
+        for (const noise of octaves) { sum += noise(u, v) * amp; norm += amp; amp *= 0.5; }
+        data[(y * size + x) * 4 + c] = Math.round((sum / norm) * 255);
+      });
+    }
+  }
+  windNoise = new THREE.DataTexture(data, size, size, THREE.RGBAFormat);
+  windNoise.wrapS = windNoise.wrapT = THREE.RepeatWrapping;
+  windNoise.magFilter = THREE.LinearFilter;
+  windNoise.minFilter = THREE.LinearMipmapLinearFilter;
+  windNoise.generateMipmaps = true;
+  windNoise.needsUpdate = true;
+  return windNoise;
+};
+
+/**
+ * Local gusts over grass: two noise layers scrolling downwind at different
+ * scales and rates, so gust patches travel, swell and break up instead of
+ * marching as one flat wave; riding on the shared valley gust fronts.
+ * Needs `uWindNoise` (getWindNoiseTexture) and GUST_GLSL.
+ */
+export const GRASS_GUST_GLSL = /* glsl */ `
+uniform sampler2D uWindNoise;
+float grassGust(vec2 p, float t) {
+  vec2 wind = vec2(0.8, 0.6);
+  float a = texture2D(uWindNoise, p / 1700.0 - wind * t * 0.045).b;
+  float b = texture2D(uWindNoise, p / 620.0 + vec2(-0.6, 0.8) * t * 0.022 - wind * t * 0.06).a;
+  float local = smoothstep(0.42, 0.78, a * 0.62 + b * 0.38);
+  return clamp(local * (0.55 + 0.6 * kakuriyoGust(p, t)), 0.0, 1.2);
+}
+`;
+
 /** The same gust field on the CPU, for particles (petals, leaves). */
 export const gustAt = (x: number, z: number, t: number): number => {
   const front = (x * 0.8 + z * 0.6) * 0.0019 - t * 0.62;
