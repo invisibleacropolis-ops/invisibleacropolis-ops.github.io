@@ -299,3 +299,57 @@ button { font: inherit; }
 @media (prefers-reduced-motion: reduce) {
   .ticker i, .directory { animation: none; }
 }
+
+/* ------------------------------------------------------- cores + callouts */
+.callout-layer { position: fixed; inset: 0; z-index: 3; pointer-events: none; overflow: hidden; }
+.hud-callout {
+  --node: #fff;
+  position: absolute; left: 0; top: 0;
+  color: var(--node); white-space: nowrap;
+  font: 600 .62rem var(--mono); letter-spacing: .16em;
+  text-shadow: 0 0 10px var(--node), 0 1px 3px #000;
+  will-change: transform;
+}
+.core-label {
+  --node: #fff;
+  position: absolute; left: 0; top: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 4px 8px;
+  border: 0; background: none; cursor: pointer;
+  color: var(--node); pointer-events: auto; white-space: nowrap;
+  transition: opacity .35s ease;
+  will-change: transform;
+}
+.core-name {
+  min-height: 1em;
+  color: #fff; font: 700 clamp(1rem, 1.45vw, 1.35rem)/1 var(--display); letter-spacing: .34em;
+  text-shadow: 0 0 14px var(--node), 0 0 34px color-mix(in srgb, var(--node) 60%, transparent), 0 1px 3px #000;
+}
+.core-sub {
+  min-height: 1em;
+  color: var(--node); font: 600 .55rem/1 var(--mono); letter-spacing: .22em;
+  text-shadow: 0 0 10px var(--node), 0 1px 3px #000;
+}
+.core-name.is-typing::after, .core-sub.is-typing::after {
+  content: "▌"; margin-left: 2px; color: var(--node); font-size: .8em;
+  animation: cursor-blink .45s steps(1, end) infinite;
+}
+.core-label::before {
+  content: ""; width: 34px; height: 1px; margin-bottom: 4px;
+  background: var(--node); box-shadow: 0 0 8px var(--node);
+  transform: scaleX(.4); transition: transform .35s ease;
+}
+.core-label:hover::before, .core-label.is-open::before, .core-label.is-pinned::before { transform: scaleX(1.6); }
+.core-label.is-pinned .core-name { text-decoration: underline 1px var(--node); text-underline-offset: 6px; }
+.core-label:focus-visible { outline: 1px solid var(--node); outline-offset: 2px; }
+.node-label.is-hidden { pointer-events: none; }
+.spectrum-cats { position: relative; height: 14px; margin-top: 6px; }
+.spectrum-cat {
+  --node: #fff;
+  position: absolute; top: 0;
+  padding-top: 3px; border-top: 1px solid var(--node);
+  color: var(--node); text-align: center; cursor: pointer; pointer-events: auto;
+  font: 600 .46rem var(--mono); letter-spacing: .18em; white-space: nowrap; overflow: hidden;
+  opacity: .75; transition: opacity .2s;
+}
+.spectrum-cat:hover { opacity: 1; }
