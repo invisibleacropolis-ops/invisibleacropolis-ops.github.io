@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { fbm2D } from "../scene/noise.ts";
 import { KAKURIYO, getToonGradient } from "./palette.ts";
+import { GRASS_GUST_GLSL, GUST_GLSL, getWindNoiseTexture, windTime } from "./shaders.ts";
 
 /**
  * The valley floor of Kakuriyo: lush rolling hills built from smooth fbm,
@@ -134,6 +135,25 @@ export const createTerrain = (): THREE.Mesh => {
     vertexColors: true,
     gradientMap: getToonGradient(),
   });
+  // Where tufts are too far to draw, the meadow itself carries the grass:
+  // clumpy mottling, and the same rolling gust sheen the tufts show, so a
+  // gust still visibly crosses the distant fields.
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.uWindNoise = { value: getWindNoiseTexture() };
+    shader.uniforms.uWindTime = windTime;
+    shader.vertexShader = shader.vertexShader
+      .replace("#include <common>", "#include <common>\nvarying vec3 vGroundWorld;")
+      .replace("#include <begin_vertex>", "#include <begin_vertex>\nvGroundWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;");
+    shader.fragmentShader = shader.fragmentShader
+      .replace("#include <common>", `#include <common>\nvarying vec3 vGroundWorld;\nuniform float uWindTime;\n${GUST_GLSL}\n${GRASS_GUST_GLSL}`)
+      .replace("#include <color_fragment>", `#include <color_fragment>
+  float meadowness = clamp((diffuseColor.g - max(diffuseColor.r, diffuseColor.b)) * 7.0, 0.0, 1.0);
+  float clumps = texture2D(uWindNoise, vGroundWorld.xz / 560.0 + 0.37).g;
+  float speckle = texture2D(uWindNoise, vGroundWorld.xz / 90.0).r;
+  diffuseColor.rgb *= mix(1.0, 0.84 + 0.22 * clumps + 0.08 * speckle, meadowness);
+  diffuseColor.rgb += vec3(0.05, 0.065, 0.03) * grassGust(vGroundWorld.xz, uWindTime) * meadowness;`);
+  };
+  material.customProgramCacheKey = () => "kakuriyo-meadow-ground";
 
   const mesh = new THREE.Mesh(geometry, material);
   mesh.name = "kakuriyo-terrain";

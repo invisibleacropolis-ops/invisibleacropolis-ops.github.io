@@ -1,13 +1,13 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { buildArticulatedKami, type KamiKind } from "./kamiCharacters.ts";
+import { buildArticulatedKami, type KamiGait, type KamiKind } from "./kamiCharacters.ts";
 import { createSpellParticles, createEchoRings, createRainbowArc, enchantCharacter } from "./story/spectacleFx.ts";
 import "./kamiStudio.css";
 
 /** Close-up review of the very same builders used by roaming and story actors.
  * No alternate models or animation mocks. Open /kami.html?kami to inspect them. */
 const descriptions: Record<KamiKind, [string, string]> = {
-  kitsune: ["Kitsune", "Nine jointed tails · fox-mask markings · listening ears"],
+  kitsune: ["Kitsune · クロード", "クロード, the nine-tailed fox of the shrine road · fox-mask markings · canine gait from walk to gallop"],
   shika: ["Shika", "Branching golden antlers · spotted coat · grazing and attention"],
   nekomata: ["Nekomata", "Twin curling tails · whiskers · alert ears and slit pupils"],
   tanuki: ["Tanuki", "Masked eyes · bell charm · finger joints and curious gestures"],
@@ -31,6 +31,12 @@ panel.innerHTML = `
   <p id="kami-description"></p>
   <label for="kami-motion">Movement <output id="kami-motion-label">Idle</output></label>
   <input id="kami-motion" type="range" min="0" max="1" step="0.01" value="0" />
+  <label for="kami-gait">Gait <output id="kami-gait-note">four-legged spirits</output></label>
+  <select id="kami-gait"><option value="walk">Walk · lateral sequence</option><option value="trot" selected>Trot · diagonal pairs</option><option value="gallop">Gallop · rotary, flexing spine</option></select>
+  <div class="kami-fx-buttons" aria-label="Camera">
+    <button type="button" data-view="three-quarter">Three-quarter</button><button type="button" data-view="side">Side view</button>
+  </div>
+  <label class="kami-check"><input id="kami-slow" type="checkbox" /> Slow motion (¼ speed)</label>
   <label class="kami-check"><input id="kami-skeleton" type="checkbox" /> Show articulated skeleton</label>
   <label class="kami-check"><input id="kami-slope" type="checkbox" /> Uneven ground / foot IK</label>
   <button id="kami-pause" type="button">Pause animation</button>
@@ -44,7 +50,7 @@ panel.innerHTML = `
     <button data-fx="rainbow">Rainbow</button><button data-fx="all">All together</button>
   </div>
   <p id="kami-stats" class="kami-stats" aria-live="polite"></p>
-  <p class="kami-note">Walking is demonstrated in place. Ground mode uses the live IK solver on the visible slope.</p>`;
+  <p class="kami-note">Gaits are demonstrated in place. The kitsune's chest and hips ride on its own footfalls: each girdle sinks under load, the body pitches between them, and the spine flexes and extends through the gallop. Ground mode uses the live IK solver on the visible slope.</p>`;
 document.body.append(panel);
 const select = panel.querySelector<HTMLSelectElement>("#kami-kind")!;
 const movement = panel.querySelector<HTMLInputElement>("#kami-motion")!;
@@ -53,6 +59,8 @@ const slopeToggle = panel.querySelector<HTMLInputElement>("#kami-slope")!;
 const pause = panel.querySelector<HTMLButtonElement>("#kami-pause")!;
 const performance = panel.querySelector<HTMLSelectElement>("#kami-performance")!;
 const enchanted = panel.querySelector<HTMLInputElement>("#kami-enchanted")!;
+const gaitSelect = panel.querySelector<HTMLSelectElement>("#kami-gait")!;
+const slow = panel.querySelector<HTMLInputElement>("#kami-slow")!;
 
 const renderer = new THREE.WebGLRenderer({ canvas: document.querySelector<HTMLCanvasElement>("#scene")!, antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
@@ -129,10 +137,9 @@ function changeSpirit() {
   const box = new THREE.Box3().setFromObject(current.group);
   const size = box.getSize(new THREE.Vector3());
   const center = box.getCenter(new THREE.Vector3());
-  const extent = Math.max(size.x, size.y, size.z);
-  controls.target.set(0, center.y, 0);
-  camera.position.set(extent * 1.35, center.y + extent * 0.65, extent * 2.25);
-  controls.update();
+  framing = { centerY: center.y, extent: Math.max(size.x, size.y, size.z) };
+  setView("three-quarter");
+  current.setGait(gaitSelect.value as KamiGait);
   panel.querySelector("#kami-description")!.textContent = descriptions[kind][1];
   let triangles = 0, meshes = 0;
   current.group.traverse((o) => {
@@ -140,6 +147,21 @@ function changeSpirit() {
   });
   panel.querySelector("#kami-stats")!.textContent = `${current.skeleton.bones.length} bones · ${current.limbs.length} IK chains · ${Math.round(triangles).toLocaleString()} triangles · ${meshes} meshes`;
 }
+let framing = { centerY: 0, extent: 1 };
+function setView(view: string) {
+  const { centerY, extent } = framing;
+  controls.target.set(0, centerY, 0);
+  if (view === "side") camera.position.set(extent * 2.6, centerY + extent * 0.12, 0);
+  else camera.position.set(extent * 1.35, centerY + extent * 0.65, extent * 2.25);
+  controls.update();
+}
+panel.querySelectorAll<HTMLButtonElement>("[data-view]").forEach((button) =>
+  button.addEventListener("click", () => setView(button.dataset.view ?? "three-quarter")));
+gaitSelect.addEventListener("change", () => {
+  current.setGait(gaitSelect.value as KamiGait);
+  // A gait only shows when the spirit is moving.
+  if (Number(movement.value) === 0) { movement.value = "1"; movement.dispatchEvent(new Event("input")); }
+});
 select.addEventListener("change", changeSpirit);
 performance.addEventListener("change", setPerformance);
 enchanted.addEventListener("change", () => enchantment?.setIntensity(enchanted.checked ? 0.8 : 0));
@@ -168,7 +190,7 @@ slopeToggle.addEventListener("change", () => {
   current.setGroundSampler(slopeToggle.checked ? sampleSlope : flatGround);
 });
 movement.addEventListener("input", () => {
-  panel.querySelector("#kami-motion-label")!.textContent = Number(movement.value) === 0 ? "Idle" : `${Math.round(Number(movement.value) * 100)}% walk`;
+  panel.querySelector("#kami-motion-label")!.textContent = Number(movement.value) === 0 ? "Idle" : `${Math.round(Number(movement.value) * 100)}% ${gaitSelect.value}`;
 });
 pause.addEventListener("click", () => { paused = !paused; pause.textContent = paused ? "Resume animation" : "Pause animation"; });
 function resize() {
@@ -185,7 +207,7 @@ resize();
 changeSpirit();
 const clock = new THREE.Clock();
 renderer.setAnimationLoop(() => {
-  const dt = Math.min(clock.getDelta(), 0.05);
+  const dt = Math.min(clock.getDelta(), 0.05) * (slow.checked ? 0.25 : 1);
   if (!paused) {
     time += dt; current.animate(time, 0.6, Number(movement.value));
     sparks.update(time); confetti.update(time); smoke.update(time); echoes.update(time); rainbow.update(time); enchantment?.update(time);

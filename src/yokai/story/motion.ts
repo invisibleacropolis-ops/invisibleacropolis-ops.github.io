@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { heightAt } from "../terrain.ts";
-import { PEAK_LEDGE, SACRED_PEAK } from "../mountains.ts";
+import { PEAK_LEDGE, mountainSurfaceY } from "../mountains.ts";
 
 /**
  * Shared story motion utilities.
@@ -15,19 +15,10 @@ import { PEAK_LEDGE, SACRED_PEAK } from "../mountains.ts";
  * turned), so a creature always faces the way it is really going.
  */
 
-const CONE_APEX_Y = 2280;
-const CONE_BASE_Y = -220;
-const CONE_RADIUS = 1750;
-
 export const worldGroundY = (x: number, z: number): number => {
-  let ground = heightAt(x, z);
-
-  // The sacred peak is a mesh cone, invisible to the heightfield
-  const peakDist = Math.hypot(x - SACRED_PEAK.x, z - SACRED_PEAK.z);
-  if (peakDist < CONE_RADIUS) {
-    const coneY = CONE_APEX_Y - (peakDist / CONE_RADIUS) * (CONE_APEX_Y - CONE_BASE_Y);
-    ground = Math.max(ground, coneY);
-  }
+  // The mountains (and the sacred peak) are meshes, invisible to the
+  // terrain heightfield: take whichever surface is higher.
+  let ground = Math.max(heightAt(x, z), mountainSurfaceY(x, z));
 
   // The hokora ledge platform juts out of the flank
   const ledgeDist = Math.hypot(x - PEAK_LEDGE.x, z - PEAK_LEDGE.z);

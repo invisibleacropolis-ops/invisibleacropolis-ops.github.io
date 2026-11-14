@@ -145,7 +145,7 @@ export const createGroundDetail = (): GroundDetail => {
   group.name = "dimensional-ground-detail";
   const rng = createRng(0x57a0e);
 
-  const grass = createGrassField({ count: 72000 });
+  const grass = createGrassField();
   group.add(grass.mesh);
 
   const shore = buildShoreShelf();

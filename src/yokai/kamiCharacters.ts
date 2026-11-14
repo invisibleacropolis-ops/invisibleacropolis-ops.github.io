@@ -2,14 +2,37 @@ import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { toon } from "./palette.ts";
 import { worldGroundY } from "./story/motion.ts";
-import { FootGait, TwoBoneIK, type GroundSampler } from "./kamiRig.ts";
+import { DigitigradeLeg, FootGait, TwoBoneIK, type GroundSampler, type Limb } from "./kamiRig.ts";
+import { getSculptModel, type SculptModel } from "./kamiModels.ts";
 import type { SpiritBuild } from "./spirits.ts";
 
 export type KamiKind = "kitsune" | "shika" | "nekomata" | "baku" | "tanuki" | "kappa" | "oni" | "kodama";
 export type KamiPerformance = { wonder?: number; joy?: number; protect?: number; cast?: number; drum?: number };
+export type KamiGait = "walk" | "trot" | "gallop";
+type GaitShape = { duty: number; stride: number; pace: number; lift: number; bob: number; flex: number; offsets: number[] };
+/**
+ * Footfall timing per gait, after Hildebrand's duty-factor / phase account of
+ * mammal gaits. Offsets are per leg [fore-, fore+, hind-, hind+]; a foot
+ * touches down when (cycle + offset) wraps to 0.
+ *  - walk: four-beat lateral sequence (hind, same-side fore, other hind,
+ *    other fore), more than half the stride on the ground.
+ *  - trot: diagonal pairs land together.
+ *  - gallop: the rotary gallop of canids (hind, hind, then the opposite
+ *    fore, fore) with short ground contact, a gathered flight, and a spine
+ *    that flexes as the legs gather and extends after push-off.
+ * stride / pace / lift scale each kami's own trot.
+ */
+const GAITS: Record<KamiGait, GaitShape> = {
+  walk: { duty: 0.7, stride: 0.7, pace: 0.62, lift: 0.6, bob: 1.6, flex: 0.03, offsets: [0.75, 0.25, 0, 0.5] },
+  trot: { duty: 0.6, stride: 1, pace: 1, lift: 1, bob: 3.2, flex: 0.05, offsets: [0, 0.5, 0.5, 0] },
+  gallop: { duty: 0.34, stride: 1.45, pace: 1.6, lift: 1.2, bob: 1.8, flex: 0.24, offsets: [0.5, 0.62, 0, 0.9] },
+};
+
 export type ArticulatedKami = SpiritBuild & {
   skeleton: THREE.Skeleton;
-  limbs: TwoBoneIK[];
+  limbs: Limb[];
+  /** Quadrupeds re-time their footfalls; bipeds ignore it. */
+  setGait: (gait: KamiGait) => void;
   /** Undefined disables terrain sampling for the turntable/flat story stages. */
   setGroundSampler: (sampler?: GroundSampler) => void;
   setPerformance: (pose: KamiPerformance) => void;
@@ -136,13 +159,99 @@ function tailSurface(joints: THREE.Bone[], length: number, radius: number, fox: 
   return { surface, joints };
 }
 
+/** Toon materials for a sculpted model. The authored material name is the
+ * contract: "_flat" draws without an ink outline, "_decal" (face markings)
+ * is pulled in front of the surface it was projected onto. */
+type DressPart = { geometry: THREE.BufferGeometry; materials: THREE.Material[] };
+const dressCache = new WeakMap<SculptModel, Map<string, DressPart>>();
+function dressParts(model: SculptModel) {
+  let parts = dressCache.get(model);
+  if (parts) return parts;
+  parts = new Map();
+  const byName = new Map<string, THREE.Material>();
+  for (const [name, part] of model) {
+    const materials = part.surfaces.map(({ name: surface, color }) => {
+      let mat = byName.get(surface);
+      if (!mat) {
+        const ink = !surface.includes("_flat");
+        const toonMat = toon(`#${color.getHexString()}`);
+        toonMat.name = surface;
+        toonMat.userData.outlineParameters = { visible: ink, thickness: 0.0025, alpha: 0.9 };
+        if (surface.includes("_decal")) {
+          toonMat.polygonOffset = true;
+          toonMat.polygonOffsetFactor = -2;
+          toonMat.polygonOffsetUnits = -4;
+        }
+        byName.set(surface, mat = toonMat);
+      }
+      return mat;
+    });
+    parts.set(name, { geometry: part.geometry, materials });
+  }
+  dressCache.set(model, parts);
+  return parts;
+}
+
+/** Skin a sculpted tail along its length exactly like the procedural surface:
+ * each vertex blends the two tail bones either side of its distance. */
+function skinTail(source: THREE.BufferGeometry, segments: number, length: number) {
+  const geometry = source.clone();
+  const position = geometry.attributes.position;
+  const skinIndex = new Uint16Array(position.count * 4);
+  const skinWeight = new Float32Array(position.count * 4);
+  for (let i = 0; i < position.count; i++) {
+    const along = THREE.MathUtils.clamp(-position.getZ(i) / length, 0, segments - 1);
+    const a = Math.floor(along), b = Math.min(a + 1, segments - 1), blend = along - a;
+    skinIndex[i * 4] = a; skinIndex[i * 4 + 1] = b;
+    skinWeight[i * 4] = 1 - blend; skinWeight[i * 4 + 1] = blend;
+  }
+  geometry.setAttribute("skinIndex", new THREE.Uint16BufferAttribute(skinIndex, 4));
+  geometry.setAttribute("skinWeight", new THREE.Float32BufferAttribute(skinWeight, 4));
+  return geometry;
+}
+
+/** A canine leg measured from a real fox: shoulder/hip joint, the two long
+ * bones, and the paw -> wrist/hock offset (up, back) of the pastern or
+ * metatarsus. The front elbow lands at chest-bottom height pointing back
+ * with a near-vertical forearm; the hind stifle points forward at the belly
+ * line with the hock high behind the paw. */
+type CanineLeg = { x: number; y: number; z: number; upper: number; lower: number; rise: [number, number]; curl: number };
+
+/** Weight a torso between [hips, chest] along its length. */
+function skinTorso(source: THREE.BufferGeometry) {
+  const geometry = source.clone();
+  const position = geometry.attributes.position;
+  const skinIndex = new Uint16Array(position.count * 4);
+  const skinWeight = new Float32Array(position.count * 4);
+  for (let i = 0; i < position.count; i++) {
+    const front = THREE.MathUtils.smoothstep(position.getZ(i), -8, 8);
+    skinIndex[i * 4] = 0; skinIndex[i * 4 + 1] = 1;
+    skinWeight[i * 4] = 1 - front; skinWeight[i * 4 + 1] = front;
+  }
+  geometry.setAttribute("skinIndex", new THREE.Uint16BufferAttribute(skinIndex, 4));
+  geometry.setAttribute("skinWeight", new THREE.Float32BufferAttribute(skinWeight, 4));
+  return geometry;
+}
+
 type Profile = {
   coat: string; accent: string; bodyY: number; body: [number, number, number];
   head: [number, number, number]; headSize: number; hipX: number; hipY: number;
   frontZ: number; backZ: number; legRadius: number; stride: number; pace: number;
+  canine?: { front: CanineLeg; hind: CanineLeg };
+  /** Height of the tail root above the spine (default 1). */
+  tailY?: number;
 };
 const profiles: Record<KamiKind, Profile> = {
-  kitsune: { coat: "#eee6d9", accent: "#b84439", bodyY: 23, body: [8, 9, 20], head: [0, 33, 20], headSize: 7.2, hipX: 5.8, hipY: 21, frontZ: 12, backZ: -12, legRadius: 2.2, stride: 7, pace: 1.25 },
+  // A red fox stands with its chest bottom a little above mid-height (chest
+  // depth ~42% of withers height), long slender forelegs and a high hock.
+  // The back falls from the withers to a lower croup and the neck rises,
+  // carrying the head well above the shoulders.
+  kitsune: { coat: "#eee6d9", accent: "#b84439", bodyY: 25, body: [7.4, 7.6, 20], head: [0, 37, 20], headSize: 7.2, hipX: 5.8, hipY: 21, frontZ: 12, backZ: -12, legRadius: 2.2, stride: 8, pace: 1.4, tailY: -0.8,
+    canine: {
+      // The front pastern is short and nearly in line with the forearm.
+      front: { x: 4.4, y: 23.5, z: 15.0, upper: 9.0, lower: 12.0, rise: [2.4, -0.4], curl: 1.15 },
+      hind: { x: 5.2, y: 21.8, z: -13, upper: 9.6, lower: 9.8, rise: [6.2, -2.2], curl: 0.85 },
+    } },
   shika: { coat: "#bc8748", accent: "#e5c27c", bodyY: 35, body: [9.5, 12, 22], head: [0, 60, 23], headSize: 6.8, hipX: 6, hipY: 31, frontZ: 13, backZ: -13, legRadius: 1.9, stride: 10, pace: 0.95 },
   nekomata: { coat: "#464753", accent: "#c79c62", bodyY: 17, body: [6.5, 7, 14], head: [0, 26, 14], headSize: 6.4, hipX: 4.5, hipY: 15, frontZ: 9, backZ: -8, legRadius: 1.6, stride: 6, pace: 1.35 },
   baku: { coat: "#708d94", accent: "#c8bc98", bodyY: 28, body: [12, 13, 22], head: [0, 39, 22], headSize: 8.8, hipX: 8, hipY: 24, frontZ: 13, backZ: -12, legRadius: 3.4, stride: 6, pace: 0.8 },
@@ -161,6 +270,9 @@ export function buildArticulatedKami(kind: KamiKind): ArticulatedKami {
   const pelvis = bone(group, "pelvis");
   const spine = bone(pelvis, "spine", V(0, p.bodyY, 0));
   const chest = bone(spine, "chest");
+  // Canines get a second girdle: the spine flexes between chest and hips,
+  // and the hind legs and tails ride on the hips.
+  const hips = p.canine ? bone(spine, "hips") : undefined;
   ellipsoid(chest, coat, V(), V(...p.body));
   ellipsoid(chest, kind === "oni" ? coat : kind === "kitsune" ? ivory : accent,
     V(0, quadruped ? -p.body[1] * 0.15 : -2, quadruped ? 4 : p.body[2] * 0.64),
@@ -231,16 +343,31 @@ export function buildArticulatedKami(kind: KamiKind): ArticulatedKami {
     }
   }
 
-  const limbs: TwoBoneIK[] = [], feet: FootGait[] = [], arms: TwoBoneIK[] = [];
+  const limbs: Limb[] = [], feet: FootGait[] = [], arms: TwoBoneIK[] = [];
   const pairs = quadruped ? [p.frontZ, p.backZ] : [p.frontZ];
   pairs.forEach((z, pair) => {
     for (const side of [-1, 1]) {
-      const length = p.hipY * 0.56;
-      const ik = new TwoBoneIK(pelvis, V(side * p.hipX, p.hipY, z), length, length,
-        V(side * 0.15, 0, quadruped && pair === 0 ? -1 : 1), `leg.${pair}.${side}`);
+      const plan = p.canine?.[pair === 0 ? "front" : "hind"];
+      let ik: Limb, upperLength = p.hipY * 0.56, lowerLength = upperLength;
+      if (plan) {
+        upperLength = plan.upper; lowerLength = plan.lower;
+        const origin = V(side * plan.x, plan.y, plan.z);
+        const leg = new DigitigradeLeg(pelvis, {
+          origin, upperLength, lowerLength,
+          rise: V(0, plan.rise[0], plan.rise[1]), pole: V(side * 0.1, 0, pair === 0 ? -1 : 1),
+          restY: p.legRadius * 0.8, liftRange: p.hipY * 0.23, curl: plan.curl, name: `leg.${pair}.${side}`,
+          anchor: { bone: pair === 0 ? chest : hips!, point: origin.clone().sub(spine.position) },
+        });
+        taper(leg.cannon, coat, V(), V(0, -leg.cannonLength, 0), p.legRadius * 0.5, p.legRadius * 0.45);
+        ik = leg;
+      } else {
+        ik = new TwoBoneIK(pelvis, V(side * p.hipX, p.hipY, z), upperLength, lowerLength,
+          V(side * 0.15, 0, quadruped && pair === 0 ? -1 : 1), `leg.${pair}.${side}`);
+      }
       limbs.push(ik);
+      const length = upperLength;
       ellipsoid(ik.upper, coat, V(0, -length * 0.32, 0), V(p.legRadius * 1.25, length * 0.5, p.legRadius * 1.25));
-      taper(ik.lower, coat, V(), V(0, -length, 0), p.legRadius * 0.8, p.legRadius * 0.5);
+      taper(ik.lower, coat, V(), V(0, -lowerLength, 0), p.legRadius * 0.8, p.legRadius * 0.5);
       ellipsoid(ik.lower, coat, V(), V(p.legRadius * 0.95, p.legRadius, p.legRadius * 0.95));
       const footMat = kind === "shika" ? ink : kind === "kitsune" ? red : coat;
       ellipsoid(ik.end, footMat, V(0, -p.legRadius * 0.15, p.legRadius * 0.7), V(p.legRadius * 1.05, p.legRadius * 0.58, p.legRadius * 1.65));
@@ -278,11 +405,11 @@ export function buildArticulatedKami(kind: KamiKind): ArticulatedKami {
   for (let i = 0; i < tailCount; i++) {
     const spread = (i - (tailCount - 1) / 2) * (kind === "kitsune" ? 0.25 : 0.65);
     const joints: THREE.Bone[] = [];
-    let parent: THREE.Object3D = chest;
+    let parent: THREE.Object3D = hips ?? chest;
     const segments = kind === "kitsune" || kind === "nekomata" ? 5 : 3;
     const len = kind === "shika" ? 3 : kind === "tanuki" ? 4.2 : 6.5;
     for (let j = 0; j < segments; j++) {
-      const joint = bone(parent, `tail.${i}.${j}`, j === 0 ? V(0, 1, -p.body[2] * 0.8) : V(0, 0, -len));
+      const joint = bone(parent, `tail.${i}.${j}`, j === 0 ? V(0, p.tailY ?? 1, -p.body[2] * 0.8) : V(0, 0, -len));
       const radius = kind === "kitsune" ? 1.5 + Math.sin(j / segments * Math.PI) * 2.5 : kind === "tanuki" ? 4 - j * 0.7 : 1.6 - j * 0.2;
       if (kind !== "kitsune" && kind !== "nekomata") {
         ellipsoid(joint, kind === "tanuki" && j % 2 === 0 ? ink : coat,
@@ -376,6 +503,69 @@ export function buildArticulatedKami(kind: KamiKind): ArticulatedKami {
     ellipsoid(charm, ink, V(0, -1.4, 0.65), V(0.1, 0.6, 0.07));
   }
 
+  // A sculpted body replaces the primitive blockout bone for bone. The
+  // skeleton, IK chains and every animation channel above stay untouched.
+  const sculpt = getSculptModel(kind);
+  if (sculpt) {
+    const parts = dressParts(sculpt);
+    const blockout: THREE.Mesh[] = [];
+    group.traverse((object) => { if (object instanceof THREE.Mesh) blockout.push(object); });
+    blockout.forEach((mesh) => mesh.removeFromParent());
+    const dress = (joint: THREE.Object3D, name: string) => {
+      const part = parts.get(name);
+      if (!part) throw new Error(`${kind} model has no "${name}" part`);
+      const mesh = new THREE.Mesh(part.geometry, part.materials);
+      mesh.name = `${joint.name}.sculpt`;
+      mesh.castShadow = mesh.receiveShadow = true;
+      joint.add(mesh);
+      return mesh;
+    };
+    if (hips) {
+      // The torso bends with the spine: rear half follows the hips, front
+      // half the chest, blended through the loins.
+      const torso = parts.get("chest");
+      if (!torso) throw new Error(`${kind} model has no "chest" part`);
+      const surface = new THREE.SkinnedMesh(skinTorso(torso.geometry), torso.materials);
+      surface.name = "torso.surface";
+      surface.castShadow = surface.receiveShadow = true;
+      surface.frustumCulled = false;
+      spine.add(surface);
+      tailSkins.push({ surface, joints: [hips, chest] });
+    } else {
+      dress(chest, "chest");
+    }
+    dress(neck, "neck"); dress(head, "head"); dress(jaw, "jaw");
+    const charmBone = group.getObjectByName("charm");
+    if (charmBone) dress(charmBone, "charm");
+    // Blinks squash the eye bone around a resting squint; the sculpted eye
+    // is authored open, so it cancels that resting scale.
+    const restSquint = kind === "kitsune" || kind === "nekomata" ? 0.7 : 1;
+    eyes.forEach((eye, i) => { dress(eye, i === 0 ? "eye_n" : "eye_p").scale.y = 1 / restSquint; });
+    brows.forEach((brow, i) => dress(brow, i === 0 ? "brow_n" : "brow_p"));
+    ears.forEach((ear, i) => dress(ear, i === 0 ? "ear_n" : "ear_p"));
+    limbs.forEach((leg, i) => {
+      const end = i < 2 ? "front" : "hind";
+      dress(leg.upper, `leg_${end}_upper`);
+      dress(leg.lower, `leg_${end}_lower`);
+      if (leg instanceof DigitigradeLeg) dress(leg.cannon, `leg_${end}_cannon`);
+      dress(leg.end, "paw");
+    });
+    const tailPart = parts.get("tail");
+    if (!tailPart) throw new Error(`${kind} model has no "tail" part`);
+    const chain = tails[0].joints;
+    const tailGeometry = skinTail(tailPart.geometry, chain.length, chain[1].position.length());
+    tailSkins.splice(0, tailSkins.length, ...tailSkins.filter((skin) => skin.surface.name === "torso.surface"));
+    for (const { joints } of tails) {
+      const surface = new THREE.SkinnedMesh(tailGeometry, tailPart.materials);
+      surface.name = `${joints[0].name}.surface`;
+      surface.position.copy(joints[0].position);
+      joints[0].parent!.add(surface);
+      surface.castShadow = surface.receiveShadow = true;
+      surface.frustumCulled = false;
+      tailSkins.push({ surface, joints });
+    }
+  }
+
   batchDetails(group);
   // Stories dispose their actors on exit. Give every character its own GPU
   // resources, while still sharing detail within an individual character.
@@ -412,9 +602,15 @@ export function buildArticulatedKami(kind: KamiKind): ArticulatedKami {
   const poseTarget = V();
   const fingers = bones.filter((b) => b.name.startsWith("finger."));
   const charm = bones.find((b) => b.name === "charm");
+  // Gait state eases toward the requested gait so footfalls re-time smoothly.
+  let gaitTarget: KamiGait = "trot";
+  const gaitNow: GaitShape = { ...GAITS.trot, offsets: [...GAITS.trot.offsets] };
+  let cycleClock = 0;
+  const girdleSpan = p.canine ? p.canine.front.z - p.canine.hind.z : 1;
 
   const build: ArticulatedKami = {
     group, skeleton, limbs,
+    setGait: (gait) => { gaitTarget = gait; },
     setGroundSampler: (ground) => { sampler = ground; },
     setPerformance(pose) {
       for (const name of Object.keys(performance) as (keyof typeof performance)[]) performance[name] = THREE.MathUtils.clamp(pose[name] ?? 0, 0, 1);
@@ -428,15 +624,57 @@ export function buildArticulatedKami(kind: KamiKind): ArticulatedKami {
       const moving = THREE.MathUtils.clamp(moving01, 0, 1);
       const dt = lastTime === undefined || t < lastTime ? 1 / 60 : Math.min(0.1, t - lastTime);
       lastTime = t;
-      const cycle = t * p.pace + phase / (Math.PI * 2);
+      const goal = GAITS[gaitTarget], ease = 1 - Math.exp(-dt * 2.5);
+      for (const key of ["duty", "stride", "pace", "lift", "bob", "flex"] as const) gaitNow[key] += (goal[key] - gaitNow[key]) * ease;
+      gaitNow.offsets.forEach((offset, i) => {
+        const turn = goal.offsets[i] - offset;
+        gaitNow.offsets[i] = ((offset + (turn - Math.round(turn)) * ease) % 1 + 1) % 1;
+      });
+      // Quadrupeds integrate their stride clock, so changing pace never jumps.
+      if (quadruped) cycleClock += dt * p.pace * gaitNow.pace;
+      const cycle = (quadruped ? cycleClock : t * p.pace) + phase / (Math.PI * 2);
+      if (quadruped) feet.forEach((foot, i) => {
+        foot.duty = gaitNow.duty;
+        foot.stride = p.stride * gaitNow.stride;
+        foot.lift = p.hipY * 0.23 * gaitNow.lift;
+        foot.phaseOffset = gaitNow.offsets[i];
+      });
       const gait = cycle * Math.PI * 2;
       const breath = Math.sin(t * 1.7 + phase);
+      // 0 at a trot or slower, 1 in a full gallop.
+      const gallop = THREE.MathUtils.clamp((gaitNow.flex - GAITS.trot.flex) / (GAITS.gallop.flex - GAITS.trot.flex), 0, 1) * moving;
       // Outer group transforms belong to placement/story choreography.
-      pelvis.position.y = (Math.cos(gait * 2) * 0.35 + 0.35) * moving;
+      pelvis.position.y = hips ? 0 : (Math.cos(gait * 2) * 0.35 + 0.35) * moving;
       spine.rotation.z = Math.sin(gait) * moving * (quadruped ? 0.025 : 0.045);
       chest.rotation.y = Math.sin(gait) * moving * (quadruped ? 0.025 : 0.055);
       chest.scale.set(1 + breath * 0.008, 1 + breath * 0.012, 1);
+      let chestPitch = 0;
+      if (hips) {
+        // Body IK: chest and hips are two bouncing girdles. Each sinks while
+        // its own legs carry weight and follows the ground under its paws;
+        // their height difference pitches the body. The spine flexes as the
+        // paws gather under the body and extends as they stretch apart, so
+        // the gallop's flex/extension comes straight from the footfalls.
+        const meanLoad = gaitNow.duty * 2 / Math.PI;
+        let loadF = 0, loadH = 0, reachF = 0, reachH = 0;
+        feet.forEach((foot, i) => {
+          const load = (foot.load(cycle) - meanLoad) / 2, reach = foot.forward(cycle) / 2;
+          if (i < 2) { loadF += load; reachF += reach; } else { loadH += load; reachH += reach; }
+        });
+        const heightF = (feet[0].support + feet[1].support) * 0.4 - loadF * gaitNow.bob * moving;
+        const heightH = (feet[2].support + feet[3].support) * 0.4 - loadH * gaitNow.bob * 1.25 * moving;
+        const flex = (reachH - reachF) * 0.5 * gaitNow.flex * moving;
+        spine.position.y = p.bodyY + (heightF + heightH) / 2 + Math.max(0, flex) * 6;
+        spine.rotation.x = -Math.atan2(heightF - heightH, girdleSpan);
+        chest.rotation.x = flex;
+        hips.rotation.x = -flex;
+        // The hips counter-rotate against the chest's twist toward the lead.
+        hips.rotation.y = -chest.rotation.y * 0.8;
+        chestPitch = spine.rotation.x + flex;
+      }
       neck.rotation.x = Math.sin(t * 1.1 + phase) * 0.035 + Math.cos(gait) * moving * 0.04;
+      // The head stays level while the chest pitches, and reaches out at a gallop.
+      neck.rotation.x += -chestPitch * 0.75 + gallop * 0.18;
       const attention = Math.sin(t * 0.43 + phase) * Math.sin(t * 0.17 + phase);
       head.rotation.y = attention * (1 - moving * 0.7) * 0.3;
       head.rotation.z = Math.sin(t * 0.61 + phase) * 0.06 * (1 - moving);
@@ -452,11 +690,14 @@ export function buildArticulatedKami(kind: KamiKind): ArticulatedKami {
       brows.forEach((b, i) => { b.rotation.z = (i === 0 ? -1 : 1) * (kind === "oni" ? -0.2 : 0.08) + attention * 0.08; });
       ears.forEach((ear, i) => {
         ear.rotation.z = (i === 0 ? 1 : -1) * 0.1 + Math.sin(t * 0.9 + phase + i) * 0.1;
-        ear.rotation.x = Math.pow(Math.max(0, Math.sin(t * 1.6 + phase + i * 2)), 16) * 0.28;
+        ear.rotation.x = Math.pow(Math.max(0, Math.sin(t * 1.6 + phase + i * 2)), 16) * 0.28 - gallop * 0.4;
       });
+      // At speed the tails stream out behind and ripple with each bound.
       tails.forEach(({ joints, spread, index }) => joints.forEach((joint, j) => {
-        joint.rotation.y = (j === 0 ? spread : 0) + Math.sin(t * 1.4 + phase + index * 0.7 - j * 0.55) * 0.12;
-        joint.rotation.x = (j === 0 ? 0.42 + (index % 3) * 0.15 : 0.12) + Math.sin(t * (1.8 + performance.joy) + phase - j * 0.5 + index) * (0.1 + performance.cast * 0.12);
+        joint.rotation.y = (j === 0 ? spread * (1 - gallop * 0.35) : 0) + Math.sin(t * 1.4 + phase + index * 0.7 - j * 0.55) * 0.12;
+        joint.rotation.x = (j === 0 ? 0.42 + (index % 3) * 0.15 - gallop * 0.32 : 0.12 - gallop * 0.06)
+          + Math.sin(t * (1.8 + performance.joy) + phase - j * 0.5 + index) * (0.1 + performance.cast * 0.12)
+          + Math.sin(gait - j * 0.9) * gallop * 0.09;
       }));
       trunk.forEach((joint, i) => { joint.rotation.x = -0.14 + Math.sin(t * 1.1 + phase - i * 0.35) * 0.13; joint.rotation.z = Math.sin(t * 0.7 + phase - i * 0.3) * 0.06; });
       if (charm) charm.rotation.x = Math.sin(gait + 0.8) * 0.22 * moving + breath * 0.04;
