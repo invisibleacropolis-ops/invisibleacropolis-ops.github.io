@@ -426,13 +426,17 @@ export const createGrassField = (): GrassField => {
   // Level of detail in rings around the camera, dither-cross-fading where
   // they meet. Each ring is coarser, its tufts bigger and cheaper: crossed
   // cards with a bending joint up close, then single cards, then (past
-  // ~1 km, where a tuft is a few pixels) one camera-facing card. The last
-  // ring reaches the foothills from anywhere in the valley.
+  // ~1.2 km, where a tuft is a few pixels) one camera-facing card. Tufts
+  // stay about twice as wide as their spacing in every ring, so the meadow
+  // reads as full cover all the way out; the last ring runs to the fog line
+  // (8.6 km), covering the whole valley from anywhere in it.
+  // Budget: ~0.9M triangles, about 1 ms a frame on a laptop RTX-class GPU;
+  // the near ring dominates, so widen it last.
   const rings: Array<[string, PatchOptions]> = [
-    ["grass-near", { cells: 150, spacing: 6.5, fade: [380, 470], hole: [-2, -1], size: [14, 14], segments: 2, cards: 3 }],
-    ["grass-mid", { cells: 140, spacing: 15, fade: [880, 1150], hole: [380, 470], size: [26, 17], segments: 1, cards: 3 }],
-    ["grass-far", { cells: 132, spacing: 37, fade: [2100, 2450], hole: [880, 1150], size: [58, 26], segments: 1, cards: 1 }],
-    ["grass-horizon", { cells: 122, spacing: 88, fade: [4700, 5300], hole: [2100, 2450], size: [130, 38], segments: 1, cards: 1 }],
+    ["grass-near", { cells: 196, spacing: 6.5, fade: [520, 620], hole: [-2, -1], size: [14, 14], segments: 2, cards: 3 }],
+    ["grass-mid", { cells: 210, spacing: 13, fade: [1180, 1340], hole: [520, 620], size: [28, 17], segments: 1, cards: 3 }],
+    ["grass-far", { cells: 216, spacing: 30, fade: [2900, 3200], hole: [1180, 1340], size: [64, 26], segments: 1, cards: 1 }],
+    ["grass-horizon", { cells: 236, spacing: 72, fade: [7600, 8400], hole: [2900, 3200], size: [152, 40], segments: 1, cards: 1 }],
   ];
   const patches = rings.map(([name, options]) => {
     const patch = createPatch(atlas, heights, mask, options);
