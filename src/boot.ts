@@ -6,10 +6,18 @@
  */
 const params = new URLSearchParams(window.location.search);
 
+// Sculpted kami bodies must be registered before the world builds its cast;
+// a failed fetch leaves those kami on their procedural bodies.
+const withKamiModels = (start: () => Promise<unknown>) =>
+  import("./yokai/kamiModels.ts")
+    .then(({ preloadKamiModels }) => preloadKamiModels(import.meta.env.BASE_URL))
+    .catch((error) => console.warn("Kakuriyo: sculpted kami unavailable", error))
+    .then(start);
+
 if (params.has("kami")) {
-  void import("./yokai/kamiStudio.ts");
+  void withKamiModels(() => import("./yokai/kamiStudio.ts"));
 } else if (params.has("classic")) {
   void import("./index.ts");
 } else {
-  void import("./yokai/main.ts");
+  void withKamiModels(() => import("./yokai/main.ts"));
 }
