@@ -5,6 +5,7 @@ import { POND_CENTER, VILLAGE_CENTER, VILLAGE_HEIGHT, heightAt } from "./terrain
 import { paddyTexture, plasterTexture, thatchTexture, woodTexture } from "./textures.ts";
 import { reserve, reserveLine } from "./occupancy.ts";
 import { archPiece } from "./archKit.ts";
+import { createFlipbook } from "./vfx.ts";
 
 /**
  * The farm hamlet: steep-roofed thatched minka gathered on their shelf of
@@ -22,6 +23,8 @@ export type Village = {
   bridgeCrossing: THREE.Vector3[];
   /** Actual deck and terrace surfaces, for grounded story choreography. */
   walkableY: (x: number, z: number) => number;
+  /** Chimney smoke curling from the lived-in houses. */
+  update: (t: number) => void;
 };
 
 const buildMinka = (
@@ -80,6 +83,7 @@ export const createVillage = (): Village => {
   const group = new THREE.Group();
   const walkable: THREE.Mesh[] = [];
   const rng = createRng(0x0714);
+  const chimneys: THREE.Vector3[] = [];
 
   const thatchMat = toonTex(thatchTexture());
   const wallMat = toonTex(plasterTexture("#e8dfc8"));
@@ -106,6 +110,12 @@ export const createVillage = (): Village => {
     house.position.set(x, heightAt(x, z) - 1, z);
     house.rotation.y = -angle + Math.PI / 2 + (rng() - 0.5) * 0.4;
     group.add(house);
+    // Every other house has a hearth going: smoke leaves its ridge.
+    if (i % 2 === 0) {
+      house.updateMatrixWorld(true);
+      const bounds = new THREE.Box3().setFromObject(house);
+      chimneys.push(bounds.getCenter(new THREE.Vector3()).setY(bounds.max.y - 6));
+    }
     reserve(x, z, 130);
   }
 
@@ -225,10 +235,26 @@ export const createVillage = (): Village => {
   group.add(well);
   reserve(VILLAGE_CENTER.x, VILLAGE_CENTER.y, 80);
 
+  /* ── Hearth smoke: thin cel-shaded wisps (the Blender-baked flipbook),
+   * rising slowly and leaning away on the valley wind. */
+  const smoke = createFlipbook({
+    atlas: "puff", capacity: 120, colors: ["#8d8a86", "#d9d5cd", "#f7f3ea"],
+    drag: 0.5, gravity: -3, turbulence: 7, wind: 0.9, growth: 3.2, spin: 0.3, opacity: 0.8,
+  });
+  group.add(smoke.group);
+  let lastT: number | undefined;
+  const update = (t: number) => {
+    const dt = lastT === undefined || t < lastT ? 0 : Math.min(0.1, t - lastT);
+    lastT = t;
+    for (const at of chimneys) smoke.stream(dt, 1.4, at, { count: 1, spread: 4, speed: 9, upward: 2.2, size: 14, life: 7 });
+    smoke.update(t);
+  };
+
   return {
     group,
     square: new THREE.Vector3(VILLAGE_CENTER.x, wy, VILLAGE_CENTER.y),
     bridgeCrossing,
     walkableY,
+    update,
   };
 };
