@@ -110,7 +110,7 @@
     }
   },
   "operator": {
-    "mission": "Pursue the owner objective as quickly, efficiently and effectively as possible with real funds inside the agentic account. No proposal, per-trade approval or activation dependency. Preserve past evidence and actual future attendance.",
+    "mission": "Pursue the owner objective with full discretion over the funds and holdings in the Agentic Account. Choose how much capital to deploy or hold as current broker buying power and positions change. Execute decisions directly and preserve evidence and future attendance.",
     "run_budget": {
       "hard_limit_minutes": 30,
       "includes_startup": true,
@@ -122,6 +122,11 @@
       "rpc": "execution_capabilities",
       "also_in": "session_start.data.brief.capabilities",
       "rule": "Read current scope, mode and effective permissions. A capability declaration does not grant authorization."
+    },
+    "history": {
+      "sessions_rpc": "session_history",
+      "research_rpc": "research_catalog",
+      "rule": "Browse metadata first. Resolve a session or file ID directly and open only relevant sources. For older pages, pass next.at and next.id as p_before_at and p_before_id with the same filters."
     },
     "execution": {
       "account_scope": "agentic",

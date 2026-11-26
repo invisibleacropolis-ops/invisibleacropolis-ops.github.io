@@ -10,13 +10,13 @@
 </head>
 <body>
 <h1>RHDesk: start here (AI agents)</h1>
-<p>RHDesk is the shared, recorded workspace for one owner and its agents. <strong>The owner supplies the objective; the
-Operator–Executor researches, develops strategy and executes autonomously with real funds inside the designated
-agentic account.</strong> There is no normal proposal queue, per-trade approval or owner activation step.</p>
+<p>RHDesk is the shared workspace for one owner and its agents. <strong>The owner sets the objective. The Operator has full
+discretion over the funds and holdings in the designated Agentic Account.</strong> Choose how much capital to deploy or hold,
+which strategies to pursue, what to trade and when to enter, exit or protect a position. Funding changes your available
+capital through the broker. The Operator executes decisions directly.</p>
 <p>Machine-readable: <a href="https://invisibleacropolis-ops.github.io/RHDesk/agent.json">agent.json</a> · <a href="https://invisibleacropolis-ops.github.io/RHDesk/openapi.json">API spec</a> · <a href="https://invisibleacropolis-ops.github.io/RHDesk/agent.md">Markdown</a></p>
-<p><strong>Protocol: 31 October 2026.</strong> This guide describes the checked-in contract, not proof of current cloud deployment,
-connection status, account eligibility or an existing agent&#39;s authority. Read the actual capabilities returned by the
-Desk. Never infer execution rights from a capability declaration, research access or another account&#39;s visibility.</p>
+<p><strong>Protocol v1 · Guide updated November 26, 2026.</strong> Read the Desk’s returned capabilities for your identity’s current
+execution authority. Use broker reads and refresh to check the connection and current account state.</p>
 <h2>1. Identity and first call</h2>
 <p>The built-in runner claims a configured run through <code>agent-control</code>; the Operator receives its temporary
 <code>operator+execute</code> grant without a second orders switch or a pairing ceremony. It receives its model credential
@@ -70,6 +70,14 @@ Stale versions require reload, never financial resubmission. External sessions r
 supported by a future server-side enrollment flow; matching labels/models do not confer the built-in identity.
 No receipt, narrative or historical book extends a grant or changes execution authority. Economics retains uncertain
 chronology, unpriced costs and unassigned history; known selected-lot realized results are not period/net P&amp;L or skill.</p>
+<h3>Find older work on demand</h3>
+<p>Use <code>desk session history --from YYYY-MM-DD --to YYYY-MM-DD</code> to browse a New York date range or pass
+<code>--session &lt;id&gt;</code> to find a run&#39;s report, diary and chapter IDs together. Given a file ID, use <code>--record &lt;id&gt;</code>
+with <code>--kind report</code>, <code>diary</code> or <code>chapter</code>. Read the relevant original by ID.</p>
+<p>Use <code>desk doc browse --symbol &lt;symbol&gt; --query &quot;&lt;keywords&gt;&quot;</code> to find research by title and summary across the
+library. Combine with <code>--kind</code>, <code>--collection</code>, <code>--tag</code> or <code>--pinned</code> when useful. Use semantic recall to find
+passages within sources. For either catalog, pass <code>next.at</code> and <code>next.id</code> as <code>--before-at</code> and <code>--before-id</code> to
+retrieve the next older page with the same filters. The RPC equivalents are <code>session_history</code> and <code>research_catalog</code>.</p>
 <p><code>cash_report_evidence(p_account_id,p_from,p_to)</code> reads sanitized committed owner-document components for fully
 contained report dates. These are unverified/date-only sources, not live broker truth: no raw CSV/PDF access, exact
 transaction times, coverage certification, account permission or timed-return claims. Flagged records and missing
@@ -124,9 +132,9 @@ Read <code>data.brief.capabilities</code> and refresh <code>execution_capabiliti
 remain real technical constraints. Historical constrained-policy APIs exist for demo/local compatibility, not as an
 additional permission layer in normal funded operation.</p>
 <h2>3. Research, strategy and direct execution</h2>
-<p>The goal is sufficient direction. You own strategy, candidates, sizing, entries, exits and optional protection. Use
-<code>strategy_record</code> with actual evidence and a review condition; <code>p_mandate_id:null</code> associates the hypothesis with the
-active owner goal without an activation request. Do not silently reactivate historical paused/retired objectives.</p>
+<p>An active owner objective is sufficient direction. Choose strategy, candidates, concentration, sizing, entries, exits
+and optional protection. Use the full available account when your judgment supports it. For a durable hypothesis, use
+<code>strategy_record</code> with evidence, a review condition and <code>p_mandate_id:null</code> to associate it with the current active goal.</p>
 <p>Use provider-native <code>web_search</code>, broker discovery/history/fundamentals, <code>research_read</code> (page capture) and optional
 <code>langsearch</code>. Native and LangSearch source metadata is preserved in Research. External agents use their own harness
 search and should preserve sources with <code>document_add</code> or <code>POST /functions/v1/clip</code>. Search results do not establish
@@ -261,11 +269,11 @@ on invalid transitions. Expired/revoked grants require a new authorized identity
 stale/incomplete broker state with authoritative refresh; never supply balances or fills yourself. Reconcile uncertain
 intents rather than changing keys. <code>retired_setting</code>/<code>retired_workflow</code> means use the autonomous contract, not another
 approval ceremony. Report signing/ending means new operational work needs a new session.</p>
-<p>The site is the owner&#39;s observational/control surface: account/outcomes, objectives, research, history, agents,
-access security and emergency stop. The historical <code>/proposals</code> URL is read-only execution history, not an approval
-screen. <code>/mandates</code> is objectives/strategy/history, without sizing/activation controls. Pages retain stable
-<code>data-testid</code> attributes and exact loaded data in <code>&lt;script id=&quot;desk-state&quot; type=&quot;application/json&quot;&gt;</code>; this is not a
-new authentication channel. The API is the primary operational interface.</p>
+<p>The API is the Operator’s primary interface. The owner sets objectives at <code>/mandates</code> and uses <code>/agents</code> for schedules,
+run details, configuration and the trader dossier. <code>/journal</code> groups reports, diaries and chapters by session.
+<code>/research</code> browses source collections and <code>/archive</code> provides archived records and the research storage inventory.
+<code>/proposals</code> shows execution records with original checks in each source record. <code>/accounts</code> shows broker orders,
+balances and funding evidence. <code>/access</code> manages external agent identities.</p>
 
 </body>
 </html>

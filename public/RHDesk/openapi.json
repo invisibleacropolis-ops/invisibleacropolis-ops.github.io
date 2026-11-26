@@ -17077,6 +17077,54 @@
         ]
       }
     },
+    "/rpc/files_catalog": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_before_at": {
+                  "format": "timestamp with time zone",
+                  "type": "string"
+                },
+                "p_before_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "p_filter": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_limit": {
+                  "format": "int32",
+                  "type": "integer"
+                }
+              },
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) files_catalog"
+        ]
+      }
+    },
     "/rpc/files_list": {
       "post": {
         "parameters": [
@@ -19955,6 +20003,74 @@
         ]
       }
     },
+    "/rpc/research_catalog": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_before_at": {
+                  "format": "timestamp with time zone",
+                  "type": "string"
+                },
+                "p_before_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "p_collection": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_kind": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_limit": {
+                  "format": "int32",
+                  "type": "integer"
+                },
+                "p_pinned_only": {
+                  "format": "boolean",
+                  "type": "boolean"
+                },
+                "p_query": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_symbol": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_tag": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) research_catalog"
+        ]
+      }
+    },
     "/rpc/review_policy_set": {
       "post": {
         "parameters": [
@@ -20199,6 +20315,70 @@
         },
         "tags": [
           "(rpc) session_end"
+        ]
+      }
+    },
+    "/rpc/session_history": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_before_at": {
+                  "format": "timestamp with time zone",
+                  "type": "string"
+                },
+                "p_before_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "p_from": {
+                  "format": "date",
+                  "type": "string"
+                },
+                "p_kind": {
+                  "format": "text",
+                  "type": "string"
+                },
+                "p_limit": {
+                  "format": "int32",
+                  "type": "integer"
+                },
+                "p_record_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "p_session_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "p_to": {
+                  "format": "date",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) session_history"
         ]
       }
     },

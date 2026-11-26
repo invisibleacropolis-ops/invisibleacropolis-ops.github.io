@@ -1,14 +1,14 @@
 # RHDesk: start here (AI agents)
 
-RHDesk is the shared, recorded workspace for one owner and its agents. **The owner supplies the objective; the
-Operator–Executor researches, develops strategy and executes autonomously with real funds inside the designated
-agentic account.** There is no normal proposal queue, per-trade approval or owner activation step.
+RHDesk is the shared workspace for one owner and its agents. **The owner sets the objective. The Operator has full
+discretion over the funds and holdings in the designated Agentic Account.** Choose how much capital to deploy or hold,
+which strategies to pursue, what to trade and when to enter, exit or protect a position. Funding changes your available
+capital through the broker. The Operator executes decisions directly.
 
 Machine-readable: [agent.json](https://invisibleacropolis-ops.github.io/RHDesk/agent.json) · [API spec](https://invisibleacropolis-ops.github.io/RHDesk/openapi.json) · [Markdown](https://invisibleacropolis-ops.github.io/RHDesk/agent.md)
 
-**Protocol: 31 October 2026.** This guide describes the checked-in contract, not proof of current cloud deployment,
-connection status, account eligibility or an existing agent's authority. Read the actual capabilities returned by the
-Desk. Never infer execution rights from a capability declaration, research access or another account's visibility.
+**Protocol v1 · Guide updated November 26, 2026.** Read the Desk’s returned capabilities for your identity’s current
+execution authority. Use broker reads and refresh to check the connection and current account state.
 
 ## 1. Identity and first call
 
@@ -77,6 +77,17 @@ supported by a future server-side enrollment flow; matching labels/models do not
 No receipt, narrative or historical book extends a grant or changes execution authority. Economics retains uncertain
 chronology, unpriced costs and unassigned history; known selected-lot realized results are not period/net P&L or skill.
 
+### Find older work on demand
+
+Use `desk session history --from YYYY-MM-DD --to YYYY-MM-DD` to browse a New York date range or pass
+`--session <id>` to find a run's report, diary and chapter IDs together. Given a file ID, use `--record <id>`
+with `--kind report`, `diary` or `chapter`. Read the relevant original by ID.
+
+Use `desk doc browse --symbol <symbol> --query "<keywords>"` to find research by title and summary across the
+library. Combine with `--kind`, `--collection`, `--tag` or `--pinned` when useful. Use semantic recall to find
+passages within sources. For either catalog, pass `next.at` and `next.id` as `--before-at` and `--before-id` to
+retrieve the next older page with the same filters. The RPC equivalents are `session_history` and `research_catalog`.
+
 `cash_report_evidence(p_account_id,p_from,p_to)` reads sanitized committed owner-document components for fully
 contained report dates. These are unverified/date-only sources, not live broker truth: no raw CSV/PDF access, exact
 transaction times, coverage certification, account permission or timed-return claims. Flagged records and missing
@@ -114,9 +125,9 @@ additional permission layer in normal funded operation.
 
 ## 3. Research, strategy and direct execution
 
-The goal is sufficient direction. You own strategy, candidates, sizing, entries, exits and optional protection. Use
-`strategy_record` with actual evidence and a review condition; `p_mandate_id:null` associates the hypothesis with the
-active owner goal without an activation request. Do not silently reactivate historical paused/retired objectives.
+An active owner objective is sufficient direction. Choose strategy, candidates, concentration, sizing, entries, exits
+and optional protection. Use the full available account when your judgment supports it. For a durable hypothesis, use
+`strategy_record` with evidence, a review condition and `p_mandate_id:null` to associate it with the current active goal.
 
 Use provider-native `web_search`, broker discovery/history/fundamentals, `research_read` (page capture) and optional
 `langsearch`. Native and LangSearch source metadata is preserved in Research. External agents use their own harness
@@ -287,8 +298,8 @@ stale/incomplete broker state with authoritative refresh; never supply balances 
 intents rather than changing keys. `retired_setting`/`retired_workflow` means use the autonomous contract, not another
 approval ceremony. Report signing/ending means new operational work needs a new session.
 
-The site is the owner's observational/control surface: account/outcomes, objectives, research, history, agents,
-access security and emergency stop. The historical `/proposals` URL is read-only execution history, not an approval
-screen. `/mandates` is objectives/strategy/history, without sizing/activation controls. Pages retain stable
-`data-testid` attributes and exact loaded data in `<script id="desk-state" type="application/json">`; this is not a
-new authentication channel. The API is the primary operational interface.
+The API is the Operator’s primary interface. The owner sets objectives at `/mandates` and uses `/agents` for schedules,
+run details, configuration and the trader dossier. `/journal` groups reports, diaries and chapters by session.
+`/research` browses source collections and `/archive` provides archived records and the research storage inventory.
+`/proposals` shows execution records with original checks in each source record. `/accounts` shows broker orders,
+balances and funding evidence. `/access` manages external agent identities.
